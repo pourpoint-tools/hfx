@@ -4,11 +4,15 @@ on:
   pull_request:
     paths:
       - docs/**
+      - README.md
+      - assets/**
       - .github/workflows/docs.yml
   push:
     branches: [main]
     paths:
       - docs/**
+      - README.md
+      - assets/**
       - .github/workflows/docs.yml
   workflow_dispatch:
 
@@ -22,16 +26,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Check private source access
-        env:
-          READ_KEY: ${{ secrets.POURPOINT_DOCS_READ_KEY }}
-        run: test -n "$READ_KEY" || { echo "Configure POURPOINT_DOCS_READ_KEY with read-only deploy access to Pourpoint"; exit 1; }
       - uses: actions/checkout@v4
         with:
           repository: pourpoint-tools/pourpoint
           ref: main
           path: .pourpoint
-          ssh-key: ${{ secrets.POURPOINT_DOCS_READ_KEY }}
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
       - name: Build proposed HFX content with shared site configuration
