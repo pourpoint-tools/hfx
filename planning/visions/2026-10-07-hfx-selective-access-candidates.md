@@ -5,7 +5,7 @@ HydroBASINS bundle. Give the maintainer actual datasets and a precise file contr
 so a separate effort can build readers and benchmark them. Preserve the originals.
 These are experimental alternatives, not an approved HFX release.
 
-Related research: [HFX issue #1](https://github.com/pourpoint-tools/hfx/issues/1).
+Related research: [HFX issue #256](https://github.com/pourpoint-tools/hfx/issues/256).
 This is a standalone vision, not a Program Effort. Its scope is narrower than the
 issue's research agenda: **produce candidates, not readers or benchmarks**.
 It does not resume Pourpoint Effort #3 or change Pourpoint's current input contract.
@@ -23,7 +23,7 @@ The recorded GRIT initialization took 22.7 minutes with the graph already cached
 including 5,458 preparation requests and about 1.25 GB of response payload. This
 was global preparation, not complete delineation timing and not evidence that
 WKB decoding is the bottleneck. See the
-[pause report](https://github.com/pourpoint-tools/pourpoint/issues/3#issuecomment-6026921887).
+[pause report](https://github.com/pourpoint-tools/pourpoint/issues/184#issuecomment-6026921887).
 Prioritize eliminating expensive prerequisites and unnecessary data access rather
 than speculative millisecond savings.
 

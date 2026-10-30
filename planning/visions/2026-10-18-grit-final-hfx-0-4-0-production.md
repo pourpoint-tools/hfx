@@ -2,7 +2,7 @@
 
 Publish the complete global GRIT dataset under the finalized working HFX 0.4.0
 layout so Pourpoint can finalize its reader and runtime representation.
-Effort: [HFX #43](https://github.com/pourpoint-tools/hfx/issues/43).
+Effort: [HFX #258](https://github.com/pourpoint-tools/hfx/issues/258).
 
 ## Settled direction
 
@@ -52,7 +52,7 @@ other range-readable object stores. Prefer native formats and minimal supporting
 code rather than a new general toolkit.
 
 Use the [physical-layout findings](../../experiments/data_interface/PHYSICAL_LAYOUT.md)
-and [#35 discussion](https://github.com/pourpoint-tools/hfx/issues/35) as evidence.
+and [#265 discussion](https://github.com/pourpoint-tools/hfx/issues/265) as evidence.
 River GeoParquet has full preservation evidence; catchment/node GeoParquet behavior
 and GeoParquet relationship-to-record composition still need production checks.
 These are tasks within this effort, not reasons to restart format selection.
@@ -137,7 +137,7 @@ reported public location, unchanged accessible rasters, successful final public
 reads, and accounted-for cleanup within the approved budget.
 
 After delivery, post a concise comment on
-[Pourpoint issue #36](https://github.com/pourpoint-tools/pourpoint/issues/36)
+[Pourpoint issue #187](https://github.com/pourpoint-tools/pourpoint/issues/187)
 (the adjacent `../pourpoint` repository). Link the settled contract, final manifest
 and verification evidence; explain access semantics, compatibility implications
 and material limitations so the maintainer can finalize the reader and runtime

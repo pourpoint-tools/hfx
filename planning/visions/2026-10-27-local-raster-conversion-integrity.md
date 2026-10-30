@@ -1,6 +1,6 @@
 # Local raster conversion integrity
 
-Repair [HFX issue #65](https://github.com/pourpoint-tools/hfx/issues/65): spatial
+Repair [HFX issue #261](https://github.com/pourpoint-tools/hfx/issues/261): spatial
 conversion must not emit a bundle that declares local rasters but omits their
 files or artifact identities, and verification must not accept that result.
 Implementation of this vision completes #65; publishing this document does not.

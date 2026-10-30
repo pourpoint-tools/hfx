@@ -5,9 +5,9 @@ reads, using small samples locally and on R2. The maintainer wants measurements
 to inform their own later decisions, not a recommended encoding or a judgment
 about whether a global rewrite is worthwhile.
 
-This vision settles the experiment in [HFX #7](https://github.com/pourpoint-tools/hfx/issues/7).
+This vision settles the experiment in [HFX #260](https://github.com/pourpoint-tools/hfx/issues/260).
 It supersedes that issue's local-first restriction and request for a rewrite
-recommendation. Return the results to [HFX #6](https://github.com/pourpoint-tools/hfx/issues/6),
+recommendation. Return the results to [HFX #262](https://github.com/pourpoint-tools/hfx/issues/262),
 which remains in discovery. Do not implement a raster contract or change production.
 
 ## Experiment

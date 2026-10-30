@@ -4,7 +4,7 @@ Finish HFX 0.4.0 so rivers are stored as connected features in their own right,
 with snapping as one use of that data. Deliver a lean normative Markdown contract
 and a verified public GRIT bundle using it. Specification alone is not completion.
 
-Related HFX issue: https://github.com/pourpoint-tools/hfx/issues/17
+Related HFX issue: https://github.com/pourpoint-tools/hfx/issues/266
 
 This standalone vision records the confirmed discovery outcome. It expands #17's
 original format-only scope to include full GRIT production and publication. TDX
@@ -297,7 +297,7 @@ Delivery is complete when:
 
 Do not implement runtime representation, readers, API changes or engine behavior
 in `../pourpoint`. Useful measured findings may be posted as evidence comments on
-[Pourpoint #36](https://github.com/pourpoint-tools/pourpoint/issues/36), separating
+[Pourpoint #187](https://github.com/pourpoint-tools/pourpoint/issues/187), separating
 observations from recommendations. This permission does not authorize changing
 its code, publishing a runtime design, changing its Program, or marking it complete.
 The current Pourpoint reader is not presumed compatible with the revised contract.

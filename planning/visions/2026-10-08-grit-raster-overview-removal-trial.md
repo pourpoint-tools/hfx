@@ -1,8 +1,8 @@
 # GRIT raster overview removal trial
 
-Run a short, bounded experiment for [HFX #10](https://github.com/pourpoint-tools/hfx/issues/10)
+Run a short, bounded experiment for [HFX #257](https://github.com/pourpoint-tools/hfx/issues/257)
 to find a practical way to remove raster overviews without changing native data.
-Return the evidence to [#6](https://github.com/pourpoint-tools/hfx/issues/6) so the
+Return the evidence to [#262](https://github.com/pourpoint-tools/hfx/issues/262) so the
 maintainer can decide how to run the global rewrite. This vision authorizes the
 small trial, not global processing or a production publication.
 

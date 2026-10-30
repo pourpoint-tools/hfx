@@ -113,8 +113,8 @@ Relevant evidence:
 
 - [Candidate contract](../../docs/selective-access-candidates.md).
 - [Local candidate verification](../../docs/candidate-results.md).
-- [Pourpoint reader work](https://github.com/pourpoint-tools/pourpoint/issues/3).
-- [Reader experiments](https://github.com/pourpoint-tools/pourpoint/issues/19).
+- [Pourpoint reader work](https://github.com/pourpoint-tools/pourpoint/issues/184).
+- [Reader experiments](https://github.com/pourpoint-tools/pourpoint/issues/183).
 - Pourpoint's `experiments/catchment_read/results/README.md`,
   `http_results/README.md`, and `hetzner_results/README.md` describe local,
   loopback HTTP, and real object-store measurements. These are linked from the

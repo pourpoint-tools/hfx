@@ -6,8 +6,8 @@ requests and bulk reads efficient. Return an evidence-backed recommendation for
 maintainer discussion; this work does not adopt a production contract or re-wrangle
 the production publication.
 
-Related: [HFX #35](https://github.com/pourpoint-tools/hfx/issues/35).
-Coordinate findings with [Pourpoint #36](https://github.com/pourpoint-tools/pourpoint/issues/36)
+Related: [HFX #265](https://github.com/pourpoint-tools/hfx/issues/265).
+Coordinate findings with [Pourpoint #187](https://github.com/pourpoint-tools/pourpoint/issues/187)
 before its final reader/runtime design. This is the focused follow-up to the
 [completed interface experiments](2026-10-16-hfx-data-interface-experiments-with-grit.md),
 not a restart of broad architecture discovery. Preserve those experiments and receipts.
@@ -48,9 +48,9 @@ Read all comments on #35, the merged [findings](../../experiments/data_interface
 [candidate sketch](../../experiments/data_interface/README.md). The
 [current vector contract](../../docs/v0.4.0/vector-data.md) describes the existing
 publication, not a compatibility constraint for this investigation. PRs
-[#32](https://github.com/pourpoint-tools/hfx/pull/32),
-[#36](https://github.com/pourpoint-tools/hfx/pull/36) and
-[#37](https://github.com/pourpoint-tools/hfx/pull/37) preserve delivery and experiment context.
+[#32](https://github.com/pourpoint-tools/hfx-rewrite-backup/pull/32),
+[#36](https://github.com/pourpoint-tools/hfx-rewrite-backup/pull/36) and
+[#37](https://github.com/pourpoint-tools/hfx-rewrite-backup/pull/37) preserve delivery and experiment context.
 
 R2 is the practical development and measurement target, not a format dependency.
 The layout and access contract must remain portable to AWS S3, Hetzner object storage

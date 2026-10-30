@@ -5,8 +5,8 @@ using the delivered GRIT dataset. Return findings for the maintainer to discuss
 before finalizing the format. This is an experiment handoff, not approval to adopt
 a production layout or re-wrangle the public dataset.
 
-Related: [HFX #35](https://github.com/pourpoint-tools/hfx/issues/35).
-Coordinate the findings with [Pourpoint #36](https://github.com/pourpoint-tools/pourpoint/issues/36).
+Related: [HFX #265](https://github.com/pourpoint-tools/hfx/issues/265).
+Coordinate the findings with [Pourpoint #187](https://github.com/pourpoint-tools/pourpoint/issues/187).
 
 ## Outcome and design direction
 
@@ -41,7 +41,7 @@ Do not build a universal query optimizer or an index for every source column.
 
 The eventual goal, after the maintainer reviews this evidence and settles the
 contract, is a fully verified re-wrangled GRIT publication on public R2, comparable
-in delivery rigor to [PR #32](https://github.com/pourpoint-tools/hfx/pull/32).
+in delivery rigor to [PR #32](https://github.com/pourpoint-tools/hfx-rewrite-backup/pull/32).
 That production phase needs a subsequent agreed vision or revision of this one.
 
 ## Consumer workflows informing the tests

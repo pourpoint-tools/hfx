@@ -8,7 +8,7 @@ is accepted for this follow-on delivery.
 ## Completed delivery and new scope
 
 The accepted 62-river/59-polygon delivery completed
-[HFX #33](https://github.com/pourpoint-tools/hfx/issues/33), which is closed.
+[HFX #263](https://github.com/pourpoint-tools/hfx/issues/263), which is closed.
 Its [consumer handoff](../../docs/v0.4.0/tdx-handoff.md) and
 [verification receipt](../../docs/v0.4.0/receipts/tdx-delivery.json) remain the record
 of that valid partial-coverage delivery: 15,940,505 rivers and 13,890,015 catchments.
@@ -125,7 +125,7 @@ all-62-basin coverage, measured counts, hashes and verification receipts, approv
 mapping, limitations and cost/cleanup evidence. Update current normalization guidance
 to distinguish the full-coverage target from the historical partial delivery without
 rewriting historical evidence. Coordinate consumer changes through
-[Pourpoint #44](https://github.com/pourpoint-tools/pourpoint/issues/44); shared version
+[Pourpoint #177](https://github.com/pourpoint-tools/pourpoint/issues/177); shared version
 numbers and HFX probes do not establish Pourpoint compatibility or authorize its
 implementation.
 

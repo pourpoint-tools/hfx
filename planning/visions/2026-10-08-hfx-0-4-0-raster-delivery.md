@@ -4,7 +4,7 @@ Make the existing GRIT HFX 0.4.0 publication self-contained: its root manifest
 must identify both the delivered vectors and a native-resolution direction and
 accumulation raster pair. Remove unused raster overviews while preserving the
 original full-resolution data. This is the agreed delivery handoff for
-[HFX #6](https://github.com/pourpoint-tools/hfx/issues/6), following the compression
+[HFX #262](https://github.com/pourpoint-tools/hfx/issues/262), following the compression
 and overview-removal experiments. Publication of this vision is not execution;
 begin delivery only through a separately requested implementation workflow.
 
