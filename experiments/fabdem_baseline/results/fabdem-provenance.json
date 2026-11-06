@@ -1,0 +1,34 @@
+{
+  "version": "FABDEM V1-2",
+  "archive": "https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn/N30W090-N40W080_FABDEM_V1-2.zip",
+  "readme": "https://data.bris.ac.uk/datasets/s5hqmjcdj8yo2ibzi9b4ew3sn/readme.txt",
+  "readme_sha256": "5035c8bc614af0de7ae78f7ef16d19191039e55ff1129a778582c4395c68454e",
+  "extraction": "HTTP range reads with remotezip; ZIP CRC verified on full member read",
+  "members": [
+    {
+      "member": "N31W090_FABDEM_V1-2.tif",
+      "bytes": 23526483,
+      "zip_crc32": 3920752524,
+      "sha256": "dc7f55f721fbaa42de08683007b945a52cde7352c2a664881f7f7dfc7da66c8d"
+    },
+    {
+      "member": "N31W089_FABDEM_V1-2.tif",
+      "bytes": 23487351,
+      "zip_crc32": 3341885828,
+      "sha256": "3d224c12a032a72d2e22ccd010119cffd25e76c2f9db937d48ad2743fdeda0d4"
+    },
+    {
+      "member": "N32W090_FABDEM_V1-2.tif",
+      "bytes": 23443335,
+      "zip_crc32": 1190637061,
+      "sha256": "cd11d474fe4fea5b276de0208c9574d000320f14d7e8200114cc7fc39da2375d"
+    },
+    {
+      "member": "N32W089_FABDEM_V1-2.tif",
+      "bytes": 23577111,
+      "zip_crc32": 1376196203,
+      "sha256": "20a33bd2fd3926afed65e4bd22acb7104854d4bd431c4812abad942212a278fa"
+    }
+  ],
+  "use": "Personal non-commercial testing only; CC BY-NC-SA 4.0; see readme.txt for Copernicus attribution"
+}

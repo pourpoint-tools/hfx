@@ -1,0 +1,70 @@
+[
+  {
+    "small_km": 10,
+    "large_km": 20,
+    "elevation": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    },
+    "filled": {
+      "overlap_changed_cells": 35730,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 14.049552917480469
+    },
+    "direction": {
+      "overlap_changed_cells": 26651,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 128.0
+    },
+    "accumulation_cells": {
+      "overlap_changed_cells": 57015,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 2890947.0
+    },
+    "reference_connected": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    },
+    "adjusted_connected": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    }
+  },
+  {
+    "small_km": 20,
+    "large_km": 25,
+    "elevation": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    },
+    "filled": {
+      "overlap_changed_cells": 64050,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 11.751983642578125
+    },
+    "direction": {
+      "overlap_changed_cells": 45738,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 128.0
+    },
+    "accumulation_cells": {
+      "overlap_changed_cells": 85550,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 3020000.0
+    },
+    "reference_connected": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    },
+    "adjusted_connected": {
+      "overlap_changed_cells": 0,
+      "vector_changed_cells": 0,
+      "max_absolute_difference": 0.0
+    }
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "source": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/",
+  "window_col_row_width_height": [
+    233826,
+    145103,
+    2658,
+    3091
+  ],
+  "flow_dir.tif": {
+    "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_dir.tif",
+    "dtype": "uint8",
+    "nodata": 255.0,
+    "window_array_sha256": "c70d53fbca6577a144cbfba9f3f6f9deb8b4bf9677c5f8d93dee48db70ce3741"
+  },
+  "flow_acc.tif": {
+    "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_acc.tif",
+    "dtype": "float32",
+    "nodata": "nan",
+    "window_array_sha256": "b1c1fd65e0d0b1efbe90adf6cf0f05c939b6268986daef69bf555909ed877af4"
+  },
+  "previous_cache_comparison": {
+    "raw_direction": true,
+    "direction_valid": true,
+    "accumulation": true,
+    "accumulation_valid": true,
+    "vector_mask": true,
+    "transform": true,
+    "crs": true
+  }
+}

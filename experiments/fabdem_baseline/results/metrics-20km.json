@@ -1,0 +1,50 @@
+{
+  "buffer_km": 20.0,
+  "vector_cells": 2243052,
+  "cycle_cells": 0,
+  "invalid_cells": 0,
+  "accumulation_mismatch_cells": 0,
+  "reference": {
+    "row": 3321,
+    "column": 1838,
+    "center_lonlat": [
+      -89.32293241810795,
+      31.639441413904066
+    ],
+    "displacement_m": 11.073098197131886,
+    "accumulation_cells": 1,
+    "area_km2": 0.0009,
+    "vector_connected_cells": 1,
+    "vector_coverage_percent": 4.4582114012515094e-05,
+    "outside_vector_cells": 0,
+    "boundary_connected_cells": 0
+  },
+  "adjusted_max_accumulation_within_300m": {
+    "row": 3331,
+    "column": 1840,
+    "center_lonlat": [
+      -89.32223293733107,
+      31.636748454771652
+    ],
+    "displacement_m": 298.26044716360764,
+    "accumulation_cells": 2587918,
+    "area_km2": 2329.1262,
+    "vector_connected_cells": 2239730,
+    "vector_coverage_percent": 99.85189821725042,
+    "outside_vector_cells": 348188,
+    "boundary_connected_cells": 0
+  },
+  "grit_public_window": {
+    "cycle_cells": 2021,
+    "invalid_cells": 0,
+    "vector_cells": 2241901,
+    "vector_connected_cells": 616288,
+    "outlet_accumulation_km2": 2017.65234375,
+    "sampled_accumulation_difference_km2_percentiles_0_50_95_100": [
+      -2017.65144375,
+      1.545995471398387e-11,
+      0.034199999929964545,
+      2329.0803000000155
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+[project]
+name = "fabdem-baseline-experiment"
+version = "0.1.0"
+requires-python = ">=3.11,<3.14"
+dependencies = ["numpy<2.4", "pyflwdir", "rasterio", "shapely", "pyproj", "matplotlib", "remotezip", "pytest", "ruff", "ty"]
