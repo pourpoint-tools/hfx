@@ -1,0 +1,30 @@
+{
+  "buffer_km": 25.0,
+  "crs": "EPSG:32616",
+  "resolution_m": 30,
+  "bounds": [
+    219570,
+    3476640,
+    317220,
+    3607440
+  ],
+  "shape": [
+    4360,
+    3255
+  ],
+  "resampling": "bilinear elevation before routing; tolerance=0; XSCALE=YSCALE=1 (fixed sampling kernel)",
+  "method": "pyflwdir Wang & Liu priority flood; edge outlets; max_depth=-1; connectivity=8",
+  "accumulation": "inclusive upstream cell count; multiply by 0.0009 for projected km2",
+  "nodata_cells": 0,
+  "filled_cells": 2035942,
+  "max_fill_m": 16.004440307617188,
+  "gdal_version": "3.12.2",
+  "versions": {
+    "pyflwdir": "0.5.12",
+    "numpy": "2.3.5",
+    "numba": "0.68.1",
+    "rasterio": "1.5.2",
+    "pyproj": "3.8.0",
+    "shapely": "2.2.0"
+  }
+}
