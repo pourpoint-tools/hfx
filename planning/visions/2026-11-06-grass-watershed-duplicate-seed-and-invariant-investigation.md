@@ -24,6 +24,8 @@ This vision specifies the implementation required to instrument these failures, 
 
 ### Phase 1: AddressSanitizer (ASan) Runtime Instrumentation
 
+The native reproduction harness and Docker recipes reside under `~/Desktop/hfx-269-investigation/hfx273-native/`.
+
 1. **Build Configuration:**
    * Configure and build both the archived fork (`src/fork`) and upstream parent (`src/parent`) under Docker `linux/amd64` using `build.sh`.
    * Set `BUILD_CFLAGS="-fsanitize=address -fsanitize-recover=address -g -O1 -fno-omit-frame-pointer"` and `BUILD_LDFLAGS="-fsanitize=address"`. Ensure debug symbols are preserved (omit `-s`).
