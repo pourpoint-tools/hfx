@@ -1,0 +1,41 @@
+{
+  "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/vectors/2026-10-18-final/rivers.parquet",
+  "identity": {
+    "size_bytes": 8988761155,
+    "sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea",
+    "head_sha256": "b4cd6c14a8e64d115393b54dd6279646c2edecd51cc96d4789411b37e1cd5db9",
+    "tail_sha256": "d72014cc0eb8e1beb52479d7f2844de59f711858e795ef0e86b330aedfc7bbda"
+  },
+  "etag": "\"8f37158f8466b6658666fc33aad44da2-134\"",
+  "bounded_fingerprints_verified": true,
+  "full_remote_sha256_verified": false,
+  "query_bounds_epsg8857": [
+    -7995560.0,
+    3937540.0,
+    -7886080.0,
+    4096820.0
+  ],
+  "query_bounds_epsg4326": [
+    -90.38033991207033,
+    31.4577136121685,
+    -88.55830351729445,
+    32.80894336206737
+  ],
+  "row_groups": [
+    180,
+    188,
+    189,
+    207,
+    243,
+    244,
+    1376,
+    1379,
+    1380,
+    1381,
+    1445,
+    1581,
+    1582,
+    1583
+  ],
+  "rows": 4141
+}

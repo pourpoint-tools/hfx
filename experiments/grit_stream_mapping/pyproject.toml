@@ -1,0 +1,5 @@
+[project]
+name = "grit-stream-mapping-experiment"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["numpy", "rasterio", "shapely", "pyproj", "matplotlib", "pyarrow", "fsspec", "aiohttp", "requests", "pytest", "ruff", "ty"]

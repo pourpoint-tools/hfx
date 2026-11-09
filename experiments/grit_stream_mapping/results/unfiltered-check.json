@@ -1,0 +1,49 @@
+{
+  "unfiltered_rows": 85063,
+  "row_groups": [
+    180,
+    188,
+    189,
+    207,
+    243,
+    244,
+    1376,
+    1379,
+    1380,
+    1381,
+    1445,
+    1581,
+    1582,
+    1583
+  ],
+  "checks": [
+    {
+      "cycle_id": 4,
+      "nearest_source_id": "190025137",
+      "nearest_level": 0,
+      "distance_m": 11624.467729750038,
+      "inventory_m": 11624.467729750038
+    },
+    {
+      "cycle_id": 37,
+      "nearest_source_id": "190025641",
+      "nearest_level": 0,
+      "distance_m": 0.0,
+      "inventory_m": 0.0
+    },
+    {
+      "cycle_id": 101,
+      "nearest_source_id": "190026265",
+      "nearest_level": 0,
+      "distance_m": 1262.31929399712,
+      "inventory_m": 1262.31929399712
+    },
+    {
+      "cycle_id": 294,
+      "nearest_source_id": "190026820",
+      "nearest_level": 0,
+      "distance_m": 15.000000001396982,
+      "inventory_m": 15.000000001396982
+    }
+  ]
+}

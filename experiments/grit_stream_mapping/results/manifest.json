@@ -1,0 +1,621 @@
+{
+  "format_version": "0.4.0",
+  "fabric_name": "grit",
+  "fabric_version": "1.0",
+  "crs": "EPSG:4326",
+  "has_up_area": false,
+  "topology": "dag",
+  "bbox": [
+    -180.00001525878906,
+    -55.916263580322266,
+    180.00001525878906,
+    83.66094970703125
+  ],
+  "unit_count": 22419857,
+  "created_at": "2026-10-13T03:16:01.777967+00:00",
+  "adapter_version": "grit-original-vectors-1",
+  "region": "global",
+  "auxiliary": [
+    {
+      "schema": "hfx.aux.d8_raster.v2",
+      "artifacts": {
+        "flow_dir": {
+          "external": "grit-flow-dir"
+        },
+        "flow_acc": {
+          "external": "grit-flow-acc"
+        }
+      },
+      "metadata": {
+        "crs": "EPSG:8857",
+        "flow_dir_encoding": "grass",
+        "flow_acc_units": "km2"
+      }
+    }
+  ],
+  "external_artifacts": {
+    "grit-flow-dir": {
+      "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_dir.tif",
+      "size_bytes": 35460747402,
+      "sha256": "6d03ccdc092b914be0ae41975fbafebb2b02334ff481a1589897539228ab7c65",
+      "head_sha256": "6fdfd1be11525d05e25d90a16558f342497566fac4433f18048f6e771baaf7f0",
+      "tail_sha256": "fb8952bac4fa1785df636c7e553cd1dfe5d7327a128cc39060659a9c38605f70",
+      "retention": "The GRIT HFX publisher retains this exact public object unchanged for the lifetime of this dependent bundle."
+    },
+    "grit-flow-acc": {
+      "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_acc.tif",
+      "size_bytes": 150995308307,
+      "sha256": "01e8b76570a8d98026fdad77107ed5fe719490433d0351c43b62aca32ff0c15d",
+      "head_sha256": "8883dd98fa4b3e1aa0650c73564f31bbcbec96c1305075df5c712fed28aafd7a",
+      "tail_sha256": "bb4b0c3203ecf773c9cd2cb780c0eb8b272cfeb76f005bf5917ec03a6fcc5d12",
+      "retention": "The GRIT HFX publisher retains this exact public object unchanged for the lifetime of this dependent bundle."
+    }
+  },
+  "catchment_connectivity": [
+    {
+      "level": 0,
+      "status": "not_supplied"
+    },
+    {
+      "level": 1,
+      "status": "supplied"
+    },
+    {
+      "level": 2,
+      "status": "supplied"
+    }
+  ],
+  "source_domain_metadata": {
+    "rivers": {
+      "topology": "dag"
+    },
+    "river_nodes": {}
+  },
+  "categorical_columns": [
+    {
+      "artifact": "vectors/2026-10-18-final/catchments.parquet",
+      "column": "level",
+      "physical_type": "int16",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "component"
+        },
+        {
+          "code": 1,
+          "meaning": "segment local drainage unit"
+        },
+        {
+          "code": 2,
+          "meaning": "reach local drainage unit"
+        }
+      ],
+      "null_meaning": "not permitted"
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/rivers.parquet",
+      "column": "level",
+      "physical_type": "int16",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "segment"
+        },
+        {
+          "code": 1,
+          "meaning": "reach"
+        }
+      ],
+      "null_meaning": "not permitted"
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/river_nodes.parquet",
+      "column": "level",
+      "physical_type": "int16",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "segment node"
+        },
+        {
+          "code": 1,
+          "meaning": "reach node"
+        }
+      ],
+      "null_meaning": "not permitted"
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/rivers.parquet",
+      "column": "source_is_mainstem",
+      "physical_type": "int64",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "Source segment is not the widest segment of bifurcated flow."
+        },
+        {
+          "code": 1,
+          "meaning": "Source segment is the widest segment of bifurcated flow or has no upstream bifurcation."
+        }
+      ],
+      "null_meaning": "Native source null or field absent from this source layer; source-provenance.json distinguishes these cases."
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/river_nodes.parquet",
+      "column": "source_node_type",
+      "physical_type": "string",
+      "codes": [
+        {
+          "code": "bifurcation",
+          "meaning": "Source bifurcation label; not inferred from delivered incidence."
+        },
+        {
+          "code": "confluence",
+          "meaning": "Source confluence label; not inferred from delivered incidence."
+        },
+        {
+          "code": "inlet",
+          "meaning": "Source inlet label."
+        },
+        {
+          "code": "coastal_outlet",
+          "meaning": "Source coastal outlet label."
+        },
+        {
+          "code": "sink_outlet",
+          "meaning": "Source sink outlet label."
+        },
+        {
+          "code": "grwl_change",
+          "meaning": "Source GRWL code-change node label."
+        },
+        {
+          "code": "interbasin",
+          "meaning": "Observed source interbasin label, undocumented in GRIT README; precise hydrological meaning unknown."
+        },
+        {
+          "code": "outlet",
+          "meaning": "Observed source outlet label, undocumented in GRIT README; specific termination meaning unknown."
+        }
+      ],
+      "null_meaning": "Native source null or field absent from this source layer; source-provenance.json distinguishes these cases."
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/river_nodes.parquet",
+      "column": "source_continuity_violated",
+      "physical_type": "int64",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "Source reports flow continuity not violated."
+        },
+        {
+          "code": 1,
+          "meaning": "Source reports flow continuity violated."
+        }
+      ],
+      "null_meaning": "Native source null or field absent from this source layer; source-provenance.json distinguishes these cases."
+    },
+    {
+      "artifact": "vectors/2026-10-18-final/rivers.parquet",
+      "column": "geometry_orientation",
+      "physical_type": "int8",
+      "codes": [
+        {
+          "code": 0,
+          "meaning": "unspecified coordinate orientation; source-directed connectivity is authoritative"
+        }
+      ],
+      "null_meaning": "not permitted"
+    }
+  ],
+  "representation": "spatial-geoparquet-adjacency",
+  "representation_version": 1,
+  "families": {
+    "catchments": {
+      "data": "vectors/2026-10-18-final/catchments.parquet",
+      "data_sha256": "f91badc69e90a3589862482bfa24c44ac061a23734c330092ac3aa1b7de25b73",
+      "lookup": "vectors/2026-10-18-final/catchments-lookup.arrow",
+      "directory": "vectors/2026-10-18-final/catchments-lookup-directory.json",
+      "count": 22419857,
+      "source_artifact": "catchments.arrow",
+      "rows": 8192,
+      "budget": 8388608,
+      "ordering": "level, 16-bit longitude/latitude Morton center, id",
+      "index_batch_rows": 65536,
+      "source_batch_reads": 741426,
+      "source_decoded_bytes": 370416517691,
+      "source_logical_bytes": 47506835466,
+      "source_decode_amplification": 7.797120436618054
+    },
+    "rivers": {
+      "data": "vectors/2026-10-18-final/rivers.parquet",
+      "data_sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea",
+      "lookup": "vectors/2026-10-18-final/rivers-lookup.arrow",
+      "directory": "vectors/2026-10-18-final/rivers-lookup-directory.json",
+      "count": 22337300,
+      "source_artifact": "rivers.arrow",
+      "rows": 8192,
+      "budget": 8388608,
+      "ordering": "level, 16-bit longitude/latitude Morton center, id",
+      "index_batch_rows": 65536,
+      "source_batch_reads": 726533,
+      "source_decoded_bytes": 143509604875,
+      "source_logical_bytes": 18591171328,
+      "source_decode_amplification": 7.719234164598411
+    },
+    "river_nodes": {
+      "data": "vectors/2026-10-18-final/river_nodes.parquet",
+      "data_sha256": "ba8a718c1904a67f277f84c09e78c81d2d8a48b5c972a8a305a1c964f864f14b",
+      "lookup": "vectors/2026-10-18-final/river_nodes-lookup.arrow",
+      "directory": "vectors/2026-10-18-final/river_nodes-lookup-directory.json",
+      "count": 22278858,
+      "source_artifact": "river-nodes.arrow",
+      "rows": 8192,
+      "budget": 8388608,
+      "ordering": "level, 16-bit longitude/latitude Morton center, id",
+      "index_batch_rows": 65536,
+      "source_batch_reads": 755372,
+      "source_decoded_bytes": 48820792970,
+      "source_logical_bytes": 5634434136,
+      "source_decode_amplification": 8.664719791126865
+    }
+  },
+  "relationships": {
+    "catchments": {
+      "data": "vectors/2026-10-18-final/catchments-relationships.arrow",
+      "directory": "vectors/2026-10-18-final/catchments-relationships-directory.json",
+      "count": 22419857,
+      "batch_rows": 8192,
+      "columns": {
+        "upstream_ids": {
+          "source_domain": "catchments",
+          "target_domain": "catchments",
+          "source_artifact": "graph.parquet",
+          "source_column": "upstream_ids",
+          "direction": "forward"
+        },
+        "downstream_ids": {
+          "source_domain": "catchments",
+          "target_domain": "catchments",
+          "source_artifact": "graph.parquet",
+          "source_column": "upstream_ids",
+          "direction": "reverse"
+        },
+        "parent_ids": {
+          "source_domain": "catchments",
+          "target_domain": "catchments",
+          "source_artifact": "catchments.arrow",
+          "source_column": "parent_id",
+          "direction": "forward"
+        },
+        "child_ids": {
+          "source_domain": "catchments",
+          "target_domain": "catchments",
+          "source_artifact": "catchments.arrow",
+          "source_column": "parent_id",
+          "direction": "reverse"
+        },
+        "local_river_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "local_catchment_id",
+          "direction": "reverse"
+        },
+        "component_river_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "component_catchment_id",
+          "direction": "reverse"
+        }
+      },
+      "feature_artifacts": {
+        "catchments": {
+          "data": "vectors/2026-10-18-final/catchments.parquet",
+          "data_sha256": "f91badc69e90a3589862482bfa24c44ac061a23734c330092ac3aa1b7de25b73"
+        },
+        "rivers": {
+          "data": "vectors/2026-10-18-final/rivers.parquet",
+          "data_sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea"
+        }
+      },
+      "source_artifacts": [
+        "catchments.arrow",
+        "graph.parquet",
+        "manifest.json",
+        "rivers.arrow"
+      ],
+      "connectivity": [
+        {
+          "level": 0,
+          "status": "not_supplied"
+        },
+        {
+          "level": 1,
+          "status": "supplied"
+        },
+        {
+          "level": 2,
+          "status": "supplied"
+        }
+      ],
+      "connectivity_source": "manifest.json"
+    },
+    "rivers": {
+      "data": "vectors/2026-10-18-final/rivers-relationships.arrow",
+      "directory": "vectors/2026-10-18-final/rivers-relationships-directory.json",
+      "count": 22337300,
+      "batch_rows": 8192,
+      "columns": {
+        "upstream_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "river-graph.parquet",
+          "source_column": "upstream_ids",
+          "direction": "forward"
+        },
+        "downstream_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "river-graph.parquet",
+          "source_column": "upstream_ids",
+          "direction": "reverse"
+        },
+        "parent_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "parent_id",
+          "direction": "forward"
+        },
+        "child_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "parent_id",
+          "direction": "reverse"
+        },
+        "upstream_node_ids": {
+          "source_domain": "rivers",
+          "target_domain": "river_nodes",
+          "source_artifact": "rivers.arrow",
+          "source_column": "upstream_node_id",
+          "direction": "forward"
+        },
+        "downstream_node_ids": {
+          "source_domain": "rivers",
+          "target_domain": "river_nodes",
+          "source_artifact": "rivers.arrow",
+          "source_column": "downstream_node_id",
+          "direction": "forward"
+        },
+        "local_catchment_ids": {
+          "source_domain": "rivers",
+          "target_domain": "catchments",
+          "source_artifact": "rivers.arrow",
+          "source_column": "local_catchment_id",
+          "direction": "forward"
+        },
+        "component_catchment_ids": {
+          "source_domain": "rivers",
+          "target_domain": "catchments",
+          "source_artifact": "rivers.arrow",
+          "source_column": "component_catchment_id",
+          "direction": "forward"
+        }
+      },
+      "feature_artifacts": {
+        "catchments": {
+          "data": "vectors/2026-10-18-final/catchments.parquet",
+          "data_sha256": "f91badc69e90a3589862482bfa24c44ac061a23734c330092ac3aa1b7de25b73"
+        },
+        "river_nodes": {
+          "data": "vectors/2026-10-18-final/river_nodes.parquet",
+          "data_sha256": "ba8a718c1904a67f277f84c09e78c81d2d8a48b5c972a8a305a1c964f864f14b"
+        },
+        "rivers": {
+          "data": "vectors/2026-10-18-final/rivers.parquet",
+          "data_sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea"
+        }
+      },
+      "source_artifacts": [
+        "catchments.arrow",
+        "river-graph.parquet",
+        "river-nodes.arrow",
+        "rivers.arrow"
+      ]
+    },
+    "river_nodes": {
+      "data": "vectors/2026-10-18-final/river_nodes-relationships.arrow",
+      "directory": "vectors/2026-10-18-final/river_nodes-relationships-directory.json",
+      "count": 22278858,
+      "batch_rows": 8192,
+      "columns": {
+        "outgoing_river_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "upstream_node_id",
+          "direction": "reverse"
+        },
+        "incoming_river_ids": {
+          "source_domain": "rivers",
+          "target_domain": "rivers",
+          "source_artifact": "rivers.arrow",
+          "source_column": "downstream_node_id",
+          "direction": "reverse"
+        },
+        "coarser_node_ids": {
+          "source_domain": "river_nodes",
+          "target_domain": "river_nodes",
+          "source_artifact": "river-nodes.arrow",
+          "source_column": "coarser_node_id",
+          "direction": "forward"
+        },
+        "finer_node_ids": {
+          "source_domain": "river_nodes",
+          "target_domain": "river_nodes",
+          "source_artifact": "river-nodes.arrow",
+          "source_column": "coarser_node_id",
+          "direction": "reverse"
+        }
+      },
+      "feature_artifacts": {
+        "river_nodes": {
+          "data": "vectors/2026-10-18-final/river_nodes.parquet",
+          "data_sha256": "ba8a718c1904a67f277f84c09e78c81d2d8a48b5c972a8a305a1c964f864f14b"
+        },
+        "rivers": {
+          "data": "vectors/2026-10-18-final/rivers.parquet",
+          "data_sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea"
+        }
+      },
+      "source_artifacts": [
+        "river-nodes.arrow",
+        "rivers.arrow"
+      ]
+    }
+  },
+  "source_manifest": "vectors/2026-10-18-final/source-manifest.json",
+  "input_manifest_sha256": "b9a38083131dcf1a4c7c4e73ebe9a97dff2a4b7ef91a8df53f8bc38cadfa48db",
+  "addressing": {
+    "block": "zero-based Parquet row group",
+    "row": "zero-based row within group"
+  },
+  "artifacts": {
+    "vectors/2026-10-18-final/CITATION.txt": {
+      "size_bytes": 116,
+      "sha256": "f8bcc5238aa31e04b347b267317ba74c8a69d7d40546235d14a116a5811274bc",
+      "head_sha256": "f8bcc5238aa31e04b347b267317ba74c8a69d7d40546235d14a116a5811274bc",
+      "tail_sha256": "f8bcc5238aa31e04b347b267317ba74c8a69d7d40546235d14a116a5811274bc"
+    },
+    "vectors/2026-10-18-final/GRIT-original-LICENSE.md": {
+      "size_bytes": 14830,
+      "sha256": "79921188c8de139804eb5d4d90dc53d16cd77fe1ef6bf8699d33fcf145d68480",
+      "head_sha256": "79921188c8de139804eb5d4d90dc53d16cd77fe1ef6bf8699d33fcf145d68480",
+      "tail_sha256": "79921188c8de139804eb5d4d90dc53d16cd77fe1ef6bf8699d33fcf145d68480"
+    },
+    "vectors/2026-10-18-final/GRIT-original-README.pdf": {
+      "size_bytes": 150250,
+      "sha256": "76ad38a03806b9b6e1a235241ed78c1eaea5fe81e751dbf70c187deb3e529c60",
+      "head_sha256": "2e2e22bcb9ed9089b98c8cbc7b2b8e63f548ad138ad16b6a528ad50689810d14",
+      "tail_sha256": "9bff550ce24501562b3518032b00646df3d7271f80fea573b018e5353888e20c"
+    },
+    "vectors/2026-10-18-final/NOTICE": {
+      "size_bytes": 295,
+      "sha256": "c2357b40c9bd3358d253e6d64a0b28c38699291d00b50996face66f848a09468",
+      "head_sha256": "c2357b40c9bd3358d253e6d64a0b28c38699291d00b50996face66f848a09468",
+      "tail_sha256": "c2357b40c9bd3358d253e6d64a0b28c38699291d00b50996face66f848a09468"
+    },
+    "vectors/2026-10-18-final/README.md": {
+      "size_bytes": 746,
+      "sha256": "8924c5cb0019c663cfd0aa6d0224d4438861c148733ac544e1b3e751762ebe3b",
+      "head_sha256": "8924c5cb0019c663cfd0aa6d0224d4438861c148733ac544e1b3e751762ebe3b",
+      "tail_sha256": "8924c5cb0019c663cfd0aa6d0224d4438861c148733ac544e1b3e751762ebe3b"
+    },
+    "vectors/2026-10-18-final/catchments-lookup-directory.json": {
+      "size_bytes": 23926,
+      "sha256": "1bcc8b56bb4295dbc564392fc16cb44dd1b79c276d93e15f50de33389c710bb3",
+      "head_sha256": "1bcc8b56bb4295dbc564392fc16cb44dd1b79c276d93e15f50de33389c710bb3",
+      "tail_sha256": "1bcc8b56bb4295dbc564392fc16cb44dd1b79c276d93e15f50de33389c710bb3"
+    },
+    "vectors/2026-10-18-final/catchments-lookup.arrow": {
+      "size_bytes": 358809026,
+      "sha256": "78f6e5112cab821a0d78c39d420d025d9a62c10a893539d37ade191dea49290b",
+      "head_sha256": "976147973033435a972228d7c1be813365573d8b9fc3f3cf2cea2ebb7a62e7ee",
+      "tail_sha256": "e51692773609a7d8f7576dcdfe2938274c803aeba4d4857ef7d9d7dbebfebf3f"
+    },
+    "vectors/2026-10-18-final/catchments-relationships-directory.json": {
+      "size_bytes": 190528,
+      "sha256": "5f26b50f43bddb472e120ad6a3497c6e0d409a94ec16fb01def1f5ed15819a2c",
+      "head_sha256": "c54ce480911ca4dd821daec72f5bc8179574515b06e5553d49ba9155c931e4e3",
+      "tail_sha256": "e14af80a2e77a6a7199652acf72951fabf082261dcca51ffeb2742842cc99f16"
+    },
+    "vectors/2026-10-18-final/catchments-relationships.arrow": {
+      "size_bytes": 1792733506,
+      "sha256": "278435d86ac8275d77a7d1254bc75f35733284116e2d4e54545b354fdc41790f",
+      "head_sha256": "133bf1e2923113247fd9cf34b4a35b8f8aebbf1ac63d366f725a7a09e96c82b7",
+      "tail_sha256": "b736d4fad440085ca1d4b59649eec97789adc0866984f3592d93ddad7199f1e1"
+    },
+    "vectors/2026-10-18-final/catchments.parquet": {
+      "size_bytes": 20657327293,
+      "sha256": "f91badc69e90a3589862482bfa24c44ac061a23734c330092ac3aa1b7de25b73",
+      "head_sha256": "a677c4b04df9800f38d072081866ec7b9e3acaa172f9a294346a4594b6f94596",
+      "tail_sha256": "6725170f916727012b1b5ab54b6181d22209e7aaa3ed35509a5ba4d54863b1a8"
+    },
+    "vectors/2026-10-18-final/river_nodes-lookup-directory.json": {
+      "size_bytes": 23714,
+      "sha256": "683d358083d3dfb9168745519ebe81ff2cc62fc6275f24477a04270b8a1740cb",
+      "head_sha256": "683d358083d3dfb9168745519ebe81ff2cc62fc6275f24477a04270b8a1740cb",
+      "tail_sha256": "683d358083d3dfb9168745519ebe81ff2cc62fc6275f24477a04270b8a1740cb"
+    },
+    "vectors/2026-10-18-final/river_nodes-lookup.arrow": {
+      "size_bytes": 356552242,
+      "sha256": "34d4019b19e568946fa5596d296aa5df66f1da0fc2ad4db7a7772cfcfff44bb7",
+      "head_sha256": "dffaec31085da341b7def351a8374ddf7d8156de29b235173d7ae3680cf55498",
+      "tail_sha256": "e5e2ad16b0df39829c47326f1c4f2e58dae4d9bd76ebaa75aaed267d6de7b383"
+    },
+    "vectors/2026-10-18-final/river_nodes-relationships-directory.json": {
+      "size_bytes": 189321,
+      "sha256": "d154646aa0551d99f352f5304c6cbc42940ad012b03c0e85964f7cfb5e688747",
+      "head_sha256": "c54ce480911ca4dd821daec72f5bc8179574515b06e5553d49ba9155c931e4e3",
+      "tail_sha256": "b58b1b55376e4a64eea55b62a2212176bcd11e251fe49a032db497070c493172"
+    },
+    "vectors/2026-10-18-final/river_nodes-relationships.arrow": {
+      "size_bytes": 921484562,
+      "sha256": "cc8d4b8b81c1dfa34ccf7ea07f95f5b4961b95335af0ffa0fc9199aacaa597eb",
+      "head_sha256": "536992b8009e4cdab1b5c9b0d577823bb7f107dbddc2f0d832a9760d74a216a3",
+      "tail_sha256": "d295c9fd57fb72f6d962bbdcd44c26a8110923e1ed8a9d921f96da7cacfb3c6c"
+    },
+    "vectors/2026-10-18-final/river_nodes.parquet": {
+      "size_bytes": 1001742557,
+      "sha256": "ba8a718c1904a67f277f84c09e78c81d2d8a48b5c972a8a305a1c964f864f14b",
+      "head_sha256": "237fe2d07d29567eb6d192304d4e104aed2ca54e65bcd8f867bf71c13fb998a8",
+      "tail_sha256": "b58b8c3bb13e66fd0ea8daa87ef07cc45b8db581ae5be94f3a7e307a65693fc9"
+    },
+    "vectors/2026-10-18-final/rivers-lookup-directory.json": {
+      "size_bytes": 23785,
+      "sha256": "adc3856c1a9a44a0f716d043e005884b55da09eb2c38c7b499a4125e16cc64bc",
+      "head_sha256": "adc3856c1a9a44a0f716d043e005884b55da09eb2c38c7b499a4125e16cc64bc",
+      "tail_sha256": "adc3856c1a9a44a0f716d043e005884b55da09eb2c38c7b499a4125e16cc64bc"
+    },
+    "vectors/2026-10-18-final/rivers-lookup.arrow": {
+      "size_bytes": 357487578,
+      "sha256": "248ea1b3aedae23c2dd4e895f021b384ab45131f96afb052f607a9bed974489b",
+      "head_sha256": "38f42d02e9274e2e8eb07a4f4313658fa525cb7383f7bf22d6ce7f94fbe21f7f",
+      "tail_sha256": "f5b090ae4bc9f001648b4605b322d832daf9eb2bf5c3ba42e20080eca31f3e5b"
+    },
+    "vectors/2026-10-18-final/rivers-relationships-directory.json": {
+      "size_bytes": 189818,
+      "sha256": "2f35a23561fcd3603eb116ee926634b1c0edb94ebab42eee389f513b1f7440da",
+      "head_sha256": "c54ce480911ca4dd821daec72f5bc8179574515b06e5553d49ba9155c931e4e3",
+      "tail_sha256": "5313a437f9a99580389accf367224eb5c1a87c4fd7f7f36cc507ecb108022098"
+    },
+    "vectors/2026-10-18-final/rivers-relationships.arrow": {
+      "size_bytes": 2298473610,
+      "sha256": "8f481cc458e984952ec47eb771ddf8713731ec8112ffb9a8f10173ea967fec85",
+      "head_sha256": "6fb8d2a215054d8e1d12e96cfb80ed3a03084c0a7fdc23505c9062f850f09278",
+      "tail_sha256": "cb02df7358b07129c4979228a71db553f4f979ea758e9636f7e11fd83df6cd55"
+    },
+    "vectors/2026-10-18-final/rivers.parquet": {
+      "size_bytes": 8988761155,
+      "sha256": "7b45cdb8eb852cf8297523f4330f3ac3a099bcbbce0991ad295ed49531dff0ea",
+      "head_sha256": "b4cd6c14a8e64d115393b54dd6279646c2edecd51cc96d4789411b37e1cd5db9",
+      "tail_sha256": "d72014cc0eb8e1beb52479d7f2844de59f711858e795ef0e86b330aedfc7bbda"
+    },
+    "vectors/2026-10-18-final/source-manifest.json": {
+      "size_bytes": 12188,
+      "sha256": "b9a38083131dcf1a4c7c4e73ebe9a97dff2a4b7ef91a8df53f8bc38cadfa48db",
+      "head_sha256": "b9a38083131dcf1a4c7c4e73ebe9a97dff2a4b7ef91a8df53f8bc38cadfa48db",
+      "tail_sha256": "b9a38083131dcf1a4c7c4e73ebe9a97dff2a4b7ef91a8df53f8bc38cadfa48db"
+    },
+    "vectors/2026-10-18-final/source-provenance.json": {
+      "size_bytes": 139647,
+      "sha256": "84b2aeb4afb1d171ab9d791f813ffb951063d9cc061630ec91380797592895d7",
+      "head_sha256": "389ec24e737c804eeb9a09b26e717361087c1c99b5ff2083ac3aa07547bab3b5",
+      "tail_sha256": "628078e71c43e5fc369a70e6357a9e92b1f804a4b6cebef4dbca144b8fbfac24"
+    }
+  }
+}
