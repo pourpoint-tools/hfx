@@ -14,7 +14,7 @@ Use #269 and its later comments as the evidence history, including the completed
 
 ## Bounded investigation
 
-Start with the 294 known cycles in this basin and the public river geometry. Recover and verify the existing cycle inventory rather than silently substituting a different population. Preserve native row/column identities and distinguish cycle-member cells from all cells draining into them. Report whether cycles have members outside the vector mask and any limits on their recovered extent.
+Start with the 294 known cycles in this basin and the public river geometry. Recover and verify the existing cycle inventory rather than silently substituting a different population. The reporting unit is one distinct directed cycle, not a spatial grouping of nearby loops; report any spatial grouping separately. Record the recovered inventory’s source and identity, and report any mismatch with the expected 294 cycles. Preserve native row/column identities and distinguish cycle-member cells from all cells draining into them. Report whether cycles have members outside the vector mask and any limits on their recovered extent.
 
 Evaluate whether each cycle cluster intersects published river geometry and characterize distances for non-intersecting clusters. Distinguish at least one member touching a river from every member doing so. State the cell-footprint/intersection convention, coordinate system, distance units, river selection and coverage. Include spatially relevant river segments even where they cross the vector-mask boundary. Buffer or proximity comparisons may describe uncertainty; they do not establish membership in the original stream mask.
 
