@@ -38,7 +38,12 @@ A pair declaration has this structure (CRS, encoding and units describe that pai
 
 The three metadata fields are required, without defaults or additional metadata
 properties. `crs` is an uppercase EPSG authority string matching
-`^EPSG:[1-9][0-9]*$`. `flow_dir_encoding` is `esri`, `taudem` or `grass`.
+`^EPSG:[1-9][0-9]*$`. `flow_dir_encoding` is `esri`, `merit`, `taudem` or `grass`.
+`flow_dir_encoding` participates in auxiliary capability selection: `esri`
+remains strictly the eight positive ESRI D8 neighbor codes (`1` through `128`), so
+readers supporting only `esri`, `taudem` and `grass` reject `merit` when opening
+raster declarations rather than failing data-dependently when a window hits
+terminal cells.
 `flow_acc_units` is `cells` or `km2`. The manifest's existing top-level `crs`
 remains the vector CRS (`EPSG:4326`); it does not override a raster entry's CRS.
 
@@ -67,18 +72,26 @@ reads rather than inferring suitability from a file extension.
 
 The declared encoding selects one column:
 
-| Direction | ESRI | TauDEM | GRASS |
-| --- | ---: | ---: | ---: |
-| East | 1 | 1 | 8 |
-| Southeast | 2 | 8 | 7 |
-| South | 4 | 7 | 6 |
-| Southwest | 8 | 6 | 5 |
-| West | 16 | 5 | 4 |
-| Northwest | 32 | 4 | 3 |
-| North | 64 | 3 | 2 |
-| Northeast | 128 | 2 | 1 |
+| Direction | ESRI | MERIT | TauDEM | GRASS |
+| --- | ---: | ---: | ---: | ---: |
+| East | 1 | 1 | 1 | 8 |
+| Southeast | 2 | 2 | 8 | 7 |
+| South | 4 | 4 | 7 | 6 |
+| Southwest | 8 | 8 | 6 | 5 |
+| West | 16 | 16 | 5 | 4 |
+| Northwest | 32 | 32 | 4 | 3 |
+| North | 64 | 64 | 3 | 2 |
+| Northeast | 128 | 128 | 2 | 1 |
 
-ESRI uses powers of two. TauDEM numbers counterclockwise from east; GRASS
+ESRI uses powers of two (`1` through `128`). `merit` uses those same eight ESRI D8
+neighbor powers for outgoing neighbors plus two distinct valid terminal codes
+with no downstream neighbor: `0` for river mouth and `255` (`uint8`) or `-1`
+(`int8`) for inland depression. Both `merit` terminal codes are valid data
+cells (not nodata) and are terminal for upstream D8 tracing, while remaining
+distinct in raw direction values. Undefined ocean cells use the GeoTIFF header
+nodata tag (such as `247` for unsigned MERIT Hydro direction, corresponding to
+documented signed `-9`), never guessed from direction codes and never collapsed
+with `0` or `255`. TauDEM numbers counterclockwise from east; GRASS
 `r.watershed` numbers counterclockwise from northeast. For GRASS with `uint8`,
 valid data codes are 0 through 8; 0 denotes a terminal cell with no downstream
 neighbor. For signed GRASS values, a negative value gives the direction of its
