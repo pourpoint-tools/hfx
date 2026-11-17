@@ -69,8 +69,9 @@ recalculate flow, or reconstruct transforms from tile names.
 
 Keep river-mouth code **0** and inland-depression code **255** distinct, along
 with the ordinary ESRI D8 codes. Clarify their meaning in the HFX raster contract
-and coordinate the exact interpretation with Pourpoint before claiming consumer
-compatibility. The maintainer approved this source-preserving direction, not a
+and coordinate the exact interpretation and representation-selection implications
+with Pourpoint before declaring the normalized raster HFX-conformant. Adding the
+nodata tag alone is insufficient. The maintainer approved this source-preserving direction, not a
 silent conversion to GRASS or a collapse of mouth/depression distinctions. Keep
 this change narrow; do not redesign raster storage or implement the Pourpoint
 engine in this effort. Record the consumer contract handoff and any outstanding
@@ -200,6 +201,10 @@ Verify hosted identities and focused range reads through the intended public or
 private access path, including vector records/relationships and paired native
 raster windows. Document exact coverage and limitations, rather than claiming
 uniform global availability or source hydrological certification.
+
+Completion requires producer-conformant artifacts and verified reads through the
+intended delivery access path, not implementation of a Pourpoint reader. Document
+any remaining reader-support gap without claiming end-to-end Pourpoint readiness.
 
 Return a handoff on #281 with the exact destination and manifest identity,
 representation, release/license/provenance records, delivered and omitted products
