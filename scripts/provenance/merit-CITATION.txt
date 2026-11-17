@@ -1,0 +1,3 @@
+Yamazaki, D., Ikeshima, D., Sosa, J., Bates, P. D., Allen, G. H., & Pavelsky, T. M. (2019). MERIT Hydro: A high-resolution global hydrography map based on latest topography datasets. Water Resources Research, 55, 5053-5073. https://doi.org/10.1029/2019WR024873
+
+Lin, P., Pan, M., Beck, H. E., Yang, Y., Yamazaki, D., Frasson, R., David, C. H., Durand, M., Pavelsky, T. M., Allen, G. H., Gleason, C. J., & Wood, E. F. (2019). Global reconstruction of naturalized river flows at 2.94 million reaches. Water Resources Research, 55, 6499-6516. https://doi.org/10.1029/2019WR025287
