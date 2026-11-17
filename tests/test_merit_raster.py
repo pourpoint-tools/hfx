@@ -62,7 +62,7 @@ def _sample_arrays(shape: tuple[int, int] = (800, 800)) -> tuple[np.ndarray, np.
 
 
 def test_normalizes_two_tiles_preserves_terminals_float_bits_and_verifies(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
     from scripts.verify_merit_rasters import verify_merit_raster_pair
 
     dx = 1.0 / 1200.0
@@ -141,7 +141,7 @@ def test_normalizes_two_tiles_preserves_terminals_float_bits_and_verifies(tmp_pa
 
 
 def test_rejects_unexpected_direction_code(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
 
     dx = 1.0 / 1200.0
     t = Affine(dx, 0.0, -20.0 - dx * 0.5, 0.0, -dx, 70.0 - dx * 0.5)
@@ -156,7 +156,7 @@ def test_rejects_unexpected_direction_code(tmp_path: Path) -> None:
 
 
 def test_rejects_ocean_mask_disagreement(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
 
     dx = 1.0 / 1200.0
     t = Affine(dx, 0.0, -20.0 - dx * 0.5, 0.0, -dx, 70.0 - dx * 0.5)
@@ -171,7 +171,7 @@ def test_rejects_ocean_mask_disagreement(tmp_path: Path) -> None:
 
 
 def test_rejects_misaligned_tile_grid(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
 
     dx = 1.0 / 1200.0
     t0 = Affine(dx, 0.0, -20.0 - dx * 0.5, 0.0, -dx, 70.0 - dx * 0.5)
@@ -192,7 +192,7 @@ def test_rejects_misaligned_tile_grid(tmp_path: Path) -> None:
 
 
 def test_partial_coverage_emits_only_acquired_tiles_without_ocean_fill(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
     from scripts.verify_merit_rasters import verify_merit_raster_pair
 
     dx = 1.0 / 1200.0
@@ -231,7 +231,7 @@ def test_partial_coverage_emits_only_acquired_tiles_without_ocean_fill(tmp_path:
 def test_tar_archive_roundtrip_and_verification(tmp_path: Path) -> None:
     import tarfile
 
-    from hfx.merit_raster import TarArchivePair, build_merit_rasters
+    from scripts.merit_raster import TarArchivePair, build_merit_rasters
     from scripts.verify_merit_rasters import verify_merit_raster_pair
 
     dx = 1.0 / 1200.0
@@ -256,7 +256,7 @@ def test_tar_archive_roundtrip_and_verification(tmp_path: Path) -> None:
 
 
 def test_accepts_float64_ulp_transform_rounding_and_rejects_subpixel_shift(tmp_path: Path) -> None:
-    from hfx.merit_raster import TilePair, build_merit_rasters
+    from scripts.merit_raster import TilePair, build_merit_rasters
     from scripts.verify_merit_rasters import verify_merit_raster_pair
 
     dx = 1.0 / 1200.0
@@ -280,3 +280,55 @@ def test_accepts_float64_ulp_transform_rounding_and_rejects_subpixel_shift(tmp_p
     _write_merit_source_tile(p_bd, p_bu, transform=t_dir, upa_transform=t_upa_shifted, dir_data=d, upa_data=u)
     with pytest.raises(ValueError, match="grid mismatch"):
         build_merit_rasters([TilePair(name="bad", dir_path=p_bd, upa_path=p_bu)], tmp_path / "out_bad", tile_size=400)
+
+
+def test_complete_global_fills_ocean_gap_and_writer_cleans_up_on_tag_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts import merit_raster
+    from scripts.verify_merit_rasters import verify_merit_raster_pair
+
+    dx = 1.0 / 1200.0
+    t0 = Affine(dx, 0.0, -20.0 - dx * 0.5, 0.0, -dx, 70.0 - dx * 0.5)
+    t2 = Affine(dx, 0.0, -20.0 - dx * 0.5 + 800 * dx, 0.0, -dx, 70.0 - dx * 0.5)
+    d, u = _sample_arrays((400, 400))
+    p_d0, p_u0 = tmp_path / "d0.tif", tmp_path / "u0.tif"
+    p_d2, p_u2 = tmp_path / "d2.tif", tmp_path / "u2.tif"
+    _write_merit_source_tile(p_d0, p_u0, transform=t0, dir_data=d, upa_data=u)
+    _write_merit_source_tile(p_d2, p_u2, transform=t2, dir_data=d, upa_data=u)
+
+    sources = [
+        merit_raster.TilePair(name="t0", dir_path=p_d0, upa_path=p_u0),
+        merit_raster.TilePair(name="t2", dir_path=p_d2, upa_path=p_u2),
+    ]
+    gap_dir = tmp_path / "gap_out"
+    receipt = merit_raster.build_merit_rasters(sources, gap_dir, complete_global=True, tile_size=400)
+    assert receipt["pairs"][0]["ocean_fill_output_tiles"] == 1
+    assert (
+        verify_merit_raster_pair(gap_dir / "flow_dir.tif", gap_dir / "flow_acc.tif", sources, tile_size=400)[
+            "ocean_fill_cells"
+        ]
+        == 160_000
+    )
+
+    # If writer setup fails before consuming tiles, _write_queued_bigtiff must drain the queue without deadlocking.
+    from queue import Queue
+
+    q: Queue[np.ndarray | None] = Queue()
+    q.put(np.zeros((16, 16), dtype=np.uint8))
+    q.put(None)
+    errors: list[BaseException] = []
+    monkeypatch.setattr(merit_raster, "_geotiff_extratags", lambda *_a, **_kw: (_ for _ in ()).throw(OSError("full")))
+    merit_raster._write_queued_bigtiff(
+        tmp_path / "fail.tif",
+        shape=(16, 16),
+        dtype="uint8",
+        tile_size=16,
+        transform=t0,
+        nodata=247.0,
+        queue=q,
+        maxworkers=1,
+        errors=errors,
+    )
+    assert len(errors) == 1 and isinstance(errors[0], OSError)
+    assert q.empty()

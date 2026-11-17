@@ -188,14 +188,14 @@ def _canon_ring_signature(rings: list[tuple[tuple[float, float], ...]], *, is_po
         # normalize cyclic start + direction per ring so exact vertex set and ring sequence match.
         sigs: list[bytes] = []
         for ring in rings:
-            pts = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
-            fwd = list(pts)
+            pts = list(ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring)
+            fwd_idx = pts.index(min(pts))
+            fwd_rot = pts[fwd_idx:] + pts[:fwd_idx]
             rev = list(reversed(pts))
-            best = min(fwd, rev)
-            # Rotate minimal vertex to front.
-            min_idx = best.index(min(best))
-            rotated = best[min_idx:] + best[:min_idx]
-            sigs.append(struct.pack(f"<{len(rotated) * 2}d", *[c for pt in rotated for c in pt]))
+            rev_idx = rev.index(min(rev))
+            rev_rot = rev[rev_idx:] + rev[:rev_idx]
+            best = min(fwd_rot, rev_rot)
+            sigs.append(struct.pack(f"<{len(best) * 2}d", *[c for pt in best for c in pt]))
         for sig in sorted(sigs):
             h.update(struct.pack("<I", len(sig)))
             h.update(sig)

@@ -21,7 +21,7 @@ from rasterio.windows import Window
 from rio_cogeo.cogeo import cog_validate
 
 from hfx.candidates import fingerprint
-from hfx.merit_raster import (
+from scripts.merit_raster import (
     DEFAULT_TILE_SIZE,
     DIR_NODATA,
     TRANSFORM_TOLERANCE,

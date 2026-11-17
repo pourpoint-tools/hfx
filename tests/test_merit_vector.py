@@ -539,3 +539,11 @@ def test_dbf_reader_treats_asterisk_fill_as_null(tmp_path: Path) -> None:
     dbf_path.write_bytes(header + field_desc + b"\r" + rec_valid + rec_null)
 
     assert list(_read_dbf(dbf_path)) == [{"slope": 1.25}, {"slope": None}]
+
+
+def test_canon_ring_signature_invariant_to_rotation_and_reversal() -> None:
+    from scripts.verify_merit import _canon_ring_signature
+
+    ring_ccw = [((0.0, 0.0), (0.5, 1.0), (0.2, 2.0), (2.0, 0.0), (0.0, 0.0))]
+    ring_cw_rotated = [((0.2, 2.0), (0.5, 1.0), (0.0, 0.0), (2.0, 0.0), (0.2, 2.0))]
+    assert _canon_ring_signature(ring_ccw, is_polygon=True) == _canon_ring_signature(ring_cw_rotated, is_polygon=True)

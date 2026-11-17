@@ -404,7 +404,6 @@ def _write_queued_bigtiff(
     maxworkers: int,
     errors: list[BaseException],
 ) -> None:
-    extratags = _geotiff_extratags(transform, dtype, nodata)
     saw_sentinel = False
 
     def iterator() -> Iterator[npt.NDArray[np.generic]]:
@@ -417,6 +416,7 @@ def _write_queued_bigtiff(
             yield item
 
     try:
+        extratags = _geotiff_extratags(transform, dtype, nodata)
         tifffile.imwrite(
             output_path,
             iterator(),
@@ -608,6 +608,8 @@ def _build_single_grid(
     t_dir.join()
     t_acc.join()
     if errors:
+        dir_out.unlink(missing_ok=True)
+        acc_out.unlink(missing_ok=True)
         raise errors[0]
 
     return {

@@ -214,7 +214,6 @@ def _unify_native_schema(
     """Collect unified nullable native Arrow fields and track column renames/types per partition."""
     field_types: dict[str, pa.DataType] = {}
     field_order: list[str] = []
-    field_sources: dict[str, set[str]] = {}
     renames: dict[str, dict[str, str]] = {}
     original_schemas: dict[str, dict[str, str]] = {}
 
@@ -234,7 +233,6 @@ def _unify_native_schema(
             else:
                 field_types[mapped_name] = dtype
                 field_order.append(mapped_name)
-            field_sources.setdefault(mapped_name, set()).add(key)
         if rename_map:
             renames[key] = rename_map
 
@@ -413,6 +411,7 @@ def produce(
                             seen_global_channelized_comids.add(comid)
 
                         geom_dict = feat["geometry"]
+                        area_km2 = 0.0
                         if geom_dict is None:
                             reason = "null geometry"
                             geom = None
@@ -483,7 +482,7 @@ def produce(
                             "catchment_kind": kind,
                             "bbox": bbox,
                             "geometry": wkb,
-                            "area_km2": float(np.float32(_geodesic_area_km2(geom, geod))),
+                            "area_km2": float(np.float32(area_km2)),
                             "up_area_km2": None,
                             "outlet_lon": None,
                             "outlet_lat": None,

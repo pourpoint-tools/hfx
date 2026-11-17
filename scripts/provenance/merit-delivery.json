@@ -6727,7 +6727,7 @@
   "execution_environment": {
     "base_commit": "b8d99e355e0f1891e9455c96268d334c9dc57d77",
     "tools": [
-      "src/hfx/merit_raster.py",
+      "scripts/merit_raster.py (invoked as src/hfx/merit_raster.py during production build; moved under scripts/ in PR #284 review to keep hfx core dependencies limited to pyarrow and numpy)",
       "scripts/produce_merit.py",
       "src/hfx/spatial_bundle.py",
       "scripts/verify_merit_rasters.py",
