@@ -57,6 +57,21 @@ upstream polygon-union area are different quantities. Do not relabel one as anot
 Document upstream-area semantics, derivations and anomalies; use null rather than
 an unsupported value.
 
+For supplied catchment levels with `completeness: "partial"`, producers may supply
+per-unit completeness and boundary fields:
+
+- `upstream_boundary_cuts` (`int32`, nullable): nonnegative count of immediate
+  incoming source edges whose upstream catchment is absent or omitted (`0` when all
+  immediate incoming source edges resolve to delivered catchments; `> 0` when
+  immediate incoming edges were cut). `null` means incoming catchment connectivity
+  could not be verified from valid source topology (such as unchannelized coastal
+  hillslopes without a topology table or catchments whose paired source river was
+  omitted for degenerate geometry).
+- Optional dataset `downstream_boundary_status` (`string`, non-nullable, documented in
+  `categorical_columns`) distinguishing `"internal"` downstream edges from source zero
+  sentinels, downstream cuts to missing catchments, omitted degenerate rivers, and
+  unassociated coastal hillslopes.
+
 ## Rivers
 
 | Field | Arrow type | Nullable | Meaning |
@@ -123,6 +138,21 @@ IDs resolve within the corresponding domain. Lists have no nulls, duplicates or
 self-links. Parent membership is not flow. Validate complete source edges before
 declaring conformance; a cycle cannot be excused by an anomaly note or removed
 silently. Acyclicity does not certify hydrological continuity.
+
+When catchment connectivity is derived from supplied river connectivity and verified
+1-to-1 local drainage associations, only immediate edges whose upstream and
+downstream rivers both have delivered associated catchments are materialized in the
+catchment flow graph; omitted or missing polygons are never bridged across gaps, and
+missing links are never turned into natural outlets.
+
+When a level declares `completeness: "partial"` with `upstream_cuts_column`, an
+upstream catchment selection is complete relative to the source network if and only
+if every visited unit in the traversed closure has non-null
+`upstream_boundary_cuts == 0` (or the declared column equals `0`). If any visited
+unit has a positive cut count or `null`, consumers must not return an ordinary
+complete result; partial results require explicit opt-in and missing-coverage
+reporting. Provenance metadata alone does not enforce this runtime check; consumer
+support requires explicit coordination.
 
 ## Typed meanings and source fidelity
 

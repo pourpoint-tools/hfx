@@ -8,7 +8,8 @@ import json
 import math
 import sqlite3
 import struct
-from collections.abc import Iterator
+from collections import Counter
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -180,7 +181,7 @@ def _wkb_rings(wkb: bytes) -> list[tuple[tuple[float, float], ...]]:
     return rings
 
 
-def _canon_ring_signature(rings: list[tuple[tuple[float, float], ...]], *, is_polygon: bool) -> str:
+def _canon_ring_signature(rings: Sequence[Sequence[tuple[float, float]]], *, is_polygon: bool) -> str:
     """Hash vertex coordinates preserving exact part/ring coordinate precision."""
     h = hashlib.sha256()
     if is_polygon:
@@ -230,6 +231,27 @@ def _raw_river_is_invalid_or_out_of_bounds(rings: list[tuple[tuple[float, float]
     return len(distinct_pts) < 2
 
 
+def _check_acyclic_downstream(edges: set[tuple[int, int]], node_ids: Iterable[int], label: str) -> None:
+    """Verify out-degree <= 1 and global acyclicity via downstream path traversal."""
+    successor: dict[int, int] = {}
+    for src_id, dst_id in edges:
+        if src_id == dst_id:
+            raise ValueError(f"{label} graph contains a self-loop at {src_id}")
+        if src_id in successor:
+            raise ValueError(f"{label} graph is not a tree: multiple downstream edges from {src_id}")
+        successor[src_id] = dst_id
+    completed: set[int] = set()
+    for node_id in node_ids:
+        path_ids: set[int] = set()
+        cur = node_id
+        while cur in successor and cur not in completed:
+            if cur in path_ids:
+                raise ValueError(f"{label} graph contains a cycle")
+            path_ids.add(cur)
+            cur = successor[cur]
+        completed.update(path_ids)
+
+
 @contextmanager
 def _verify_db() -> Iterator[sqlite3.Connection]:
     with TemporaryDirectory(prefix="hfx-merit-verify-") as scratch:
@@ -253,6 +275,11 @@ def _verify_db() -> Iterator[sqlite3.Connection]:
             )
             conn.execute("CREATE INDEX idx_id_hfx ON id_map(domain, hfx_id)")
             conn.execute(
+                "CREATE TABLE observed_catchments ("
+                "hfx_id INTEGER PRIMARY KEY, catchment_kind TEXT NOT NULL, partition TEXT NOT NULL, "
+                "comid INTEGER, downstream_boundary_status TEXT NOT NULL, upstream_boundary_cuts INTEGER)"
+            )
+            conn.execute(
                 "CREATE TABLE expected_rivers ("
                 "comid INTEGER PRIMARY KEY, partition TEXT NOT NULL, next_down INTEGER NOT NULL, "
                 "up1 INTEGER NOT NULL, up2 INTEGER NOT NULL, up3 INTEGER NOT NULL, up4 INTEGER NOT NULL)"
@@ -262,14 +289,145 @@ def _verify_db() -> Iterator[sqlite3.Connection]:
             conn.close()
 
 
-def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, Any]:
+def _validate_base_bundle_inventory(
+    inventory: dict[str, Any],
+    base_spatial_dir: Path,
+    spatial_dir: Path,
+    *,
+    inherited_hillslopes: set[str],
+    supplied_hillslopes: set[str],
+) -> tuple[dict[str, Any], list[str]]:
+    """Verify inherited fallback eligibility and provenance against base_spatial_dir."""
+    base_manifest = json.loads((base_spatial_dir / "manifest.json").read_bytes())
+    if (
+        base_manifest.get("format_version") != "0.4.0"
+        or base_manifest.get("fabric_name") != "merit"
+        or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
+        or base_manifest.get("representation_version") != 1
+    ):
+        raise ValueError("Invalid base_spatial_dir MERIT HFX 0.4.0 bundle")
+
+    for rel, identity in base_manifest["artifacts"].items():
+        path = base_spatial_dir / rel
+        if (
+            Path(rel).is_absolute()
+            or not path.resolve().is_relative_to(base_spatial_dir.resolve())
+            or not path.is_file()
+            or fingerprint(path) != identity
+        ):
+            raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+
+    partitions = sorted(inventory["partitions"], key=lambda item: item["partition"])
+    for part in partitions:
+        pname = str(part["partition"])
+        if part["catchments"].get("status") != "supplied" or part["rivers"].get("status") != "supplied":
+            raise ValueError(f"All pfaf_* partitions must be supplied when verifying with base_spatial_dir: {pname}")
+
+    base_orig_path = base_spatial_dir / "original-inventory.json"
+    if (spatial_dir / "original-inventory.json").read_bytes() != base_orig_path.read_bytes():
+        raise ValueError("original-inventory.json differs from base_spatial_dir")
+
+    base_orig = json.loads(base_orig_path.read_bytes())
+    if base_orig.get("release") != inventory.get("release"):
+        raise ValueError("Release differs from base original-inventory.json")
+
+    base_parts = {str(p["partition"]): p for p in base_orig["partitions"]}
+    if {str(p["partition"]) for p in partitions} != set(base_parts):
+        raise ValueError("pfaf_* partition set differs from base original-inventory.json")
+    for part in partitions:
+        pname = str(part["partition"])
+        base_part = base_parts.get(pname)
+        if base_part is None:
+            raise ValueError(f"Partition absent from base original-inventory.json: {pname}")
+        for domain in ("catchments", "rivers"):
+            if base_part[domain].get("status") != "supplied":
+                raise ValueError(f"Base original-inventory.json lacks supplied {pname}/{domain}")
+            inv_sides = {
+                name: (int(meta["size_bytes"]), str(meta["sha256"])) for name, meta in part[domain]["sidecars"].items()
+            }
+            base_sides = {
+                name: (int(meta["size_bytes"]), str(meta["sha256"]))
+                for name, meta in base_part[domain]["sidecars"].items()
+            }
+            if inv_sides != base_sides:
+                raise ValueError(f"Supplied sidecars differ from base original-inventory.json for {pname}/{domain}")
+
+    base_hills = {str(h["partition"]): h for h in base_orig.get("coastal_hillslopes", [])}
+    inv_hills = {str(h["partition"]): h for h in inventory.get("coastal_hillslopes", [])}
+    if set(inv_hills) != set(base_hills):
+        raise ValueError("Coastal hillslope partition set differs from base original-inventory.json")
+    for pname in supplied_hillslopes:
+        base_h = base_hills[pname]
+        inv_h = inv_hills[pname]
+        if base_h.get("status") != "supplied":
+            raise ValueError(f"Base original-inventory.json lacks supplied {pname}")
+        inv_sides = {name: (int(meta["size_bytes"]), str(meta["sha256"])) for name, meta in inv_h["sidecars"].items()}
+        base_sides = {name: (int(meta["size_bytes"]), str(meta["sha256"])) for name, meta in base_h["sidecars"].items()}
+        if inv_sides != base_sides:
+            raise ValueError(f"Supplied hillslope sidecars differ from base original-inventory.json for {pname}")
+    for pname in inherited_hillslopes:
+        if base_hills[pname].get("status") != "supplied":
+            raise ValueError(f"Inherited hillslope {pname} was not supplied in base original-inventory.json")
+
+    return base_manifest, sorted(base_hills)
+
+
+def verify_spatial_bundle(
+    inventory_path: Path,
+    spatial_dir: Path,
+    *,
+    base_spatial_dir: Path | None = None,
+) -> dict[str, Any]:
     """Independently verify original shapefiles against the final GeoParquet/IPC spatial bundle."""
     manifest = json.loads((spatial_dir / "manifest.json").read_bytes())
     if manifest["representation"] != "spatial-geoparquet-adjacency" or manifest["representation_version"] != 1:
         raise ValueError("Unexpected representation")
-    if manifest["catchment_connectivity"] != [{"level": 0, "status": "not_supplied"}] or manifest["has_up_area"]:
-        raise ValueError("Unexpected catchment connectivity or has_up_area")
-    if (spatial_dir / "original-inventory.json").read_bytes() != inventory_path.read_bytes():
+    expected_connectivity = [
+        {
+            "level": 0,
+            "status": "supplied",
+            "derivation": "river_local_associations",
+            "completeness": "partial",
+            "upstream_cuts_column": "upstream_boundary_cuts",
+        }
+    ]
+    if (
+        manifest["catchment_connectivity"] != expected_connectivity
+        or manifest["topology"] != "tree"
+        or manifest["has_up_area"]
+    ):
+        raise ValueError("Unexpected catchment connectivity, topology, or has_up_area")
+
+    inventory = json.loads(inventory_path.read_bytes())
+    release = str(inventory["release"])
+    partitions = sorted(inventory["partitions"], key=lambda item: item["partition"])
+    hillslopes = sorted(inventory.get("coastal_hillslopes", []), key=lambda item: item["partition"])
+
+    raw_verified_hillslopes: list[str] = []
+    inherited_hillslopes: set[str] = set()
+    for h in hillslopes:
+        pname = str(h["partition"])
+        status = h.get("status")
+        if status == "supplied":
+            raw_verified_hillslopes.append(pname)
+        elif status == "inherited_from_verified_bundle":
+            inherited_hillslopes.add(pname)
+        else:
+            raise ValueError(f"Unsupported coastal_hillslopes status {status!r} for {pname}")
+
+    if inherited_hillslopes and base_spatial_dir is None:
+        raise ValueError("Inherited coastal_hillslopes require base_spatial_dir")
+
+    base_manifest: dict[str, Any] | None = None
+    if base_spatial_dir is not None:
+        base_manifest, _ = _validate_base_bundle_inventory(
+            inventory,
+            base_spatial_dir,
+            spatial_dir,
+            inherited_hillslopes=inherited_hillslopes,
+            supplied_hillslopes=set(raw_verified_hillslopes),
+        )
+    elif (spatial_dir / "original-inventory.json").read_bytes() != inventory_path.read_bytes():
         raise ValueError("original-inventory.json differs from inventory")
 
     for rel, identity in manifest["artifacts"].items():
@@ -277,12 +435,11 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
         if not path.resolve().is_relative_to(spatial_dir.resolve()) or fingerprint(path) != identity:
             raise ValueError(f"Final artifact fingerprint differs: {rel}")
 
-    inventory = json.loads(inventory_path.read_bytes())
-    release = str(inventory["release"])
-    partitions = sorted(inventory["partitions"], key=lambda item: item["partition"])
-    hillslopes = sorted(inventory.get("coastal_hillslopes", []), key=lambda item: item["partition"])
     omitted_list = json.loads((spatial_dir / "omitted-features.json").read_bytes())
     omitted_keys = {(item["source_namespace"], item["source_id"]): item for item in omitted_list}
+    omitted_river_comids = {
+        int(item["COMID"]) for item in omitted_list if item["domain"] == "rivers" and item.get("COMID") is not None
+    }
     cut_edges = json.loads((spatial_dir / "cut-edges.json").read_bytes())
 
     source_hashes: dict[str, str] = {}
@@ -293,6 +450,7 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
         cat_entries: list[tuple[str, str, dict[str, Any]]] = []
         riv_entries: list[tuple[str, dict[str, Any]]] = []
         unavailable_catchments: set[str] = set()
+        unavailable_rivers: set[str] = set()
         for part in partitions:
             pname = str(part["partition"])
             if part["catchments"].get("status") == "supplied":
@@ -301,6 +459,8 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
                 unavailable_catchments.add(pname)
             if part["rivers"].get("status") == "supplied":
                 riv_entries.append((pname, part["rivers"]))
+            else:
+                unavailable_rivers.add(pname)
         for h in hillslopes:
             if h.get("status") == "supplied":
                 cat_entries.append((str(h["partition"]), "coastal_hillslopes", h))
@@ -409,8 +569,46 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
             "up_area_km2",
             "outlet_lon",
             "outlet_lat",
+            "downstream_boundary_status",
+            "upstream_boundary_cuts",
         }
         cat_all_native = [n for n in cat_parquet.schema_arrow.names if n not in cat_structural]
+
+        if inherited_hillslopes:
+            assert base_spatial_dir is not None and base_manifest is not None
+            base_cat_parquet = pq.ParquetFile(base_spatial_dir / base_manifest["families"]["catchments"]["data"])
+            base_all_native = [n for n in base_cat_parquet.schema_arrow.names if n not in cat_structural]
+            if set(base_all_native) != set(cat_all_native):
+                raise ValueError("Catchment native columns differ from base_spatial_dir")
+            for pname in inherited_hillslopes:
+                cat_native_names[(pname, "coastal_hillslopes")] = set(base_all_native)
+            for batch in base_cat_parquet.iter_batches(batch_size=8192):
+                kinds = batch.column("catchment_kind").to_pylist()
+                pnames = batch.column("processing_partition").to_pylist()
+                match_indices = [
+                    idx
+                    for idx, (kind, pname) in enumerate(zip(kinds, pnames, strict=True))
+                    if kind == "coastal_hillslope" and pname in inherited_hillslopes
+                ]
+                if not match_indices:
+                    continue
+                matched = batch.take(match_indices)
+                for row in matched.to_pylist():
+                    ns, sid = row["source_namespace"], row["source_id"]
+                    if (ns, sid) in omitted_keys:
+                        raise ValueError(f"Unexpected inherited hillslope in omitted-features.json: {(ns, sid)}")
+                    row_attrs = {k: row[k] for k in base_all_native}
+                    db.execute(
+                        "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0)",
+                        (
+                            "catchments",
+                            ns,
+                            sid,
+                            _canon_attrs_digest(row_attrs),
+                            _canon_ring_signature(_wkb_rings(row["geometry"]), is_polygon=True),
+                        ),
+                    )
+            db.commit()
 
         delivered_catchments = 0
         for rg_idx in range(cat_parquet.num_row_groups):
@@ -454,6 +652,17 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
                 db.execute(
                     "INSERT INTO id_map VALUES ('catchments', ?, ?, ?, ?, ?)",
                     (ns, sid, row["id"], pname, row.get("COMID")),
+                )
+                db.execute(
+                    "INSERT INTO observed_catchments VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        row["id"],
+                        row["catchment_kind"],
+                        pname,
+                        row.get("COMID"),
+                        row["downstream_boundary_status"],
+                        row["upstream_boundary_cuts"],
+                    ),
                 )
 
         riv_parquet = pq.ParquetFile(spatial_dir / manifest["families"]["rivers"]["data"])
@@ -528,7 +737,7 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
         if unseen:
             raise ValueError(f"{unseen} expected source features missing from final bundle")
 
-        # 3. Verify complete river flow graph, acyclicity, cuts, and relationships IPC against expected_rivers.
+        # 3. Verify complete river flow graph, acyclicity, cuts, derived catchment connectivity, and relationships IPC.
         riv_comid_to_id = dict(db.execute("SELECT comid, hfx_id FROM id_map WHERE domain='rivers'").fetchall())
         cat_part_comid_to_id = {
             (r[0], r[1]): r[2]
@@ -538,13 +747,25 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
             ).fetchall()
         }
 
+        cat_part_by_comid: dict[int, str] = {}
+        for part, comid in cat_part_comid_to_id:
+            if comid in cat_part_by_comid:
+                raise ValueError(f"Duplicate global channelized catchment COMID {comid}")
+            cat_part_by_comid[comid] = part
+
         expected_edges: set[tuple[int, int]] = set()
         expected_downstream_cuts = 0
         expected_upstream_cuts = 0
         all_rivs = db.execute("SELECT comid, partition, next_down, up1, up2, up3, up4 FROM expected_rivers").fetchall()
+        riv_part_map = {comid: pname for comid, pname, *_ in all_rivs}
         next_down_map = {comid: next_down for comid, _, next_down, *_ in all_rivs}
         ups_map = {comid: (up1, up2, up3, up4) for comid, _, _, up1, up2, up3, up4 in all_rivs}
-        for comid, _, next_down, up1, up2, up3, up4 in all_rivs:
+        riv_incoming_by_comid: dict[int, list[int]] = {comid: [] for comid in riv_comid_to_id}
+        riv_upstream_cuts_by_comid: dict[int, int] = {}
+
+        for comid, pname, next_down, up1, up2, up3, up4 in all_rivs:
+            if comid in cat_part_by_comid and cat_part_by_comid[comid] != pname:
+                raise ValueError(f"Cross-partition COMID collision for river {pname}/{comid}")
             rid = riv_comid_to_id[comid]
             if next_down != 0:
                 if next_down in riv_comid_to_id:
@@ -553,36 +774,26 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
                             f"NextDownID overflow target {next_down} lacks full up1..up4 slots for {comid}"
                         )
                     expected_edges.add((rid, riv_comid_to_id[next_down]))
+                    riv_incoming_by_comid[next_down].append(comid)
                 else:
                     expected_downstream_cuts += 1
+            up_cuts = 0
             for u in (up1, up2, up3, up4):
                 if u == 0:
                     continue
                 if u not in riv_comid_to_id:
                     expected_upstream_cuts += 1
-                elif next_down_map[u] != comid or (riv_comid_to_id[u], rid) not in expected_edges:
-                    if u in next_down_map and next_down_map[u] != comid:
-                        raise ValueError(f"Upstream {u} disagrees with target {comid} NextDownID")
-                    if (riv_comid_to_id[u], rid) not in expected_edges:
-                        expected_edges.add((riv_comid_to_id[u], rid))
+                    up_cuts += 1
+                elif next_down_map[u] != comid:
+                    raise ValueError(f"Upstream {u} disagrees with target {comid} NextDownID")
+            riv_upstream_cuts_by_comid[comid] = up_cuts
 
         if len([c for c in cut_edges if c["direction"] == "downstream"]) != expected_downstream_cuts:
             raise ValueError("Cut downstream edge count differs")
         if len([c for c in cut_edges if c["direction"] == "upstream"]) != expected_upstream_cuts:
             raise ValueError("Cut upstream edge count differs")
 
-        # Independent cycle check via downstream path traversal.
-        successor = dict(expected_edges)
-        completed: set[int] = set()
-        for rid in riv_comid_to_id.values():
-            path_ids: set[int] = set()
-            cur = rid
-            while cur in successor and cur not in completed:
-                if cur in path_ids:
-                    raise ValueError("River graph contains a cycle")
-                path_ids.add(cur)
-                cur = successor[cur]
-            completed.update(path_ids)
+        _check_acyclic_downstream(expected_edges, riv_comid_to_id.values(), "River")
 
         expected_local_pairs = {
             (riv_comid_to_id[comid], cat_part_comid_to_id[(pname, comid)])
@@ -608,17 +819,202 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
         if actual_riv_local != expected_local_pairs:
             raise ValueError("Final river local associations differ from original DBFs")
 
+        # Independently derive catchment connectivity and completeness expectations from original .shp/.dbf inputs.
+        expected_cat_edges: set[tuple[int, int]] = set()
+        for comid, pname, next_down, *_ in all_rivs:
+            if next_down != 0 and next_down in riv_comid_to_id:
+                src_cid = cat_part_comid_to_id.get((pname, comid))
+                dst_cid = cat_part_comid_to_id.get((riv_part_map[next_down], next_down))
+                if src_cid is not None and dst_cid is not None:
+                    expected_cat_edges.add((src_cid, dst_cid))
+
+        obs_cats = db.execute(
+            "SELECT hfx_id, catchment_kind, partition, comid, downstream_boundary_status, upstream_boundary_cuts "
+            "FROM observed_catchments"
+        ).fetchall()
+        _check_acyclic_downstream(expected_cat_edges, [r[0] for r in obs_cats], "Catchment")
+
+        paired_count = 0
+        unpaired_omitted_riv = 0
+        unpaired_riv_not_in_source = 0
+        unpaired_riv_unavailable = 0
+        hillslope_count = 0
+        cuts_cat_count = 0
+        total_up_cut_edges = 0
+        downstream_cuts = 0
+        exp_status_counts: Counter[str] = Counter()
+        exp_cat_up_cuts_by_id: dict[int, int | None] = {}
+
+        for cid, ckind, pname, comid, obs_down_status, obs_up_cuts in obs_cats:
+            if ckind == "coastal_hillslope":
+                hillslope_count += 1
+                exp_down_status = "unassociated_coastal_hillslope"
+                exp_up_cuts: int | None = None
+            elif comid is None:
+                raise ValueError(f"Channelized catchment {cid} missing COMID")
+            elif comid not in riv_comid_to_id:
+                exp_up_cuts = None
+                if comid in omitted_river_comids:
+                    exp_down_status = "omitted_degenerate_river"
+                    unpaired_omitted_riv += 1
+                elif pname in unavailable_rivers:
+                    exp_down_status = "river_source_unavailable"
+                    unpaired_riv_unavailable += 1
+                else:
+                    exp_down_status = "river_not_in_source"
+                    unpaired_riv_not_in_source += 1
+            else:
+                paired_count += 1
+                exp_up_cuts = riv_upstream_cuts_by_comid[comid] + sum(
+                    1 for u in riv_incoming_by_comid[comid] if (riv_part_map[u], u) not in cat_part_comid_to_id
+                )
+                if exp_up_cuts > 0:
+                    cuts_cat_count += 1
+                    total_up_cut_edges += exp_up_cuts
+                nd = next_down_map[comid]
+                if nd == 0:
+                    exp_down_status = "source_zero_sentinel"
+                elif nd in riv_comid_to_id and (riv_part_map[nd], nd) in cat_part_comid_to_id:
+                    exp_down_status = "internal"
+                else:
+                    exp_down_status = "cut_missing_downstream_catchment"
+                    downstream_cuts += 1
+
+            if obs_down_status != exp_down_status:
+                raise ValueError(
+                    f"Catchment {cid} (COMID {comid}): downstream_boundary_status {obs_down_status!r} != {exp_down_status!r}"
+                )
+            if obs_up_cuts != exp_up_cuts:
+                raise ValueError(
+                    f"Catchment {cid} (COMID {comid}): upstream_boundary_cuts {obs_up_cuts!r} != {exp_up_cuts!r}"
+                )
+            exp_cat_up_cuts_by_id[cid] = exp_up_cuts
+            exp_status_counts[exp_down_status] += 1
+
+        cat_down_dict = next(
+            (
+                entry
+                for entry in manifest.get("categorical_columns", [])
+                if entry.get("artifact") == manifest["families"]["catchments"]["data"]
+                and entry.get("column") == "downstream_boundary_status"
+            ),
+            None,
+        )
+        if (
+            cat_down_dict is None
+            or cat_down_dict.get("physical_type") != "string"
+            or cat_down_dict.get("null_meaning") != "not permitted"
+        ):
+            raise ValueError("Missing or invalid categorical_columns dictionary for downstream_boundary_status")
+        declared_codes = {item["code"] for item in cat_down_dict["codes"]}
+        if not set(exp_status_counts).issubset(declared_codes):
+            raise ValueError("Undeclared downstream_boundary_status code in catchments.parquet")
+
+        actual_cat_up_edges: set[tuple[int, int]] = set()
+        actual_cat_down_edges: set[tuple[int, int]] = set()
         actual_cat_local: set[tuple[int, int]] = set()
         with ipc.open_file(str(spatial_dir / manifest["relationships"]["catchments"]["data"])) as reader:
+            if not {"upstream_ids", "downstream_ids", "local_river_ids"}.issubset(reader.schema.names):
+                raise ValueError("Catchment relationships missing expected flow/local columns")
             for b_idx in range(reader.num_record_batches):
                 for row in reader.get_batch(b_idx).to_pylist():
                     cid = row["id"]
-                    if row.get("upstream_ids") or row.get("downstream_ids"):
-                        raise ValueError("Catchment flow graph must be empty / not_supplied")
+                    for u in row["upstream_ids"]:
+                        actual_cat_up_edges.add((u, cid))
+                    for d in row["downstream_ids"]:
+                        actual_cat_down_edges.add((cid, d))
                     for rid in row["local_river_ids"]:
                         actual_cat_local.add((rid, cid))
+        if actual_cat_up_edges != expected_cat_edges or actual_cat_down_edges != expected_cat_edges:
+            raise ValueError("Final catchment flow relationships differ from river-derived edges")
         if actual_cat_local != expected_local_pairs:
             raise ValueError("Final catchment reverse local associations differ from original DBFs")
+
+        # Verify source-metadata.json catchment connectivity counts via independent closure check.
+        riv_in_deg = {comid: len(riv_incoming_by_comid[comid]) for comid in riv_comid_to_id}
+        anc_has_gap = {
+            comid: ((riv_part_map[comid], comid) not in cat_part_comid_to_id) or (riv_upstream_cuts_by_comid[comid] > 0)
+            for comid in riv_comid_to_id
+        }
+        anc_has_delivered = {comid: ((riv_part_map[comid], comid) in cat_part_comid_to_id) for comid in riv_comid_to_id}
+        anc_has_stranded = dict.fromkeys(riv_comid_to_id, False)
+        riv_queue = [comid for comid, deg in riv_in_deg.items() if deg == 0]
+        while riv_queue:
+            cur = riv_queue.pop()
+            nxt = next_down_map[cur]
+            if nxt not in riv_comid_to_id:
+                continue
+            if anc_has_gap[cur]:
+                anc_has_gap[nxt] = True
+            if anc_has_delivered[cur]:
+                anc_has_delivered[nxt] = True
+            if ((riv_part_map[nxt], nxt) not in cat_part_comid_to_id) and anc_has_delivered[cur]:
+                anc_has_stranded[nxt] = True
+            if anc_has_stranded[cur]:
+                anc_has_stranded[nxt] = True
+            riv_in_deg[nxt] -= 1
+            if riv_in_deg[nxt] == 0:
+                riv_queue.append(nxt)
+
+        complete_count = 0
+        incomplete_paired_count = 0
+        stranded_count = 0
+        unverified_count = 0
+        for cid, _ckind, _pname, comid, _obs_ds, _obs_uc in obs_cats:
+            if exp_cat_up_cuts_by_id[cid] is None:
+                unverified_count += 1
+                continue
+            assert comid is not None
+            if not anc_has_gap[comid]:
+                complete_count += 1
+            else:
+                incomplete_paired_count += 1
+                if anc_has_stranded[comid]:
+                    stranded_count += 1
+
+        rivers_omitted_poly = 0
+        rivers_cat_unavail = 0
+        rivers_cat_not_in_src = 0
+        for comid, pname, *_ in all_rivs:
+            if (pname, comid) in cat_part_comid_to_id:
+                continue
+            if (pname, comid) in omitted_catchments_by_part_comid:
+                rivers_omitted_poly += 1
+            elif pname in unavailable_catchments:
+                rivers_cat_unavail += 1
+            else:
+                rivers_cat_not_in_src += 1
+
+        expected_meta_counts = {
+            "derived_flow_edges": len(expected_cat_edges),
+            "paired_channelized_catchments": paired_count,
+            "unpaired_channelized_catchments_omitted_river": unpaired_omitted_riv,
+            "unpaired_channelized_catchments_river_not_in_source": unpaired_riv_not_in_source,
+            "unpaired_channelized_catchments_river_unavailable": unpaired_riv_unavailable,
+            "unassociated_coastal_hillslopes": hillslope_count,
+            "rivers_omitted_invalid_polygon": rivers_omitted_poly,
+            "rivers_catchment_not_in_source": rivers_cat_not_in_src,
+            "rivers_catchment_unavailable": rivers_cat_unavail,
+            "downstream_boundary_status_counts": dict(sorted(exp_status_counts.items())),
+            "catchments_with_upstream_cuts": cuts_cat_count,
+            "total_upstream_catchment_cut_edges": total_up_cut_edges,
+            "catchments_with_downstream_cuts": downstream_cuts,
+            "upstream_complete_catchments": complete_count,
+            "upstream_incomplete_paired_catchments": incomplete_paired_count,
+            "upstream_incomplete_leaf_only_catchments": incomplete_paired_count - stranded_count,
+            "upstream_incomplete_stranded_delivered_catchments": stranded_count,
+            "upstream_unverified_catchments": unverified_count,
+        }
+        source_meta = json.loads((spatial_dir / "source-metadata.json").read_bytes())
+        if source_meta.get("catchment_connectivity", {}).get("counts") != expected_meta_counts:
+            raise ValueError("source-metadata.json catchment_connectivity.counts differs from independent verification")
+        if (
+            base_spatial_dir is not None
+            and "derived_from_verified_bundle_manifest_sha256" in source_meta
+            and source_meta["derived_from_verified_bundle_manifest_sha256"]
+            != _sha256(base_spatial_dir / "manifest.json")
+        ):
+            raise ValueError("source-metadata.json derived_from_verified_bundle_manifest_sha256 differs from base")
 
     for path_str, expected_digest in source_hashes.items():
         if _sha256(Path(path_str)) != expected_digest:
@@ -631,8 +1027,11 @@ def verify_spatial_bundle(inventory_path: Path, spatial_dir: Path) -> dict[str, 
         "omitted_catchments": len([x for x in omitted_list if x["domain"] != "rivers"]),
         "omitted_rivers": len([x for x in omitted_list if x["domain"] == "rivers"]),
         "flow_edges": len(expected_edges),
+        "catchment_flow_edges": len(expected_cat_edges),
         "local_associations": len(expected_local_pairs),
         "cut_edges": len(cut_edges),
+        "raw_shapefile_verified_hillslope_partitions": sorted(raw_verified_hillslopes),
+        "base_bundle_verified_hillslope_partitions": sorted(inherited_hillslopes),
         "manifest_sha256": _sha256(spatial_dir / "manifest.json"),
     }
 
@@ -641,11 +1040,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inventory", type=Path)
     parser.add_argument("spatial_dir", type=Path)
+    parser.add_argument("--base-spatial-dir", type=Path)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
     if args.report.exists():
         raise FileExistsError(args.report)
-    result = verify_spatial_bundle(args.inventory, args.spatial_dir)
+    result = verify_spatial_bundle(args.inventory, args.spatial_dir, base_spatial_dir=args.base_spatial_dir)
     args.report.write_text(json.dumps(result, indent=2) + "\n")
 
 

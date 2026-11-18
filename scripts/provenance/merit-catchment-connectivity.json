@@ -1,0 +1,1043 @@
+{
+  "issue": "https://github.com/pourpoint-tools/hfx/issues/285",
+  "vision": "planning/visions/2026-11-18-merit-catchment-connectivity.md",
+  "base_production_bundle": {
+    "issue": "https://github.com/pourpoint-tools/hfx/issues/281",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261117/manifest.json",
+    "manifest_sha256": "d26695dab6ae91ff80556de44c6314709a1201b00977e9faee4fccab616bf891",
+    "status": "preserved_untouched"
+  },
+  "candidate_destination": {
+    "access_mode": "private_authenticated_s3",
+    "s3_endpoint": "https://fsn1.your-objectstorage.com",
+    "bucket": "pourpoint-hfx",
+    "prefix": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate/",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate/manifest.json",
+    "https_bundle_url": "https://fsn1.your-objectstorage.com/pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate",
+    "manifest_identity": {
+      "key": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate/manifest.json",
+      "size_bytes": 15348,
+      "sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+      "etag": "\"a58c81ca42a95290b8d5c850bda041f6\""
+    },
+    "artifacts": {
+      "CITATION.txt": {
+        "size_bytes": 577,
+        "sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "etag": "\"e6366fc1e179b2f8b1a5291709cf972c\"",
+        "verified_get": true
+      },
+      "NOTICE": {
+        "size_bytes": 1994,
+        "sha256": "66fd52336129f2e6776f07bbf481e1d67a9e67134b4902b2b9c98f182439618d",
+        "etag": "\"085d34d97c6a40194afbf32c9b18b0e9\"",
+        "verified_get": true
+      },
+      "aux/d8/flow_acc.tif": {
+        "size_bytes": 33809377414,
+        "sha256": "47d63b4947b4f39e9aa8825e53b7a8b5adf03312429b4a7145e6b7533be78740",
+        "etag": "\"4e2062720cb828d796e8454956283c17-323\"",
+        "verified_get": true
+      },
+      "aux/d8/flow_dir.tif": {
+        "size_bytes": 6357742200,
+        "sha256": "ff060460034ae7210badd2d04e8991373ff0442c7549d2d3f46e4ec9ad2645e4",
+        "etag": "\"3eb90399dc67320a55f815e4cb944e43-61\"",
+        "verified_get": true
+      },
+      "catchments-lookup-directory.json": {
+        "size_bytes": 3175,
+        "sha256": "b8ba146cf9875809cb43f4d10650b5af3213443b8673ffbb01f1612b255cd5af",
+        "etag": "\"ea1f7668bcef38d2f184a76b02f6be5f\"",
+        "verified_get": true
+      },
+      "catchments-lookup.arrow": {
+        "size_bytes": 49092394,
+        "sha256": "fceaa6a5d25b33bb17efee44826792fbc0af35e2be9dcf4b23c4539eab8b08a7",
+        "etag": "\"adab6bbea6e054e2a171a7b9211aa824-1\"",
+        "verified_get": true
+      },
+      "catchments-relationships-directory.json": {
+        "size_bytes": 25142,
+        "sha256": "1171e24dd95376cf125c5d4690f48457d77716e342eb0edf7f563eed8c9a2410",
+        "etag": "\"5065eb1cc993bbedb6f51f92741baf39\"",
+        "verified_get": true
+      },
+      "catchments-relationships.arrow": {
+        "size_bytes": 124904698,
+        "sha256": "fcb7d40ffc869a82e5390f4cfd15448983b58db861454dd71d1cf1b3cc4d8ea3",
+        "etag": "\"8ee30a82e94b458e35009879389de597-2\"",
+        "verified_get": true
+      },
+      "catchments.parquet": {
+        "size_bytes": 3427230263,
+        "sha256": "c8b93d83a0ad0adb356e331d92a1e1548d41500d21af20610f2fa2feef3a4d5b",
+        "etag": "\"d53dc5f84e673596e949bed09c6eb1dd-52\"",
+        "verified_get": true
+      },
+      "cut-edges.json": {
+        "size_bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "etag": "\"58e0494c51d30eb3494f7c9198986bb9\"",
+        "verified_get": true
+      },
+      "omitted-features.json": {
+        "size_bytes": 40193364,
+        "sha256": "1dd2dfd4d961201a67ae44a2950c1c193b62ec790155b9dc13c9fcb1730ab302",
+        "etag": "\"50184aab2576be8eeccead5652b7bc21-1\"",
+        "verified_get": true
+      },
+      "original-inventory.json": {
+        "size_bytes": 305573,
+        "sha256": "80e36b794f996f6a151641766464ca47f521eef2c832baa89934f7e055eba438",
+        "etag": "\"b10d2762c3ab2f849cc798540a82fbfc\"",
+        "verified_get": true
+      },
+      "rivers-lookup-directory.json": {
+        "size_bytes": 3039,
+        "sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "etag": "\"f18d03c5e85777482e8b6259310b3233\"",
+        "verified_get": true
+      },
+      "rivers-lookup.arrow": {
+        "size_bytes": 47037498,
+        "sha256": "5924258c0d59131afe1afacae0b45ba520e1d42fcf54dc8f6b03715189ef20ae",
+        "etag": "\"400ded4a29530e49e024ce33fb7767ae-1\"",
+        "verified_get": true
+      },
+      "rivers-relationships-directory.json": {
+        "size_bytes": 24054,
+        "sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "etag": "\"fef25c1eec1ef7305c908299e43d3a3b\"",
+        "verified_get": true
+      },
+      "rivers-relationships.arrow": {
+        "size_bytes": 127306626,
+        "sha256": "9c07ac0e1a68469651f3c50250225c7f3a1c118d1d96c81a3bf961580aca2c46",
+        "etag": "\"9e872b040a443d8857459e7a9e233c70-2\"",
+        "verified_get": true
+      },
+      "rivers.parquet": {
+        "size_bytes": 1062510956,
+        "sha256": "5e162524533d33c11d9e68cd7cbba7aa7dcb82bb0d0a34a11d5d03825fd9a6b9",
+        "etag": "\"e13c27ec01fa0eddb6e5a337903b7cf2-16\"",
+        "verified_get": true
+      },
+      "source-manifest.json": {
+        "size_bytes": 10209,
+        "sha256": "9e45b8fcb5a4bf2fd083e8330c7def96ce46c8abee92811a4cdb21b3f0409038",
+        "etag": "\"25a7f2a7a0dfb46e062113e37c4f94c6\"",
+        "verified_get": true
+      },
+      "source-metadata.json": {
+        "size_bytes": 57494,
+        "sha256": "7c2c8f01c8b31194f59e54d52610d4d53a848ad4dc18678c667ff241e014d268",
+        "etag": "\"4a090fbfe4dfeed372a3f8c150b2c2a8\"",
+        "verified_get": true
+      }
+    },
+    "storage_governance": {
+      "pre_existing_object_count": 579,
+      "pre_existing_bytes": 675683271512,
+      "delivered_object_count": 20,
+      "delivered_bundle_bytes": 45045842021,
+      "post_total_object_count": 599,
+      "post_total_bytes": 720729113533,
+      "base_allowance_bytes": 1000000000000,
+      "remaining_headroom_bytes": 279270886467,
+      "additional_monthly_storage_eur": 0.0,
+      "pre_inventory_sha256": "acdfc8d9313510508dee3da1740df53fcee685be1df67824387e5b37bd9ff4a8",
+      "post_non_candidate_inventory_sha256": "acdfc8d9313510508dee3da1740df53fcee685be1df67824387e5b37bd9ff4a8",
+      "existing_objects_preserved": true
+    }
+  },
+  "source_acquisition_and_fallback_verification": {
+    "note": "Google Drive anonymous download quota blocked re-downloading the remaining 47 coastal hillslope partitions after 685/849 sidecars (all 61/61 channelized pfaf_* partitions and 13/60 coastal hillslope partitions) were cached and SHA-256 verified. Vectors were derived cleanly from the verified #281 S3 bundle while independent verification checked 100% of pfaf_* partitions and all 13 cached hillslopes against raw .shp/.dbf files and verified the remaining 47 hillslopes bit-for-bit against #281 catchments.parquet.",
+    "pfaf_partitions_verified": 61,
+    "pfaf_sidecars_verified": 549,
+    "coastal_hillslopes_total": 60,
+    "coastal_hillslopes_supplied_from_raw_shapefile": [
+      "hillslope_11",
+      "hillslope_12",
+      "hillslope_13",
+      "hillslope_14",
+      "hillslope_15",
+      "hillslope_16",
+      "hillslope_17",
+      "hillslope_18",
+      "hillslope_22",
+      "hillslope_27",
+      "hillslope_28",
+      "hillslope_32",
+      "hillslope_36"
+    ],
+    "coastal_hillslopes_supplied_count": 13,
+    "coastal_hillslopes_inherited_from_base_bundle": [
+      "hillslope_21",
+      "hillslope_23",
+      "hillslope_24",
+      "hillslope_25",
+      "hillslope_26",
+      "hillslope_29",
+      "hillslope_31",
+      "hillslope_33",
+      "hillslope_34",
+      "hillslope_35",
+      "hillslope_41",
+      "hillslope_42",
+      "hillslope_43",
+      "hillslope_44",
+      "hillslope_45",
+      "hillslope_46",
+      "hillslope_47",
+      "hillslope_48",
+      "hillslope_51",
+      "hillslope_52",
+      "hillslope_53",
+      "hillslope_54",
+      "hillslope_55",
+      "hillslope_56",
+      "hillslope_57",
+      "hillslope_61",
+      "hillslope_62",
+      "hillslope_63",
+      "hillslope_64",
+      "hillslope_65",
+      "hillslope_66",
+      "hillslope_67",
+      "hillslope_71",
+      "hillslope_72",
+      "hillslope_73",
+      "hillslope_74",
+      "hillslope_75",
+      "hillslope_76",
+      "hillslope_77",
+      "hillslope_78",
+      "hillslope_81",
+      "hillslope_82",
+      "hillslope_83",
+      "hillslope_84",
+      "hillslope_85",
+      "hillslope_86",
+      "hillslope_91"
+    ],
+    "coastal_hillslopes_inherited_count": 47,
+    "base_bundle_manifest_sha256": "d26695dab6ae91ff80556de44c6314709a1201b00977e9faee4fccab616bf891"
+  },
+  "receipts": {
+    "produce_receipt": {
+      "status": "passed",
+      "delivered_catchments": 3067452,
+      "delivered_channelized_catchments": 2790081,
+      "delivered_coastal_hillslopes": 277371,
+      "delivered_rivers": 2939054,
+      "omitted_catchments": 149323,
+      "omitted_rivers": 354,
+      "cut_edges": 0,
+      "catchment_flow_edges": 2566044,
+      "upstream_complete_catchments": 2169409,
+      "manifest_sha256": "9e45b8fcb5a4bf2fd083e8330c7def96ce46c8abee92811a4cdb21b3f0409038",
+      "derived_from_verified_bundle_manifest_sha256": "d26695dab6ae91ff80556de44c6314709a1201b00977e9faee4fccab616bf891"
+    },
+    "spatial_verify_receipt": {
+      "status": "passed",
+      "input_manifest_sha256": "9e45b8fcb5a4bf2fd083e8330c7def96ce46c8abee92811a4cdb21b3f0409038",
+      "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+      "features": {
+        "catchments": {
+          "status": "passed",
+          "rows": 3067452,
+          "row_groups": 2462,
+          "source_batch_reads": 5227,
+          "source_decoded_bytes": 38091248036,
+          "source_logical_bytes": 19033057076,
+          "source_decode_amplification": 2.0013205384662927
+        },
+        "rivers": {
+          "status": "passed",
+          "rows": 2939054,
+          "row_groups": 811,
+          "source_batch_reads": 1778,
+          "source_decoded_bytes": 11065784670,
+          "source_logical_bytes": 5532892335,
+          "source_decode_amplification": 2.0
+        }
+      },
+      "relationships": {
+        "catchments": {
+          "rows": 3067452,
+          "columns": {
+            "upstream_ids": 2566044,
+            "downstream_ids": 2566044,
+            "local_river_ids": 2789749
+          }
+        },
+        "rivers": {
+          "rows": 2939054,
+          "columns": {
+            "upstream_ids": 2877142,
+            "downstream_ids": 2877142,
+            "local_catchment_ids": 2789749
+          }
+        }
+      },
+      "scope": "Complete normalized-input comparison; original-source fidelity is inherited, not rerun. Local raster bytes and identities are checked; raster conformance and public delivery are not checked."
+    },
+    "shapefile_verify_receipt": {
+      "status": "passed",
+      "delivered_catchments": 3067452,
+      "delivered_rivers": 2939054,
+      "omitted_catchments": 149323,
+      "omitted_rivers": 354,
+      "flow_edges": 2877142,
+      "catchment_flow_edges": 2566044,
+      "local_associations": 2789749,
+      "cut_edges": 0,
+      "raw_shapefile_verified_hillslope_partitions": [
+        "hillslope_11",
+        "hillslope_12",
+        "hillslope_13",
+        "hillslope_14",
+        "hillslope_15",
+        "hillslope_16",
+        "hillslope_17",
+        "hillslope_18",
+        "hillslope_22",
+        "hillslope_27",
+        "hillslope_28",
+        "hillslope_32",
+        "hillslope_36"
+      ],
+      "base_bundle_verified_hillslope_partitions": [
+        "hillslope_21",
+        "hillslope_23",
+        "hillslope_24",
+        "hillslope_25",
+        "hillslope_26",
+        "hillslope_29",
+        "hillslope_31",
+        "hillslope_33",
+        "hillslope_34",
+        "hillslope_35",
+        "hillslope_41",
+        "hillslope_42",
+        "hillslope_43",
+        "hillslope_44",
+        "hillslope_45",
+        "hillslope_46",
+        "hillslope_47",
+        "hillslope_48",
+        "hillslope_51",
+        "hillslope_52",
+        "hillslope_53",
+        "hillslope_54",
+        "hillslope_55",
+        "hillslope_56",
+        "hillslope_57",
+        "hillslope_61",
+        "hillslope_62",
+        "hillslope_63",
+        "hillslope_64",
+        "hillslope_65",
+        "hillslope_66",
+        "hillslope_67",
+        "hillslope_71",
+        "hillslope_72",
+        "hillslope_73",
+        "hillslope_74",
+        "hillslope_75",
+        "hillslope_76",
+        "hillslope_77",
+        "hillslope_78",
+        "hillslope_81",
+        "hillslope_82",
+        "hillslope_83",
+        "hillslope_84",
+        "hillslope_85",
+        "hillslope_86",
+        "hillslope_91"
+      ],
+      "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d"
+    },
+    "manifest_catchment_connectivity": [
+      {
+        "level": 0,
+        "status": "supplied",
+        "derivation": "river_local_associations",
+        "completeness": "partial",
+        "upstream_cuts_column": "upstream_boundary_cuts"
+      }
+    ],
+    "source_metadata_catchment_connectivity": {
+      "derivation_rule": "Joined channelized catchments and delivered rivers on globally unique COMID within matching processing_partition; mapped each river's NextDownID!=0 to a catchment edge iff both upstream and downstream rivers have delivered associated catchments. Omitted polygons, unmatched river COMIDs, cut river boundaries, omitted degenerate self-loop rivers, and FID-only coastal hillslopes are never bridged across gaps or coerced into natural outlets.",
+      "counts": {
+        "derived_flow_edges": 2566044,
+        "paired_channelized_catchments": 2789749,
+        "unpaired_channelized_catchments_omitted_river": 332,
+        "unpaired_channelized_catchments_river_not_in_source": 0,
+        "unpaired_channelized_catchments_river_unavailable": 0,
+        "unassociated_coastal_hillslopes": 277371,
+        "rivers_omitted_invalid_polygon": 149301,
+        "rivers_catchment_not_in_source": 4,
+        "rivers_catchment_unavailable": 0,
+        "downstream_boundary_status_counts": {
+          "cut_missing_downstream_catchment": 165277,
+          "internal": 2566044,
+          "omitted_degenerate_river": 332,
+          "source_zero_sentinel": 58428,
+          "unassociated_coastal_hillslope": 277371
+        },
+        "catchments_with_upstream_cuts": 131341,
+        "total_upstream_catchment_cut_edges": 135498,
+        "catchments_with_downstream_cuts": 165277,
+        "upstream_complete_catchments": 2169409,
+        "upstream_incomplete_paired_catchments": 620340,
+        "upstream_incomplete_leaf_only_catchments": 136141,
+        "upstream_incomplete_stranded_delivered_catchments": 484199,
+        "upstream_unverified_catchments": 277703
+      },
+      "not_in_source_rivers": [
+        {
+          "COMID": 31000002,
+          "partition": "pfaf_31",
+          "hfx_river_id": 1041706,
+          "NextDownID": 0
+        },
+        {
+          "COMID": 41000074,
+          "partition": "pfaf_41",
+          "hfx_river_id": 1330449,
+          "NextDownID": 41000014
+        },
+        {
+          "COMID": 61000009,
+          "partition": "pfaf_61",
+          "hfx_river_id": 2033584,
+          "NextDownID": 0
+        },
+        {
+          "COMID": 91000024,
+          "partition": "pfaf_91",
+          "hfx_river_id": 2896817,
+          "NextDownID": 0
+        }
+      ],
+      "not_in_source_rivers_truncated": false,
+      "limitations": "Partial connectivity: missing catchment polygons remain missing area, and raster refinement within the input polygon footprint cannot recover unrepresented area. Incomplete upstream closures (upstream_boundary_cuts > 0) and unverified units (upstream_boundary_cuts is null: coastal hillslopes and catchments whose degenerate self-loop river was omitted) must not be presented as ordinary complete watersheds without explicit consumer opt-in."
+    }
+  },
+  "remote_spatial_access_probes": {
+    "tool": "scripts/check_spatial_access.py",
+    "probe_count": 8,
+    "probes": {
+      "cat-bounds": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": null,
+          "bounds": [
+            -19.0,
+            65.0,
+            -18.5,
+            65.5
+          ],
+          "bulk": false,
+          "relationship": null,
+          "level": 0
+        },
+        "opening_s": 0.37439487501978874,
+        "elapsed_s": 0.6133149168454111,
+        "rows": 61,
+        "logical_bytes": 570925,
+        "absent": [],
+        "http_requests": 11,
+        "acquisition": {
+          "http_requests": 7,
+          "http_body_bytes": 3193557,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 9229,
+          "materialized_bytes": 16942611,
+          "materialized_geometry_bytes": 16278257
+        },
+        "peak_rss_bytes": 200507392
+      },
+      "cat-downstream": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            1
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": "downstream_ids",
+          "level": null
+        },
+        "opening_s": 0.3807545844465494,
+        "elapsed_s": 0.8336695842444897,
+        "rows": 1,
+        "logical_bytes": 1435,
+        "absent": [],
+        "http_requests": 15,
+        "acquisition": {
+          "http_requests": 11,
+          "http_body_bytes": 2966599,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 9608,
+          "materialized_bytes": 8543916,
+          "materialized_geometry_bytes": 8108342
+        },
+        "peak_rss_bytes": 170459136
+      },
+      "cat-ids": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            1,
+            2,
+            3
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": null,
+          "level": null
+        },
+        "opening_s": 0.3704500002786517,
+        "elapsed_s": 0.43254304211586714,
+        "rows": 3,
+        "logical_bytes": 25047,
+        "absent": [],
+        "http_requests": 11,
+        "acquisition": {
+          "http_requests": 7,
+          "http_body_bytes": 5797107,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 4068,
+          "materialized_bytes": 25145020,
+          "materialized_geometry_bytes": 24350540
+        },
+        "peak_rss_bytes": 214204416
+      },
+      "cat-local-river": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            1
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": "local_river_ids",
+          "level": null
+        },
+        "opening_s": 0.5573449162766337,
+        "elapsed_s": 0.5747066251933575,
+        "rows": 1,
+        "logical_bytes": 1231,
+        "absent": [],
+        "http_requests": 19,
+        "acquisition": {
+          "http_requests": 11,
+          "http_body_bytes": 3162652,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 13722,
+          "materialized_bytes": 8556522,
+          "materialized_geometry_bytes": 6827714
+        },
+        "peak_rss_bytes": 193544192
+      },
+      "cat-upstream-confluence": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            2214927
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": "upstream_ids",
+          "level": null
+        },
+        "opening_s": 0.6025164998136461,
+        "elapsed_s": 3.4328073328360915,
+        "rows": 5,
+        "logical_bytes": 22741,
+        "absent": [],
+        "http_requests": 15,
+        "acquisition": {
+          "http_requests": 11,
+          "http_body_bytes": 3059992,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 9646,
+          "materialized_bytes": 8605774,
+          "materialized_geometry_bytes": 8101388
+        },
+        "peak_rss_bytes": 172048384
+      },
+      "cat-upstream": {
+        "domain": "catchments",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            1
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": "upstream_ids",
+          "level": null
+        },
+        "opening_s": 0.41837908374145627,
+        "elapsed_s": 0.4565541660413146,
+        "rows": 0,
+        "logical_bytes": 0,
+        "absent": [],
+        "http_requests": 12,
+        "acquisition": {
+          "http_requests": 8,
+          "http_body_bytes": 389137,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 8192,
+          "materialized_bytes": 98672,
+          "materialized_geometry_bytes": 0
+        },
+        "peak_rss_bytes": 148176896
+      },
+      "riv-bounds": {
+        "domain": "rivers",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": null,
+          "bounds": [
+            -19.0,
+            65.0,
+            -18.5,
+            65.5
+          ],
+          "bulk": false,
+          "relationship": null,
+          "level": null
+        },
+        "opening_s": 0.2802701247856021,
+        "elapsed_s": 0.6668660421855748,
+        "rows": 48,
+        "logical_bytes": 106444,
+        "absent": [],
+        "http_requests": 13,
+        "acquisition": {
+          "http_requests": 9,
+          "http_body_bytes": 1736727,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 16880,
+          "materialized_bytes": 8737440,
+          "materialized_geometry_bytes": 7363810
+        },
+        "peak_rss_bytes": 145489920
+      },
+      "riv-upstream": {
+        "domain": "rivers",
+        "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+        "query": {
+          "ids": [
+            1
+          ],
+          "bounds": null,
+          "bulk": false,
+          "relationship": "upstream_ids",
+          "level": null
+        },
+        "opening_s": 0.2739702919498086,
+        "elapsed_s": 0.6588158747181296,
+        "rows": 2,
+        "logical_bytes": 1812,
+        "absent": [],
+        "http_requests": 14,
+        "acquisition": {
+          "http_requests": 10,
+          "http_body_bytes": 3038335,
+          "local_read_calls": 0,
+          "local_read_bytes": 0,
+          "materialized_rows": 12205,
+          "materialized_bytes": 7665622,
+          "materialized_geometry_bytes": 6351737
+        },
+        "peak_rss_bytes": 153059328
+      }
+    }
+  },
+  "consumer_verification": {
+    "consumer_repo": "https://github.com/pourpoint-tools/pourpoint",
+    "consumer_commit": "97d1ca3c06e918fc58557edf9b029f66f8a0f1b4",
+    "cache": false,
+    "summary": "Verified 7 witness cases against candidate S3 bundle: complete Iceland confluence (27000015), 5-tributary overflow confluence (64072579, confirming 5 incoming edges plus downstream-of-gap cutoff), incomplete leaf-only and stranded-behind-gap witnesses, unverified null-cut units (depression 11021766 and coastal hillslope 2879551), and Eastern Chukotka pfaf_35 antimeridian coordinate limit. Confirmed pourpoint@97d1ca3c currently returns partial and null-cut closures without rejecting upstream_boundary_cuts > 0 or null, motivating the generic consumer safeguard coordination issue.",
+    "bundle_url": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate",
+    "manifest_summary": {
+      "format_version": "0.4.0",
+      "representation": "spatial-geoparquet-adjacency",
+      "unit_count": 3067452,
+      "catchment_connectivity": [
+        {
+          "level": 0,
+          "status": "supplied",
+          "derivation": "river_local_associations",
+          "completeness": "partial",
+          "upstream_cuts_column": "upstream_boundary_cuts"
+        }
+      ],
+      "catchment_relationships_columns": [
+        "downstream_ids",
+        "local_river_ids",
+        "upstream_ids"
+      ],
+      "categorical_columns_count": 4
+    },
+    "cases": {
+      "iceland_27000015": {
+        "hfx_id": 792777,
+        "source_id": "27000015",
+        "processing_partition": "pfaf_27",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "source_zero_sentinel",
+        "upstream_boundary_cuts": 0,
+        "bbox": {
+          "xmin": -15.798750877380371,
+          "ymin": 66.03541564941406,
+          "xmax": -15.564582824707031,
+          "ymax": 66.2237548828125
+        },
+        "immediate_upstream_count": 2,
+        "immediate_downstream_count": 0,
+        "local_river_ids": [
+          836063
+        ],
+        "representative_point": [
+          -15.669166666666666,
+          66.13
+        ],
+        "select_upstream_subbasins_count": 3,
+        "select_upstream_any_cuts_gt0": false,
+        "select_upstream_any_null_cuts": false,
+        "delineate_coarse_count": 3,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          792777,
+          792699,
+          792766
+        ],
+        "all_selected_upstream_complete": true,
+        "cut_or_null_upstream_units_count": 0,
+        "cut_or_null_upstream_units_sample": [],
+        "refine_true_status": "passed",
+        "refine_true_area_ratio_vs_coarse": 0.0009348342616755684
+      },
+      "confluence_64072579": {
+        "hfx_id": 2214927,
+        "source_id": "64072579",
+        "processing_partition": "pfaf_64",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "internal",
+        "upstream_boundary_cuts": 0,
+        "bbox": {
+          "xmin": -52.92875289916992,
+          "ymin": -32.59375,
+          "xmax": -52.88291549682617,
+          "ymax": -32.52291488647461
+        },
+        "immediate_upstream_count": 5,
+        "immediate_downstream_count": 1,
+        "local_river_ids": [
+          2351562
+        ],
+        "representative_point": [
+          -52.9025,
+          -32.55791666666666
+        ],
+        "select_upstream_subbasins_count": 19,
+        "select_upstream_any_cuts_gt0": true,
+        "select_upstream_any_null_cuts": false,
+        "delineate_coarse_count": 19,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          2214927,
+          2165928,
+          2166043,
+          2166196,
+          2210307,
+          2214897,
+          2166317,
+          2209483,
+          2214803,
+          2167239
+        ],
+        "all_selected_upstream_complete": false,
+        "cut_or_null_upstream_units_count": 1,
+        "cut_or_null_upstream_units_sample": [
+          {
+            "id": 2210307,
+            "source_id": "64072915",
+            "upstream_boundary_cuts": 1,
+            "downstream_boundary_status": "internal"
+          }
+        ],
+        "refine_true_status": "passed",
+        "refine_true_area_ratio_vs_coarse": 0.00298891568217311
+      },
+      "incomplete_leaf_gt0": {
+        "hfx_id": 794046,
+        "source_id": "27000889",
+        "processing_partition": "pfaf_27",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "internal",
+        "upstream_boundary_cuts": 1,
+        "bbox": {
+          "xmin": -22.702917098999023,
+          "ymin": 64.81291198730469,
+          "xmax": -22.67624855041504,
+          "ymax": 64.83708953857422
+        },
+        "immediate_upstream_count": 1,
+        "immediate_downstream_count": 1,
+        "local_river_ids": [
+          836937
+        ],
+        "representative_point": [
+          -22.69708333333333,
+          64.82583333333334
+        ],
+        "select_upstream_subbasins_count": 2,
+        "select_upstream_any_cuts_gt0": true,
+        "select_upstream_any_null_cuts": false,
+        "delineate_coarse_count": 2,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          794046,
+          793185
+        ]
+      },
+      "incomplete_stranded_down_of_leaf": {
+        "hfx_id": 794064,
+        "source_id": "27000881",
+        "processing_partition": "pfaf_27",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "source_zero_sentinel",
+        "upstream_boundary_cuts": 0,
+        "bbox": {
+          "xmin": -22.71875,
+          "ymin": 64.80874633789062,
+          "xmax": -22.692081451416016,
+          "ymax": 64.82625579833984
+        },
+        "immediate_upstream_count": 2,
+        "immediate_downstream_count": 0,
+        "local_river_ids": [
+          836929
+        ],
+        "representative_point": [
+          -22.702083333333334,
+          64.8175
+        ],
+        "select_upstream_subbasins_count": 4,
+        "select_upstream_any_cuts_gt0": true,
+        "select_upstream_any_null_cuts": false,
+        "delineate_coarse_count": 4,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          794064,
+          793191,
+          794046,
+          793185
+        ]
+      },
+      "unverified_11021766": {
+        "hfx_id": 41899,
+        "source_id": "11021766",
+        "processing_partition": "pfaf_11",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "omitted_degenerate_river",
+        "upstream_boundary_cuts": null,
+        "bbox": {
+          "xmin": 39.14958190917969,
+          "ymin": 8.328749656677246,
+          "xmax": 39.21375274658203,
+          "ymax": 8.402083396911621
+        },
+        "immediate_upstream_count": 0,
+        "immediate_downstream_count": 0,
+        "local_river_ids": [],
+        "representative_point": [
+          39.18166666666666,
+          8.365833333333349
+        ],
+        "select_upstream_subbasins_count": 1,
+        "select_upstream_any_cuts_gt0": false,
+        "select_upstream_any_null_cuts": true,
+        "delineate_coarse_count": 1,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          41899
+        ]
+      },
+      "coastal_hillslope_2879551": {
+        "hfx_id": 2879551,
+        "source_id": "1704",
+        "processing_partition": "hillslope_27",
+        "catchment_kind": "coastal_hillslope",
+        "downstream_boundary_status": "unassociated_coastal_hillslope",
+        "upstream_boundary_cuts": null,
+        "bbox": {
+          "xmin": -22.958751678466797,
+          "ymin": 63.740413665771484,
+          "xmax": -22.95374870300293,
+          "ymax": 63.74208450317383
+        },
+        "immediate_upstream_count": 0,
+        "immediate_downstream_count": 0,
+        "local_river_ids": [],
+        "representative_point": [
+          -22.956249999999997,
+          63.74166666666667
+        ],
+        "select_upstream_subbasins_count": 1,
+        "select_upstream_any_cuts_gt0": false,
+        "select_upstream_any_null_cuts": true,
+        "delineate_coarse_count": 1,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          2879551
+        ]
+      },
+      "antimeridian_pfaf_35": {
+        "hfx_id": 1232247,
+        "source_id": "35032576",
+        "processing_partition": "pfaf_35",
+        "catchment_kind": "channelized",
+        "downstream_boundary_status": "source_zero_sentinel",
+        "upstream_boundary_cuts": 0,
+        "bbox": {
+          "xmin": 186.83457946777344,
+          "ymin": 64.25958251953125,
+          "xmax": 187.0204315185547,
+          "ymax": 64.39375305175781
+        },
+        "immediate_upstream_count": 0,
+        "immediate_downstream_count": 0,
+        "local_river_ids": [
+          1293219
+        ],
+        "representative_point": [
+          186.91333333333333,
+          64.3275
+        ],
+        "select_upstream_subbasins_count": 1,
+        "select_upstream_any_cuts_gt0": false,
+        "select_upstream_any_null_cuts": false,
+        "delineate_coarse_count": 1,
+        "delineate_coarse_merged_valid": true,
+        "selected_ids_head": [
+          1232247
+        ],
+        "refine_true_status": "ValueError: geographic raster bounds must be within longitude/latitude limits"
+      }
+    },
+    "transfer_stats": {
+      "requests": 299,
+      "transferred_bytes": 68853865,
+      "cache_hit_bytes": 0
+    }
+  },
+  "execution_environment": {
+    "tools": [
+      "scripts/produce_merit.py",
+      "src/hfx/spatial_bundle.py",
+      "scripts/verify_merit.py",
+      "scripts/check_spatial_access.py"
+    ],
+    "server_env": {
+      "recorded_at_utc": "2026-11-18T14:57:39Z",
+      "python_version": "3.13.18",
+      "uv_version": "uv 0.13.9 (x86_64-unknown-linux-gnu)",
+      "system": "Linux",
+      "release": "6.8.0-138-generic",
+      "machine": "x86_64",
+      "cpu_count": 8,
+      "mem_total_kib": 15982920,
+      "disk_total_bytes": 322211975168,
+      "disk_free_bytes": 239743795200
+    },
+    "packages": {
+      "affine": "3.0.1",
+      "annotated-types": "0.8.0",
+      "attrs": "26.1.0",
+      "boto3": "1.43.109",
+      "boto3-stubs": "1.43.109",
+      "botocore": "1.43.109",
+      "botocore-stubs": "1.43.67",
+      "certifi": "2026.7.22",
+      "click": "8.5.0",
+      "click-plugins": "1.1.1.2",
+      "cligj": "0.7.2",
+      "coverage": "7.16.2",
+      "fiona": "1.10.1",
+      "hfx": "0.0.0.dev0",
+      "iniconfig": "2.3.0",
+      "jmespath": "1.1.0",
+      "morecantile": "7.1.0",
+      "mypy-boto3-s3": "1.43.106",
+      "numpy": "2.5.3",
+      "packaging": "26.3",
+      "pluggy": "1.6.0",
+      "pyarrow": "25.0.1",
+      "pyarrow-stubs": "20.0.0.20260819",
+      "pydantic": "2.13.5",
+      "pydantic-core": "2.46.5",
+      "pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "pyproj": "3.8.0",
+      "pytest": "9.1.1",
+      "pytest-cov": "7.1.0",
+      "python-dateutil": "2.9.0.post0",
+      "rasterio": "1.5.2",
+      "rio-cogeo": "7.0.3",
+      "ruff": "0.16.10",
+      "s3transfer": "0.19.2",
+      "shapely": "2.2.0",
+      "six": "1.17.0",
+      "tifffile": "2026.9.20",
+      "ty": "0.0.84",
+      "types-s3transfer": "0.16.0",
+      "typing-extensions": "4.16.0",
+      "typing-inspection": "0.4.4",
+      "urllib3": "2.8.0",
+      "uv-build": "0.12.23"
+    }
+  },
+  "cloud_resources_and_spend": {
+    "provider": "Hetzner Cloud",
+    "server_id": 176633732,
+    "name": "hfx-merit-conn-20261118",
+    "type": "cpx42",
+    "location": "fsn1",
+    "created_at": "2026-11-18T12:11:40Z",
+    "deleted_at": "2026-11-18T16:43:46Z",
+    "elapsed_seconds": 16326,
+    "pro_rata_hours": 4.535,
+    "billed_hours_ceil": 5,
+    "hourly_eur_gross": 0.1212882,
+    "fx_eur_usd": 1.1014,
+    "pro_rata_eur_gross": 0.55,
+    "pro_rata_usd": 0.6058,
+    "billed_ceil_eur_gross": 0.6064,
+    "billed_ceil_usd": 0.6679,
+    "budget_cap_usd": 1.5,
+    "post_cleanup_hcloud_servers": 0,
+    "post_cleanup_hcloud_volumes": 0,
+    "post_cleanup_hcloud_primary_ips": 0
+  }
+}

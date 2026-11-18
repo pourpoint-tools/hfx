@@ -38,7 +38,7 @@ manifest fields and validate fields they use.
 | `region` | Optional source subset string |
 | `families` | Feature domain declarations, below |
 | `relationships` | Immediate relationship declarations, below |
-| `catchment_connectivity` | One `{ "level": integer, "status": "supplied" or "not_supplied" }` per catchment level |
+| `catchment_connectivity` | One `{ "level": integer, "status": "supplied" or "not_supplied" }` per catchment level, with optional completeness and derivation fields |
 | `categorical_columns` | Optional [typed column dictionaries](vector-data.md#typed-meanings-and-source-fidelity) |
 | `auxiliary` | Array of optional [D8 pairs](raster-data.md); may be empty |
 | `external_artifacts` | Optional external raster identities |
@@ -47,6 +47,15 @@ manifest fields and validate fields they use.
 | `addressing` | `block`: `zero-based Parquet row group`; `row`: `zero-based row within group` |
 | `input_manifest_sha256` | Full SHA-256 binding the preserved `source-manifest.json` bytes |
 | `source_domain_metadata` | Preserved nonphysical river/node declarations, including supplied river topology |
+
+When a `catchment_connectivity` entry has `status: "supplied"`, it may also carry
+optional fields: `derivation` (string describing source derivation when catchment edges
+are derived during normalization rather than natively stored on catchment records, such
+as `"river_local_associations"`), `completeness` (`"complete"` or `"partial"` when source
+omissions, subset cuts, or unassociated polygons leave some watersheds incomplete or
+unverified), and `upstream_cuts_column` (top-level catchment integer column name, such as
+`"upstream_boundary_cuts"`, carrying immediate upstream cut counts per unit). Existing
+publications without these optional keys remain valid unchanged.
 
 `families` maps represented `catchments`, `rivers`, and `river_nodes` to separate
 ID domains. Each declaration supplies `data`, `data_sha256`, `count`, `lookup`,
