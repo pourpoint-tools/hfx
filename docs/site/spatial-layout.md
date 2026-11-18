@@ -97,7 +97,12 @@ numbers and support for plural lists alone do not establish reader compatibility
 
 Each `columns` entry records original source artifact/column, direction and domain
 meaning. `feature_artifacts` binds involved domains to final feature paths/hashes.
-Original graph files are provenance, not runtime feature addresses. Follow the
+Original graph files are provenance, not runtime feature addresses. Derived catchment
+`upstream_ids` and `downstream_ids` built from normalized `graph.parquet` keep river
+relationships (`rivers-relationships.arrow`) distinct from derived catchment
+relationships (`catchments-relationships.arrow`), while `catchment_connectivity`,
+catchment boundary columns, and `source-metadata.json` carry derivation rules and
+cut accounting. Follow the
 relationship's `target_domain`, then that domain's ID lookup to fetch records.
 Shared node incidence does not imply a supplied flow edge. Empty lists do not
 classify terminals or resolve unknown scalar relationships. Consult authoritative

@@ -8,8 +8,11 @@ import json
 import os
 import shutil
 import sqlite3
+import sys
+from collections import Counter
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,6 +21,7 @@ from typing import Any, cast
 import fiona
 import numpy as np
 import pyarrow as pa
+import pyarrow.ipc as ipc
 import pyarrow.parquet as pq
 from pyproj import Geod
 from shapely import get_coordinates
@@ -57,7 +61,7 @@ STRUCTURAL_FIELDS = {
     "fid",
 }
 
-CATCHMENT_FIELDS: list[pa.Field] = [
+CATCHMENT_RAW_FIELDS: list[pa.Field] = [
     pa.field("id", pa.int64(), nullable=False),
     pa.field("level", pa.int16(), nullable=False),
     pa.field("parent_id", pa.int64()),
@@ -71,6 +75,31 @@ CATCHMENT_FIELDS: list[pa.Field] = [
     pa.field("up_area_km2", pa.float32()),
     pa.field("outlet_lon", pa.float64()),
     pa.field("outlet_lat", pa.float64()),
+]
+
+CATCHMENT_FIELDS: list[pa.Field] = [
+    *CATCHMENT_RAW_FIELDS,
+    pa.field("downstream_boundary_status", pa.string(), nullable=False),
+    pa.field("upstream_boundary_cuts", pa.int32()),
+]
+
+CATCHMENT_DOWNSTREAM_STATUS_CODES: list[dict[str, str]] = [
+    {"code": "internal", "meaning": "Paired river NextDownID resolves to a delivered river with a delivered catchment"},
+    {"code": "source_zero_sentinel", "meaning": "Paired river carries native NextDownID=0 absent-link sentinel"},
+    {
+        "code": "cut_missing_downstream_catchment",
+        "meaning": "Paired river NextDownID is nonzero, but the downstream river or its catchment was not delivered",
+    },
+    {
+        "code": "omitted_degenerate_river",
+        "meaning": "Paired source river was omitted for degenerate self-referencing geometry",
+    },
+    {"code": "river_not_in_source", "meaning": "Supplied river shapefile had no matching COMID"},
+    {"code": "river_source_unavailable", "meaning": "River partition source was not available"},
+    {
+        "code": "unassociated_coastal_hillslope",
+        "meaning": "Coastal hillslope polygon lacks a COMID and river-network association",
+    },
 ]
 
 RIVER_FIELDS: list[pa.Field] = [
@@ -177,10 +206,586 @@ def _validate_coordinates(geom: Any) -> None:
         raise ValueError("Coordinates outside finite WGS84 longitude/latitude bounds")
 
 
+@dataclass(frozen=True)
+class _CatchmentConnectivity:
+    upstream_ids: list[list[int]]
+    downstream_status: list[str]
+    upstream_cuts: list[int | None]
+    counts: dict[str, Any]
+    not_in_source_rivers: list[dict[str, Any]]
+    not_in_source_rivers_truncated: bool
+
+
+def _derive_catchment_connectivity(
+    cat_records: list[tuple[bool, str, int | None]],
+    *,
+    db: sqlite3.Connection,
+    unavailable_catchments: dict[str, str],
+    unavailable_rivers: dict[str, str],
+    omitted_river_comids: dict[int, str],
+    riv_comid_to_hfx: dict[int, int],
+    riv_partition_by_comid: dict[int, str],
+    riv_next_down_by_comid: dict[int, int],
+    riv_incoming_by_comid: dict[int, list[int]],
+    riv_upstream_cuts_by_id: dict[int, int],
+) -> _CatchmentConnectivity:
+    """Derive immediate catchment edges from river topology and 1-to-1 COMID associations."""
+    chan_rows = db.execute("SELECT comid, hfx_id, partition FROM catchments").fetchall()
+    chan_comid_to_cat: dict[int, int] = {int(r[0]): int(r[1]) for r in chan_rows}
+    chan_part_by_comid: dict[int, str] = {int(r[0]): sys.intern(str(r[2])) for r in chan_rows}
+
+    for comid, riv_part in riv_partition_by_comid.items():
+        if comid in chan_part_by_comid and chan_part_by_comid[comid] != riv_part:
+            raise ValueError(
+                f"Cross-partition COMID collision between river {riv_part}/{comid} "
+                f"and catchment {chan_part_by_comid[comid]}/{comid}"
+            )
+
+    omitted_catchments_set = {
+        (str(r[0]), int(r[1])) for r in db.execute("SELECT partition, comid FROM omitted_catchments").fetchall()
+    }
+    rivers_omitted_invalid_polygon = 0
+    rivers_catchment_unavailable = 0
+    not_in_source_rivers: list[dict[str, Any]] = []
+    for comid, rid in riv_comid_to_hfx.items():
+        if comid in chan_comid_to_cat:
+            continue
+        pname = riv_partition_by_comid[comid]
+        if (pname, comid) in omitted_catchments_set:
+            rivers_omitted_invalid_polygon += 1
+        elif pname in unavailable_catchments:
+            rivers_catchment_unavailable += 1
+        else:
+            not_in_source_rivers.append(
+                {
+                    "COMID": comid,
+                    "partition": pname,
+                    "hfx_river_id": rid,
+                    "NextDownID": riv_next_down_by_comid[comid],
+                }
+            )
+
+    cat_count = len(cat_records)
+    cat_up_ids: list[list[int]] = [[] for _ in range(cat_count)]
+    cat_down_status: list[str] = ["" for _ in range(cat_count)]
+    cat_up_cuts: list[int | None] = [None for _ in range(cat_count)]
+
+    paired_count = 0
+    unpaired_omitted_riv = 0
+    unpaired_riv_not_in_source = 0
+    unpaired_riv_unavailable = 0
+    hillslope_count = 0
+    cat_out_count = [0] * cat_count
+    derived_edges = 0
+    cuts_cat_count = 0
+    total_up_cut_edges = 0
+    downstream_cuts = 0
+
+    for idx, (is_hillslope, pname, comid) in enumerate(cat_records):
+        cid = idx + 1
+        if is_hillslope:
+            hillslope_count += 1
+            cat_down_status[idx] = sys.intern("unassociated_coastal_hillslope")
+            continue
+        assert comid is not None
+        if comid not in riv_comid_to_hfx:
+            if comid in omitted_river_comids:
+                cat_down_status[idx] = sys.intern("omitted_degenerate_river")
+                unpaired_omitted_riv += 1
+            elif pname in unavailable_rivers:
+                cat_down_status[idx] = sys.intern("river_source_unavailable")
+                unpaired_riv_unavailable += 1
+            else:
+                cat_down_status[idx] = sys.intern("river_not_in_source")
+                unpaired_riv_not_in_source += 1
+            continue
+
+        paired_count += 1
+        rid = riv_comid_to_hfx[comid]
+        cuts = riv_upstream_cuts_by_id[rid]
+        ups: list[int] = []
+        for u_comid in riv_incoming_by_comid[comid]:
+            u_cid = chan_comid_to_cat.get(u_comid)
+            if u_cid is not None:
+                if u_cid == cid:
+                    raise ValueError(f"Self-loop derived for catchment {cid} (COMID {comid})")
+                ups.append(u_cid)
+            else:
+                cuts += 1
+        ups.sort()
+        if len(set(ups)) != len(ups):
+            raise ValueError(f"Duplicate derived upstream edge for catchment {cid} (COMID {comid})")
+        cat_up_ids[idx] = ups
+        cat_up_cuts[idx] = cuts
+        derived_edges += len(ups)
+        if cuts > 0:
+            cuts_cat_count += 1
+            total_up_cut_edges += cuts
+
+        nd = riv_next_down_by_comid[comid]
+        if nd == 0:
+            cat_down_status[idx] = sys.intern("source_zero_sentinel")
+        elif nd in chan_comid_to_cat and nd in riv_comid_to_hfx:
+            cat_down_status[idx] = sys.intern("internal")
+            cat_out_count[idx] += 1
+            if cat_out_count[idx] > 1:
+                raise ValueError(f"Non-tree downstream degree derived for catchment {cid} (COMID {comid})")
+        else:
+            cat_down_status[idx] = sys.intern("cut_missing_downstream_catchment")
+            downstream_cuts += 1
+
+    # Structural validation: Kahn topological sort on derived catchment graph + closure completeness.
+    cat_in_deg = [len(ups) for ups in cat_up_ids]
+    cat_down_adj: list[list[int]] = [[] for _ in range(cat_count)]
+    for idx, ups in enumerate(cat_up_ids):
+        for u_cid in ups:
+            if not 1 <= u_cid <= cat_count:
+                raise ValueError(f"Unresolved derived catchment edge {u_cid} -> {idx + 1}")
+            cat_down_adj[u_cid - 1].append(idx)
+
+    closure_clean = [cuts == 0 for cuts in cat_up_cuts]
+    cat_queue = [i for i, deg in enumerate(cat_in_deg) if deg == 0]
+    cat_visited = 0
+    while cat_queue:
+        cur = cat_queue.pop()
+        cat_visited += 1
+        for nxt in cat_down_adj[cur]:
+            if not closure_clean[cur]:
+                closure_clean[nxt] = False
+            cat_in_deg[nxt] -= 1
+            if cat_in_deg[nxt] == 0:
+                cat_queue.append(nxt)
+    if cat_visited != cat_count:
+        raise ValueError("Derived catchment graph contains a cycle")
+
+    # Cross-check against full river-network closure oracle.
+    riv_in_deg = {comid: len(riv_incoming_by_comid[comid]) for comid in riv_comid_to_hfx}
+    anc_has_gap = {
+        comid: (comid not in chan_comid_to_cat) or (riv_upstream_cuts_by_id[riv_comid_to_hfx[comid]] > 0)
+        for comid in riv_comid_to_hfx
+    }
+    anc_has_delivered = {comid: (comid in chan_comid_to_cat) for comid in riv_comid_to_hfx}
+    anc_has_stranded_delivered = dict.fromkeys(riv_comid_to_hfx, False)
+    riv_queue = [comid for comid, deg in riv_in_deg.items() if deg == 0]
+    while riv_queue:
+        cur = riv_queue.pop()
+        nxt = riv_next_down_by_comid[cur]
+        if nxt not in riv_comid_to_hfx:
+            continue
+        if anc_has_gap[cur]:
+            anc_has_gap[nxt] = True
+        if anc_has_delivered[cur]:
+            anc_has_delivered[nxt] = True
+        if (nxt not in chan_comid_to_cat) and anc_has_delivered[cur]:
+            anc_has_stranded_delivered[nxt] = True
+        if anc_has_stranded_delivered[cur]:
+            anc_has_stranded_delivered[nxt] = True
+        riv_in_deg[nxt] -= 1
+        if riv_in_deg[nxt] == 0:
+            riv_queue.append(nxt)
+
+    stranded_count = 0
+    for idx, (is_hillslope, _pname, comid) in enumerate(cat_records):
+        if is_hillslope or comid is None or comid not in riv_comid_to_hfx:
+            continue
+        if closure_clean[idx] != (not anc_has_gap[comid]):
+            raise ValueError(f"Completeness theorem mismatch on catchment {idx + 1} (COMID {comid})")
+        if anc_has_stranded_delivered[comid]:
+            stranded_count += 1
+
+    complete_count = sum(closure_clean)
+    unverified_count = sum(1 for cuts in cat_up_cuts if cuts is None)
+    incomplete_paired_count = cat_count - complete_count - unverified_count
+    leaf_only_count = incomplete_paired_count - stranded_count
+    status_counts = dict(sorted(Counter(cat_down_status).items()))
+
+    return _CatchmentConnectivity(
+        upstream_ids=cat_up_ids,
+        downstream_status=cat_down_status,
+        upstream_cuts=cat_up_cuts,
+        counts={
+            "derived_flow_edges": derived_edges,
+            "paired_channelized_catchments": paired_count,
+            "unpaired_channelized_catchments_omitted_river": unpaired_omitted_riv,
+            "unpaired_channelized_catchments_river_not_in_source": unpaired_riv_not_in_source,
+            "unpaired_channelized_catchments_river_unavailable": unpaired_riv_unavailable,
+            "unassociated_coastal_hillslopes": hillslope_count,
+            "rivers_omitted_invalid_polygon": rivers_omitted_invalid_polygon,
+            "rivers_catchment_not_in_source": len(not_in_source_rivers),
+            "rivers_catchment_unavailable": rivers_catchment_unavailable,
+            "downstream_boundary_status_counts": status_counts,
+            "catchments_with_upstream_cuts": cuts_cat_count,
+            "total_upstream_catchment_cut_edges": total_up_cut_edges,
+            "catchments_with_downstream_cuts": downstream_cuts,
+            "upstream_complete_catchments": complete_count,
+            "upstream_incomplete_paired_catchments": incomplete_paired_count,
+            "upstream_incomplete_leaf_only_catchments": leaf_only_count,
+            "upstream_incomplete_stranded_delivered_catchments": stranded_count,
+            "upstream_unverified_catchments": unverified_count,
+        },
+        not_in_source_rivers=not_in_source_rivers[:100],
+        not_in_source_rivers_truncated=len(not_in_source_rivers) > 100,
+    )
+
+
+GRAPH_SCHEMA = pa.schema(
+    [
+        pa.field("id", pa.int64(), nullable=False),
+        pa.field("level", pa.int16(), nullable=False),
+        pa.field("upstream_ids", pa.list_(pa.int64()), nullable=False),
+    ]
+    + [pa.field("bbox_" + name, pa.float32(), nullable=False) for name in ("minx", "miny", "maxx", "maxy")]
+)
+ASSOC_SCHEMA = pa.schema(
+    [pa.field("river_id", pa.int64(), nullable=False), pa.field("catchment_id", pa.int64(), nullable=False)]
+)
+
+
+@dataclass(slots=True)
+class _TopologyResult:
+    cat_conn: _CatchmentConnectivity
+    cut_edges: list[dict[str, Any]]
+    overflow_confluences: list[dict[str, Any]]
+    downstream_status_by_id: dict[int, str]
+    upstream_cuts_by_id: dict[int, int]
+    comid_to_hfx: dict[int, int]
+    incoming_by_comid: dict[int, list[int]]
+
+
+def _analyze_topology(
+    db: sqlite3.Connection,
+    cat_records: list[tuple[bool, str, int | None]],
+    *,
+    unavailable_catchments: dict[str, str],
+    unavailable_rivers: dict[str, str],
+    omitted_river_comids: dict[int, str],
+) -> _TopologyResult:
+    """Validate river reciprocity and acyclicity, then derive catchment connectivity."""
+    cut_edges: list[dict[str, Any]] = []
+    downstream_status_by_id: dict[int, str] = {}
+    upstream_cuts_by_id: dict[int, int] = {}
+
+    all_rows = db.execute("SELECT comid, hfx_id, partition, next_down, up1, up2, up3, up4 FROM rivers").fetchall()
+    comid_to_hfx: dict[int, int] = {r[0]: r[1] for r in all_rows}
+    riv_partition_by_comid: dict[int, str] = {r[0]: sys.intern(str(r[2])) for r in all_rows}
+    comid_to_ups: dict[int, tuple[int, ...]] = {r[0]: tuple(u for u in r[4:8] if u != 0) for r in all_rows}
+    next_down_by_comid: dict[int, int] = {r[0]: r[3] for r in all_rows}
+
+    for comid, _hfx_id, _pname, _next_down, up1, up2, up3, up4 in all_rows:
+        for u in (up1, up2, up3, up4):
+            if u != 0 and u in comid_to_hfx and next_down_by_comid[u] != comid:
+                raise ValueError(
+                    f"Supplied river edges disagree: {comid} lists upstream {u} with mismatched NextDownID"
+                )
+
+    in_degree: dict[int, int] = dict.fromkeys(comid_to_hfx, 0)
+    successors: dict[int, list[int]] = {c: [] for c in comid_to_hfx}
+    incoming_by_comid: dict[int, list[int]] = {c: [] for c in comid_to_hfx}
+    overflow_confluences: list[dict[str, Any]] = []
+
+    for comid, hfx_id, pname, next_down, up1, up2, up3, up4 in all_rows:
+        if next_down == 0:
+            downstream_status_by_id[hfx_id] = "source_zero_sentinel"
+        elif next_down in comid_to_hfx:
+            if comid not in comid_to_ups[next_down]:
+                if len(comid_to_ups[next_down]) == 4:
+                    overflow_confluences.append(
+                        {
+                            "upstream_comid": comid,
+                            "downstream_comid": next_down,
+                            "partition": pname,
+                            "target_up1_to_up4": list(comid_to_ups[next_down]),
+                            "reason": "dbf_up1_to_up4_four_slot_overflow",
+                        }
+                    )
+                else:
+                    raise ValueError(
+                        f"Supplied river edges disagree: {comid} NextDownID={next_down} absent from up1..4"
+                    )
+            downstream_status_by_id[hfx_id] = "internal"
+            incoming_by_comid[next_down].append(comid)
+            successors[comid].append(next_down)
+            in_degree[next_down] += 1
+        else:
+            downstream_status_by_id[hfx_id] = "cut_omitted_target"
+            reason = (
+                f"omitted_target:{omitted_river_comids[next_down]}"
+                if next_down in omitted_river_comids
+                else "target_not_in_delivered_partitions"
+            )
+            cut_edges.append(
+                {
+                    "direction": "downstream",
+                    "origin_comid": comid,
+                    "target_comid": next_down,
+                    "origin_partition": pname,
+                    "reason": reason,
+                }
+            )
+
+        up_cuts = 0
+        for u in (up1, up2, up3, up4):
+            if u == 0 or u in comid_to_hfx:
+                continue
+            up_cuts += 1
+            reason = (
+                f"omitted_origin:{omitted_river_comids[u]}"
+                if u in omitted_river_comids
+                else "origin_not_in_delivered_partitions"
+            )
+            cut_edges.append(
+                {
+                    "direction": "upstream",
+                    "origin_comid": u,
+                    "target_comid": comid,
+                    "target_partition": pname,
+                    "reason": reason,
+                }
+            )
+        upstream_cuts_by_id[hfx_id] = up_cuts
+
+    pending = [c for c, deg in in_degree.items() if deg == 0]
+    visited = 0
+    while pending:
+        cur = pending.pop()
+        visited += 1
+        for nxt in successors[cur]:
+            in_degree[nxt] -= 1
+            if in_degree[nxt] == 0:
+                pending.append(nxt)
+    if visited != len(comid_to_hfx):
+        raise ValueError("Supplied river graph contains a cycle")
+    del all_rows, successors, in_degree, comid_to_ups
+
+    cat_conn = _derive_catchment_connectivity(
+        cat_records,
+        db=db,
+        unavailable_catchments=unavailable_catchments,
+        unavailable_rivers=unavailable_rivers,
+        omitted_river_comids=omitted_river_comids,
+        riv_comid_to_hfx=comid_to_hfx,
+        riv_partition_by_comid=riv_partition_by_comid,
+        riv_next_down_by_comid=next_down_by_comid,
+        riv_incoming_by_comid=incoming_by_comid,
+        riv_upstream_cuts_by_id=upstream_cuts_by_id,
+    )
+    return _TopologyResult(
+        cat_conn=cat_conn,
+        cut_edges=cut_edges,
+        overflow_confluences=overflow_confluences,
+        downstream_status_by_id=downstream_status_by_id,
+        upstream_cuts_by_id=upstream_cuts_by_id,
+        comid_to_hfx=comid_to_hfx,
+        incoming_by_comid=incoming_by_comid,
+    )
+
+
+def _write_staging_outputs(
+    output: Path,
+    *,
+    release: str,
+    organization: Any,
+    region: Any,
+    original_inventory_bytes: bytes,
+    omitted_features: list[dict[str, Any]],
+    cut_edges: list[dict[str, Any]],
+    crs_records: dict[str, str],
+    cat_orig_schemas: dict[str, Any],
+    riv_orig_schemas: dict[str, Any],
+    cat_renames: dict[str, Any],
+    riv_renames: dict[str, Any],
+    unavailable_catchments: dict[str, str],
+    unavailable_rivers: dict[str, str],
+    cat_count: int,
+    channelized_count: int,
+    hillslope_count: int,
+    riv_count: int,
+    omitted_cat_count: int,
+    omitted_riv_count: int,
+    cat_conn_counts: dict[str, Any],
+    not_in_source_rivers: list[dict[str, Any]],
+    not_in_source_rivers_truncated: bool,
+    overall_bbox: list[float],
+    overflow_confluences: list[dict[str, Any]],
+    aux_declarations: list[dict[str, Any]],
+    partial_reason: str | None,
+    derived_from_verified_bundle_manifest_sha256: str | None = None,
+) -> dict[str, Any]:
+    (output / "original-inventory.json").write_bytes(original_inventory_bytes)
+    (output / "omitted-features.json").write_text(json.dumps(omitted_features, indent=2) + "\n")
+    (output / "cut-edges.json").write_text(json.dumps(cut_edges, indent=2) + "\n")
+    source_metadata: dict[str, Any] = {
+        "release": release,
+        "organization": organization,
+        "crs_evidence": crs_records,
+        "original_schemas": {"catchments": cat_orig_schemas, "rivers": riv_orig_schemas},
+        "column_renames": {"catchments": cat_renames, "rivers": riv_renames},
+        "unavailable_partitions": {"catchments": unavailable_catchments, "rivers": unavailable_rivers},
+        "counts": {
+            "delivered_catchments": cat_count,
+            "delivered_channelized_catchments": channelized_count,
+            "delivered_coastal_hillslopes": hillslope_count,
+            "delivered_rivers": riv_count,
+            "omitted_catchments": omitted_cat_count,
+            "omitted_rivers": omitted_riv_count,
+            "cut_edges": len(cut_edges),
+        },
+        "catchment_connectivity": {
+            "derivation_rule": (
+                "Joined channelized catchments and delivered rivers on globally unique COMID within matching "
+                "processing_partition; mapped each river's NextDownID!=0 to a catchment edge iff both upstream and "
+                "downstream rivers have delivered associated catchments. Omitted polygons, unmatched river COMIDs, "
+                "cut river boundaries, omitted degenerate self-loop rivers, and FID-only coastal hillslopes are "
+                "never bridged across gaps or coerced into natural outlets."
+            ),
+            "counts": cat_conn_counts,
+            "not_in_source_rivers": not_in_source_rivers,
+            "not_in_source_rivers_truncated": not_in_source_rivers_truncated,
+            "limitations": (
+                "Partial connectivity: missing catchment polygons remain missing area, and raster refinement "
+                "within the input polygon footprint cannot recover unrepresented area. Incomplete upstream "
+                "closures (upstream_boundary_cuts > 0) and unverified units (upstream_boundary_cuts is null: "
+                "coastal hillslopes and catchments whose degenerate self-loop river was omitted) must not be "
+                "presented as ordinary complete watersheds without explicit consumer opt-in."
+            ),
+        },
+        "unwrapped_antimeridian_max_lon": float(overall_bbox[2]) if overall_bbox[2] > 180.0 else None,
+        "up1_to_up4_overflow_confluences": overflow_confluences,
+        "transformations": (
+            "Zero geometry repair, clipping, simplification, reversal, or dissolving. Invalid polygons and degenerate "
+            "zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) omitted with explicit provenance. "
+            "River graph upstream_ids derived from verified NextDownID links so >4-tributary confluences keep all incoming "
+            "edges while native maxup and up1..up4 attributes remain intact. Catchment connectivity in graph.parquet "
+            "derived from verified NextDownID links and 1-to-1 COMID associations without bridging omitted polygons or "
+            "unmatched rivers; completeness is declared 'partial' via upstream_boundary_cuts and "
+            "downstream_boundary_status. Eastern Chukotka features (pfaf_35 and hillslope_35) retain native unwrapped "
+            "antimeridian longitudes (>180 deg E) without clipping or splitting, while MERIT Hydro rasters use wrapped "
+            "~[-180, +180) longitudes (consumers querying rasters across >180 deg E must wrap longitudes by -360 deg and "
+            "split reads across the antimeridian). Geodesic WGS84 ellipsoid area_km2 computed over native parts. Native "
+            "COMIDs preserved; dataset-local HFX IDs assigned independently per domain."
+        ),
+    }
+    if derived_from_verified_bundle_manifest_sha256 is not None:
+        source_metadata["derived_from_verified_bundle_manifest_sha256"] = derived_from_verified_bundle_manifest_sha256
+    (output / "source-metadata.json").write_text(json.dumps(source_metadata, indent=2) + "\n")
+    _default_notices(output, partial_reason=partial_reason)
+
+    manifest: dict[str, Any] = {
+        "format_version": "0.4.0",
+        "fabric_name": "merit",
+        "fabric_version": release,
+        "crs": "EPSG:4326",
+        "has_up_area": False,
+        "topology": "tree",
+        "bbox": overall_bbox,
+        "unit_count": cat_count,
+        "created_at": datetime.now(UTC).isoformat(),
+        "adapter_version": "merit-original-2",
+        "region": region,
+        "catchments": "catchments.arrow",
+        "graph": "graph.parquet",
+        "lookup": "lookup.arrow",
+        "directory": "lookup-directory.json",
+        "index_batch_rows": 65536,
+        "catchment_batch_bytes": 8388608,
+        "auxiliary": aux_declarations,
+        "categorical_columns": [
+            {
+                "artifact": "catchments.arrow",
+                "column": "catchment_kind",
+                "physical_type": "string",
+                "codes": [
+                    {"code": "channelized", "meaning": "MERIT-Basins channelized unit catchment (25 km2 threshold)"},
+                    {"code": "coastal_hillslope", "meaning": "MERIT-Basins coastal hillslope below 25 km2 threshold"},
+                ],
+                "null_meaning": "not permitted",
+            },
+            {
+                "artifact": "catchments.arrow",
+                "column": "downstream_boundary_status",
+                "physical_type": "string",
+                "codes": CATCHMENT_DOWNSTREAM_STATUS_CODES,
+                "null_meaning": "not permitted",
+            },
+            {
+                "artifact": "rivers.arrow",
+                "column": "local_catchment_status",
+                "physical_type": "string",
+                "codes": [
+                    {"code": "supplied", "meaning": "Paired unit catchment delivered in local_catchment_ids"},
+                    {
+                        "code": "omitted_invalid_polygon",
+                        "meaning": "Source polygon existed but was omitted due to invalid geometry",
+                    },
+                    {"code": "not_in_source", "meaning": "Supplied catchment shapefile had no matching COMID"},
+                    {"code": "source_unavailable", "meaning": "Catchment partition source was not available"},
+                ],
+                "null_meaning": "not permitted",
+            },
+            {
+                "artifact": "rivers.arrow",
+                "column": "downstream_boundary_status",
+                "physical_type": "string",
+                "codes": [
+                    {"code": "internal", "meaning": "Downstream NextDownID resolves to a delivered river"},
+                    {"code": "source_zero_sentinel", "meaning": "Native NextDownID=0 absent-link sentinel"},
+                    {"code": "cut_omitted_target", "meaning": "Downstream target river was omitted or unavailable"},
+                ],
+                "null_meaning": "not permitted",
+            },
+        ],
+        "catchment_connectivity": [
+            {
+                "level": 0,
+                "status": "supplied",
+                "derivation": "river_local_associations",
+                "completeness": "partial",
+                "upstream_cuts_column": "upstream_boundary_cuts",
+            }
+        ],
+        "rivers": {
+            "data": "rivers.arrow",
+            "graph": "river-graph.parquet",
+            "lookup": "river-lookup.arrow",
+            "directory": "river-lookup-directory.json",
+            "count": riv_count,
+            "topology": "tree",
+            "batch_bytes": 8388608,
+            "index_batch_rows": 65536,
+        },
+        "local_associations": {
+            "data": "local-associations.parquet",
+            "river_column": "river_id",
+            "catchment_column": "catchment_id",
+        },
+        "artifacts": {
+            p.relative_to(output).as_posix(): fingerprint(p) for p in sorted(output.rglob("*")) if p.is_file()
+        },
+    }
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    receipt: dict[str, Any] = {
+        "status": "passed",
+        "delivered_catchments": cat_count,
+        "delivered_channelized_catchments": channelized_count,
+        "delivered_coastal_hillslopes": hillslope_count,
+        "delivered_rivers": riv_count,
+        "omitted_catchments": omitted_cat_count,
+        "omitted_rivers": omitted_riv_count,
+        "cut_edges": len(cut_edges),
+        "catchment_flow_edges": cat_conn_counts["derived_flow_edges"],
+        "upstream_complete_catchments": cat_conn_counts["upstream_complete_catchments"],
+        "manifest_sha256": _sha256(output / "manifest.json"),
+    }
+    if derived_from_verified_bundle_manifest_sha256 is not None:
+        receipt["derived_from_verified_bundle_manifest_sha256"] = derived_from_verified_bundle_manifest_sha256
+    return receipt
+
+
 @contextmanager
-def _workspace_db() -> Iterator[sqlite3.Connection]:
+def _workspace_db() -> Iterator[tuple[sqlite3.Connection, Path]]:
     with TemporaryDirectory(prefix="hfx-merit-work-") as scratch:
-        conn = sqlite3.connect(Path(scratch) / "merit.sqlite")
+        scratch_dir = Path(scratch)
+        conn = sqlite3.connect(scratch_dir / "merit.sqlite")
         try:
             conn.execute("PRAGMA cache_size = -32768")
             conn.execute("PRAGMA temp_store = FILE")
@@ -203,7 +808,7 @@ def _workspace_db() -> Iterator[sqlite3.Connection]:
                 "up1 INTEGER NOT NULL, up2 INTEGER NOT NULL, up3 INTEGER NOT NULL, up4 INTEGER NOT NULL)"
             )
             conn.execute("CREATE INDEX idx_riv_next ON rivers(next_down)")
-            yield conn
+            yield conn, scratch_dir
         finally:
             conn.close()
 
@@ -294,11 +899,14 @@ def _default_notices(output: Path, *, partial_reason: str | None) -> None:
         "zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) are omitted with explicit provenance "
         "rather than repaired. Upstream IDs in river-graph.parquet derive from verified incoming NextDownID links so "
         "confluences exceeding the shapefile's four up1..up4 slots retain all incoming edges while native maxup and up1..up4 "
-        "columns stay intact. Eastern Chukotka vectors (pfaf_35 and hillslope_35) preserve native unwrapped antimeridian "
-        "longitudes (>180 deg E, up to ~191.003 deg E) without clipping or splitting, while MERIT Hydro rasters span wrapped "
-        "longitudes (~-180.0004 to +179.9996 deg), requiring -360 deg longitude wrapping and split antimeridian raster reads. "
-        "Derived geodesic area_km2 uses the WGS84 ellipsoid and is distinct from native unitarea and uparea. Catchment "
-        f"connectivity is not_supplied; outlets, nodes, and upstream polygon area are null/absent.{caveat}\n"
+        "columns stay intact. Catchment connectivity in graph.parquet derives from verified river NextDownID links and "
+        "1-to-1 COMID associations without bridging omitted polygons or unmatched rivers; completeness is declared "
+        "'partial' via upstream_boundary_cuts and downstream_boundary_status (coastal hillslopes and catchments whose "
+        "degenerate self-loop river was omitted carry null upstream_boundary_cuts). Eastern Chukotka vectors (pfaf_35 and "
+        "hillslope_35) preserve native unwrapped antimeridian longitudes (>180 deg E, up to ~191.003 deg E) without clipping "
+        "or splitting, while MERIT Hydro rasters span wrapped longitudes (~-180.0004 to +179.9996 deg), requiring -360 deg "
+        "longitude wrapping and split antimeridian raster reads. Derived geodesic area_km2 uses the WGS84 ellipsoid and is "
+        f"distinct from native unitarea and uparea; outlets, nodes, and upstream polygon area remain null/absent.{caveat}\n"
     )
     (output / "CITATION.txt").write_text(
         "Yamazaki, D., Ikeshima, D., Sosa, J., Bates, P. D., Allen, G. H., & Pavelsky, T. M. (2019). "
@@ -366,6 +974,7 @@ def produce(
     cat_native_fields, cat_renames, cat_orig_schemas = _unify_native_schema(supplied_cat_sources)
     riv_native_fields, riv_renames, riv_orig_schemas = _unify_native_schema(supplied_riv_sources)
 
+    raw_cat_schema = pa.schema(CATCHMENT_RAW_FIELDS + cat_native_fields)
     cat_schema = pa.schema(CATCHMENT_FIELDS + cat_native_fields)
     riv_schema = pa.schema(RIVER_FIELDS + riv_native_fields)
 
@@ -381,18 +990,22 @@ def produce(
     omitted_cat_count = 0
     omitted_riv_count = 0
 
-    with _workspace_db() as db:
-        # Pass 1: Catchments + coastal hillslopes -> catchments.arrow
-        def catchment_batches() -> Iterator[pa.RecordBatch]:
-            nonlocal cat_count, hillslope_count, channelized_count, omitted_cat_count
-            seen_source_ids: set[tuple[str, str]] = set()
-            seen_global_channelized_comids: set[int] = set()
+    with _workspace_db() as (db, scratch_dir):
+        # Pass 1a: Validate catchments + coastal hillslopes into temporary IPC before river connectivity derivation.
+        raw_cat_path = scratch_dir / "catchments_raw.arrow"
+        cat_records: list[tuple[bool, str, int | None]] = []
+        seen_source_ids: set[tuple[str, str]] = set()
+        seen_global_channelized_comids: set[int] = set()
+        with ipc.new_file(
+            str(raw_cat_path), raw_cat_schema, options=ipc.IpcWriteOptions(compression="zstd")
+        ) as raw_cat_writer:
             for pname, entry in supplied_cat_sources:
                 is_hillslope = entry in hillslopes
                 kind = "coastal_hillslope" if is_hillslope else "channelized"
                 ns_domain = "coastal_hillslopes" if is_hillslope else "catchments"
                 ns = f"{release}/{pname}/{ns_domain}"
                 rename_map = cat_renames.get(pname, {})
+                interned_pname = sys.intern(pname)
                 with fiona.open(entry["shp"]) as src:
                     crs_records[f"{pname}/{ns_domain}"] = _check_crs(src, entry)
                     rows: list[dict[str, Any]] = []
@@ -471,6 +1084,7 @@ def produce(
                             channelized_count += 1
                             assert comid is not None
                             db.execute("INSERT INTO catchments VALUES (?, ?, ?)", (pname, comid, cat_count))
+                        cat_records.append((is_hillslope, interned_pname, None if is_hillslope else comid))
 
                         out_row: dict[str, Any] = {
                             "id": cat_count,
@@ -491,24 +1105,16 @@ def produce(
                             out_row[field.name] = None
                         for orig_name, val in props.items():
                             mapped = rename_map.get(orig_name, orig_name)
-                            dtype = cat_schema.field(mapped).type
+                            dtype = raw_cat_schema.field(mapped).type
                             out_row[mapped] = _coerce_value(val, dtype)
                         rows.append(out_row)
                         if len(rows) >= batch_rows:
-                            yield pa.RecordBatch.from_pylist(rows, schema=cat_schema)
+                            raw_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
                             rows = []
                     if rows:
-                        yield pa.RecordBatch.from_pylist(rows, schema=cat_schema)
+                        raw_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
                 db.commit()
-
-        cat_directory = write_vectors(
-            cat_schema,
-            catchment_batches(),
-            output / "catchments.arrow",
-            output / "lookup.arrow",
-            lookup_binding="hfx:catchments_sha256",
-        )
-        (output / "lookup-directory.json").write_text(json.dumps(cat_directory) + "\n")
+        del seen_source_ids, seen_global_channelized_comids
 
         # Pass 2a: Validate river geometries and load connectivity into SQLite.
         omitted_river_comids: dict[int, str] = {}
@@ -607,121 +1213,71 @@ def produce(
         db.commit()
         riv_count = next_riv_id
 
-        # Validate internal reciprocity, cuts, and global acyclicity.
-        cut_edges: list[dict[str, Any]] = []
-        downstream_status_by_id: dict[int, str] = {}
-        upstream_cuts_by_id: dict[int, int] = {}
-
-        # Load compact river graph arrays (3M * ~56 bytes ~ 170 MB in Python dicts or compact NumPy).
-        all_rows = db.execute("SELECT comid, hfx_id, partition, next_down, up1, up2, up3, up4 FROM rivers").fetchall()
-        comid_to_hfx: dict[int, int] = {r[0]: r[1] for r in all_rows}
-        comid_to_ups: dict[int, tuple[int, ...]] = {r[0]: tuple(u for u in r[4:8] if u != 0) for r in all_rows}
-        next_down_by_comid: dict[int, int] = {r[0]: r[3] for r in all_rows}
-
-        # Check reverse reciprocity first: every delivered upstream reference u must have u.next_down == comid.
-        for comid, _hfx_id, _pname, _next_down, up1, up2, up3, up4 in all_rows:
-            for u in (up1, up2, up3, up4):
-                if u != 0 and u in comid_to_hfx and next_down_by_comid[u] != comid:
-                    raise ValueError(
-                        f"Supplied river edges disagree: {comid} lists upstream {u} with mismatched NextDownID"
-                    )
-
-        in_degree: dict[int, int] = dict.fromkeys(comid_to_hfx, 0)
-        successors: dict[int, list[int]] = {c: [] for c in comid_to_hfx}
-        incoming_by_comid: dict[int, list[int]] = {c: [] for c in comid_to_hfx}
-        overflow_confluences: list[dict[str, Any]] = []
-
-        for comid, hfx_id, pname, next_down, up1, up2, up3, up4 in all_rows:
-            if next_down == 0:
-                downstream_status_by_id[hfx_id] = "source_zero_sentinel"
-            elif next_down in comid_to_hfx:
-                if comid not in comid_to_ups[next_down]:
-                    if len(comid_to_ups[next_down]) == 4:
-                        overflow_confluences.append(
-                            {
-                                "upstream_comid": comid,
-                                "downstream_comid": next_down,
-                                "partition": pname,
-                                "target_up1_to_up4": list(comid_to_ups[next_down]),
-                                "reason": "dbf_up1_to_up4_four_slot_overflow",
-                            }
-                        )
-                    else:
-                        raise ValueError(
-                            f"Supplied river edges disagree: {comid} NextDownID={next_down} absent from up1..4"
-                        )
-                downstream_status_by_id[hfx_id] = "internal"
-                incoming_by_comid[next_down].append(comid)
-                successors[comid].append(next_down)
-                in_degree[next_down] += 1
-            else:
-                downstream_status_by_id[hfx_id] = "cut_omitted_target"
-                reason = (
-                    f"omitted_target:{omitted_river_comids[next_down]}"
-                    if next_down in omitted_river_comids
-                    else "target_not_in_delivered_partitions"
-                )
-                cut_edges.append(
-                    {
-                        "direction": "downstream",
-                        "origin_comid": comid,
-                        "target_comid": next_down,
-                        "origin_partition": pname,
-                        "reason": reason,
-                    }
-                )
-
-            up_cuts = 0
-            for u in (up1, up2, up3, up4):
-                if u == 0 or u in comid_to_hfx:
-                    continue
-                up_cuts += 1
-                reason = (
-                    f"omitted_origin:{omitted_river_comids[u]}"
-                    if u in omitted_river_comids
-                    else "origin_not_in_delivered_partitions"
-                )
-                cut_edges.append(
-                    {
-                        "direction": "upstream",
-                        "origin_comid": u,
-                        "target_comid": comid,
-                        "target_partition": pname,
-                        "reason": reason,
-                    }
-                )
-            upstream_cuts_by_id[hfx_id] = up_cuts
-
-        # Global Kahn topological cycle check.
-        pending = [c for c, deg in in_degree.items() if deg == 0]
-        visited = 0
-        while pending:
-            cur = pending.pop()
-            visited += 1
-            for nxt in successors[cur]:
-                in_degree[nxt] -= 1
-                if in_degree[nxt] == 0:
-                    pending.append(nxt)
-        if visited != len(comid_to_hfx):
-            raise ValueError("Supplied river graph contains a cycle")
-        del all_rows, successors, in_degree
-
-        # Pass 2b: Stream delivered rivers -> rivers.arrow, river-graph.parquet, local-associations.parquet
-        graph_schema = pa.schema(
-            [
-                pa.field("id", pa.int64(), nullable=False),
-                pa.field("level", pa.int16(), nullable=False),
-                pa.field("upstream_ids", pa.list_(pa.int64()), nullable=False),
-            ]
-            + [pa.field("bbox_" + name, pa.float32(), nullable=False) for name in ("minx", "miny", "maxx", "maxy")]
+        topo = _analyze_topology(
+            db,
+            cat_records,
+            unavailable_catchments=unavailable_catchments,
+            unavailable_rivers=unavailable_rivers,
+            omitted_river_comids=omitted_river_comids,
         )
-        assoc_schema = pa.schema(
-            [pa.field("river_id", pa.int64(), nullable=False), pa.field("catchment_id", pa.int64(), nullable=False)]
-        )
+        del cat_records
+        cat_conn = topo.cat_conn
 
+        # Pass 1b: Stream catchments.arrow, lookup.arrow, and catchment graph.parquet.
+        insert_idx = len(CATCHMENT_RAW_FIELDS)
         with (
-            pq.ParquetWriter(output / "river-graph.parquet", graph_schema) as graph_writer,
-            pq.ParquetWriter(output / "local-associations.parquet", assoc_schema) as assoc_writer,
+            pa.memory_map(str(raw_cat_path), "r") as raw_stream,
+            pq.ParquetWriter(output / "graph.parquet", GRAPH_SCHEMA) as cat_graph_writer,
+        ):
+            raw_reader = ipc.open_file(raw_stream)
+
+            def final_catchment_batches() -> Iterator[pa.RecordBatch]:
+                for batch_idx in range(raw_reader.num_record_batches):
+                    batch = raw_reader.get_batch(batch_idx)
+                    ids = batch.column("id").to_pylist()
+                    bboxes = batch.column("bbox").to_pylist()
+                    down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
+                    up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
+                    cat_graph_writer.write_table(
+                        pa.Table.from_pylist(
+                            [
+                                {
+                                    "id": cid,
+                                    "level": 0,
+                                    "upstream_ids": cat_conn.upstream_ids[cid - 1],
+                                    **dict(
+                                        zip(
+                                            ("bbox_minx", "bbox_miny", "bbox_maxx", "bbox_maxy"),
+                                            bbox.values(),
+                                            strict=True,
+                                        )
+                                    ),
+                                }
+                                for cid, bbox in zip(ids, bboxes, strict=True)
+                            ],
+                            schema=GRAPH_SCHEMA,
+                        )
+                    )
+                    cols = [*batch.columns[:insert_idx], down_arr, up_arr, *batch.columns[insert_idx:]]
+                    yield pa.RecordBatch.from_arrays(cols, schema=cat_schema)
+
+            cat_directory = write_vectors(
+                cat_schema,
+                final_catchment_batches(),
+                output / "catchments.arrow",
+                output / "lookup.arrow",
+                lookup_binding="hfx:catchments_sha256",
+            )
+            (output / "lookup-directory.json").write_text(json.dumps(cat_directory) + "\n")
+        raw_cat_path.unlink()
+        cat_conn.upstream_ids.clear()
+        cat_conn.downstream_status.clear()
+        cat_conn.upstream_cuts.clear()
+
+        # Pass 2c: Stream delivered rivers -> rivers.arrow, river-graph.parquet, local-associations.parquet
+        with (
+            pq.ParquetWriter(output / "river-graph.parquet", GRAPH_SCHEMA) as graph_writer,
+            pq.ParquetWriter(output / "local-associations.parquet", ASSOC_SCHEMA) as assoc_writer,
         ):
 
             def river_batches() -> Iterator[pa.RecordBatch]:
@@ -747,7 +1303,7 @@ def produce(
                             comid = int(props["COMID"])
                             if comid in omitted_river_comids:
                                 continue
-                            hfx_id = comid_to_hfx[comid]
+                            hfx_id = topo.comid_to_hfx[comid]
                             geom = shapely_shape(feat["geometry"])
                             bbox = _narrowed_bbox(geom.bounds)
                             for idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
@@ -775,8 +1331,8 @@ def produce(
                                 "bbox": bbox,
                                 "geometry": geom.wkb,
                                 "local_catchment_status": local_status,
-                                "downstream_boundary_status": downstream_status_by_id[hfx_id],
-                                "upstream_boundary_cuts": upstream_cuts_by_id[hfx_id],
+                                "downstream_boundary_status": topo.downstream_status_by_id[hfx_id],
+                                "upstream_boundary_cuts": topo.upstream_cuts_by_id[hfx_id],
                                 "component_catchment_id": None,
                                 "upstream_node_id": None,
                                 "downstream_node_id": None,
@@ -790,7 +1346,7 @@ def produce(
                                 out_row[mapped] = _coerce_value(val, dtype)
                             rows.append(out_row)
 
-                            ups_hfx = sorted(comid_to_hfx[u] for u in incoming_by_comid[comid])
+                            ups_hfx = sorted(topo.comid_to_hfx[u] for u in topo.incoming_by_comid[comid])
                             graph_rows.append(
                                 {
                                     "id": hfx_id,
@@ -807,15 +1363,15 @@ def produce(
                             )
                             if len(rows) >= batch_rows:
                                 yield pa.RecordBatch.from_pylist(rows, schema=riv_schema)
-                                graph_writer.write_table(pa.Table.from_pylist(graph_rows, schema=graph_schema))
+                                graph_writer.write_table(pa.Table.from_pylist(graph_rows, schema=GRAPH_SCHEMA))
                                 if assoc_rows:
-                                    assoc_writer.write_table(pa.Table.from_pylist(assoc_rows, schema=assoc_schema))
+                                    assoc_writer.write_table(pa.Table.from_pylist(assoc_rows, schema=ASSOC_SCHEMA))
                                 rows, graph_rows, assoc_rows = [], [], []
                         if rows:
                             yield pa.RecordBatch.from_pylist(rows, schema=riv_schema)
-                            graph_writer.write_table(pa.Table.from_pylist(graph_rows, schema=graph_schema))
+                            graph_writer.write_table(pa.Table.from_pylist(graph_rows, schema=GRAPH_SCHEMA))
                             if assoc_rows:
-                                assoc_writer.write_table(pa.Table.from_pylist(assoc_rows, schema=assoc_schema))
+                                assoc_writer.write_table(pa.Table.from_pylist(assoc_rows, schema=ASSOC_SCHEMA))
 
             riv_directory = write_vectors(
                 riv_schema,
@@ -833,147 +1389,425 @@ def produce(
         if _sha256(path_obj) != expected_digest:
             raise ValueError(f"Raster source changed during normalization: {path_obj}")
 
-    (output / "original-inventory.json").write_bytes(inventory_path.read_bytes())
-    (output / "omitted-features.json").write_text(json.dumps(omitted_features, indent=2) + "\n")
-    (output / "cut-edges.json").write_text(json.dumps(cut_edges, indent=2) + "\n")
-    source_metadata = {
-        "release": release,
-        "organization": inventory.get("organization"),
-        "crs_evidence": crs_records,
-        "original_schemas": {"catchments": cat_orig_schemas, "rivers": riv_orig_schemas},
-        "column_renames": {"catchments": cat_renames, "rivers": riv_renames},
-        "unavailable_partitions": {"catchments": unavailable_catchments, "rivers": unavailable_rivers},
-        "counts": {
-            "delivered_catchments": cat_count,
-            "delivered_channelized_catchments": channelized_count,
-            "delivered_coastal_hillslopes": hillslope_count,
-            "delivered_rivers": riv_count,
-            "omitted_catchments": omitted_cat_count,
-            "omitted_rivers": omitted_riv_count,
-            "cut_edges": len(cut_edges),
-        },
-        "unwrapped_antimeridian_max_lon": float(overall_bbox[2]) if overall_bbox[2] > 180.0 else None,
-        "up1_to_up4_overflow_confluences": overflow_confluences,
-        "transformations": (
-            "Zero geometry repair, clipping, simplification, reversal, or dissolving. Invalid polygons and degenerate "
-            "zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) omitted with explicit provenance. "
-            "River graph upstream_ids derived from verified NextDownID links so >4-tributary confluences keep all incoming "
-            "edges while native maxup and up1..up4 attributes remain intact. Eastern Chukotka features (pfaf_35 and hillslope_35) "
-            "retain native unwrapped antimeridian longitudes (>180 deg E) without clipping or splitting, while MERIT Hydro "
-            "rasters use wrapped ~[-180, +180) longitudes (consumers querying rasters across >180 deg E must wrap longitudes "
-            "by -360 deg and split reads across the antimeridian). Geodesic WGS84 ellipsoid area_km2 computed over native "
-            "parts. Native COMIDs preserved; dataset-local HFX IDs assigned independently per domain."
-        ),
-    }
-    (output / "source-metadata.json").write_text(json.dumps(source_metadata, indent=2) + "\n")
-    _default_notices(output, partial_reason=partial_reason)
+    return _write_staging_outputs(
+        output,
+        release=release,
+        organization=inventory.get("organization"),
+        region=inventory.get("region", inventory.get("organization", "global")),
+        original_inventory_bytes=inventory_path.read_bytes(),
+        omitted_features=omitted_features,
+        cut_edges=topo.cut_edges,
+        crs_records=crs_records,
+        cat_orig_schemas=cat_orig_schemas,
+        riv_orig_schemas=riv_orig_schemas,
+        cat_renames=cat_renames,
+        riv_renames=riv_renames,
+        unavailable_catchments=unavailable_catchments,
+        unavailable_rivers=unavailable_rivers,
+        cat_count=cat_count,
+        channelized_count=channelized_count,
+        hillslope_count=hillslope_count,
+        riv_count=riv_count,
+        omitted_cat_count=omitted_cat_count,
+        omitted_riv_count=omitted_riv_count,
+        cat_conn_counts=cat_conn.counts,
+        not_in_source_rivers=cat_conn.not_in_source_rivers,
+        not_in_source_rivers_truncated=cat_conn.not_in_source_rivers_truncated,
+        overall_bbox=overall_bbox,
+        overflow_confluences=topo.overflow_confluences,
+        aux_declarations=aux_declarations,
+        partial_reason=partial_reason,
+    )
 
-    manifest: dict[str, Any] = {
-        "format_version": "0.4.0",
-        "fabric_name": "merit",
-        "fabric_version": release,
-        "crs": "EPSG:4326",
-        "has_up_area": False,
-        "topology": "tree",
-        "bbox": overall_bbox,
-        "unit_count": cat_count,
-        "created_at": datetime.now(UTC).isoformat(),
-        "adapter_version": "merit-original-1",
-        "region": inventory.get("region", inventory.get("organization", "global")),
-        "catchments": "catchments.arrow",
-        "lookup": "lookup.arrow",
-        "directory": "lookup-directory.json",
-        "index_batch_rows": 65536,
-        "catchment_batch_bytes": 8388608,
-        "auxiliary": aux_declarations,
-        "categorical_columns": [
-            {
-                "artifact": "catchments.arrow",
-                "column": "catchment_kind",
-                "physical_type": "string",
-                "codes": [
-                    {"code": "channelized", "meaning": "MERIT-Basins channelized unit catchment (25 km2 threshold)"},
-                    {"code": "coastal_hillslope", "meaning": "MERIT-Basins coastal hillslope below 25 km2 threshold"},
-                ],
-                "null_meaning": "not permitted",
-            },
-            {
-                "artifact": "rivers.arrow",
-                "column": "local_catchment_status",
-                "physical_type": "string",
-                "codes": [
-                    {"code": "supplied", "meaning": "Paired unit catchment delivered in local_catchment_ids"},
-                    {
-                        "code": "omitted_invalid_polygon",
-                        "meaning": "Source polygon existed but was omitted due to invalid geometry",
-                    },
-                    {"code": "not_in_source", "meaning": "Supplied catchment shapefile had no matching COMID"},
-                    {"code": "source_unavailable", "meaning": "Catchment partition source was not available"},
-                ],
-                "null_meaning": "not permitted",
-            },
-            {
-                "artifact": "rivers.arrow",
-                "column": "downstream_boundary_status",
-                "physical_type": "string",
-                "codes": [
-                    {"code": "internal", "meaning": "Downstream NextDownID resolves to a delivered river"},
-                    {"code": "source_zero_sentinel", "meaning": "Native NextDownID=0 absent-link sentinel"},
-                    {"code": "cut_omitted_target", "meaning": "Downstream target river was omitted or unavailable"},
-                ],
-                "null_meaning": "not permitted",
-            },
-        ],
-        "catchment_connectivity": [{"level": 0, "status": "not_supplied"}],
-        "rivers": {
-            "data": "rivers.arrow",
-            "graph": "river-graph.parquet",
-            "lookup": "river-lookup.arrow",
-            "directory": "river-lookup-directory.json",
-            "count": riv_count,
-            "topology": "tree",
-            "batch_bytes": 8388608,
-            "index_batch_rows": 65536,
-        },
-        "local_associations": {
-            "data": "local-associations.parquet",
-            "river_column": "river_id",
-            "catchment_column": "catchment_id",
-        },
-        "artifacts": {
-            p.relative_to(output).as_posix(): fingerprint(p) for p in sorted(output.rglob("*")) if p.is_file()
-        },
-    }
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    return {
-        "status": "passed",
-        "delivered_catchments": cat_count,
-        "delivered_channelized_catchments": channelized_count,
-        "delivered_coastal_hillslopes": hillslope_count,
-        "delivered_rivers": riv_count,
-        "omitted_catchments": omitted_cat_count,
-        "omitted_rivers": omitted_riv_count,
-        "cut_edges": len(cut_edges),
-        "manifest_sha256": _sha256(output / "manifest.json"),
-    }
+
+def produce_from_bundle(
+    base_spatial_dir: Path,
+    output: Path,
+    *,
+    auxiliary_spec_path: Path | None = None,
+    batch_rows: int = 4096,
+    partial_reason: str | None = None,
+) -> dict[str, Any]:
+    """Derive catchment connectivity directly from a verified HFX 0.4.0 MERIT spatial bundle."""
+    base_manifest_path = base_spatial_dir / "manifest.json"
+    base_manifest = json.loads(base_manifest_path.read_bytes())
+    base_manifest_sha = _sha256(base_manifest_path)
+    if (
+        base_manifest.get("format_version") != "0.4.0"
+        or base_manifest.get("fabric_name") != "merit"
+        or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
+    ):
+        raise ValueError("Expected verified HFX 0.4.0 MERIT spatial-geoparquet-adjacency bundle")
+
+    for rel, identity in base_manifest["artifacts"].items():
+        path = base_spatial_dir / rel
+        if (
+            Path(rel).is_absolute()
+            or not path.resolve().is_relative_to(base_spatial_dir.resolve())
+            or not path.is_file()
+            or fingerprint(path) != identity
+        ):
+            raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+
+    base_meta = json.loads((base_spatial_dir / "source-metadata.json").read_bytes())
+    omitted_features: list[dict[str, Any]] = json.loads((base_spatial_dir / "omitted-features.json").read_bytes())
+    orig_inv_bytes = (base_spatial_dir / "original-inventory.json").read_bytes()
+
+    release = str(base_meta["release"])
+    unavailable_catchments = {str(k): str(v) for k, v in base_meta["unavailable_partitions"]["catchments"].items()}
+    unavailable_rivers = {str(k): str(v) for k, v in base_meta["unavailable_partitions"]["rivers"].items()}
+
+    output.mkdir(parents=True, exist_ok=False)
+    if auxiliary_spec_path is not None:
+        aux_declarations, raster_before = _check_and_stage_rasters(json.loads(auxiliary_spec_path.read_bytes()), output)
+    else:
+        aux_declarations = list(base_manifest.get("auxiliary", []))
+        raster_before = {}
+        for entry in aux_declarations:
+            if entry.get("schema") != "hfx.aux.d8_raster.v2":
+                continue
+            for rel_ref in entry.get("artifacts", {}).values():
+                if not isinstance(rel_ref, str):
+                    continue
+                src_path = base_spatial_dir / rel_ref
+                dest = output / rel_ref
+                if Path(rel_ref).is_absolute() or not dest.resolve().is_relative_to(output.resolve()):
+                    raise ValueError(f"Raster path escapes bundle: {rel_ref}")
+                raster_before[src_path] = _sha256(src_path)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    os.link(src_path, dest)
+                except OSError:
+                    shutil.copyfile(src_path, dest)
+
+    base_cat_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["catchments"]["data"]))
+    base_riv_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["rivers"]["data"]))
+
+    base_cat_fields = [
+        f
+        for f in base_cat_pf.schema_arrow.with_metadata({})
+        if f.name not in {"downstream_boundary_status", "upstream_boundary_cuts"}
+    ]
+    if [f.name for f in base_cat_fields[: len(CATCHMENT_RAW_FIELDS)]] != [f.name for f in CATCHMENT_RAW_FIELDS]:
+        raise ValueError("Unexpected base catchments.parquet prefix layout")
+    cat_native_fields = base_cat_fields[len(CATCHMENT_RAW_FIELDS) :]
+    cat_schema = pa.schema(CATCHMENT_FIELDS + cat_native_fields)
+
+    riv_structural_names = {f.name for f in RIVER_FIELDS}
+    base_riv_fields_map = {f.name: f for f in base_riv_pf.schema_arrow.with_metadata({})}
+    riv_native_fields = [f for f in base_riv_pf.schema_arrow.with_metadata({}) if f.name not in riv_structural_names]
+    if not all(f.name in base_riv_fields_map for f in RIVER_FIELDS):
+        raise ValueError("Unexpected base rivers.parquet structural columns")
+    riv_schema = pa.schema(RIVER_FIELDS + riv_native_fields)
+
+    cat_count = base_cat_pf.metadata.num_rows
+    riv_count = base_riv_pf.metadata.num_rows
+    overall_bbox = [float("inf"), float("inf"), -float("inf"), -float("inf")]
+
+    with _workspace_db() as (db, _scratch_dir):
+        omitted_cat_count = 0
+        omitted_riv_count = 0
+        omitted_river_comids: dict[int, str] = {}
+        for item in omitted_features:
+            domain = item["domain"]
+            if domain == "catchments":
+                omitted_cat_count += 1
+                if item.get("COMID") is not None:
+                    db.execute(
+                        "INSERT INTO omitted_catchments VALUES (?, ?, ?)",
+                        (str(item["partition"]), int(item["COMID"]), str(item["reason"])),
+                    )
+            elif domain == "coastal_hillslopes":
+                omitted_cat_count += 1
+            elif domain == "rivers":
+                omitted_riv_count += 1
+                omitted_river_comids[int(item["COMID"])] = str(item["reason"])
+
+        cat_records_opt: list[tuple[bool, str, int | None] | None] = [None] * cat_count
+        channelized_count = 0
+        hillslope_count = 0
+        for batch in base_cat_pf.iter_batches(
+            batch_size=batch_rows * 4,
+            columns=["id", "processing_partition", "catchment_kind", "source_id", "bbox"],
+        ):
+            for cid, pname, kind, sid, bbox in zip(
+                batch.column("id").to_pylist(),
+                batch.column("processing_partition").to_pylist(),
+                batch.column("catchment_kind").to_pylist(),
+                batch.column("source_id").to_pylist(),
+                batch.column("bbox").to_pylist(),
+                strict=True,
+            ):
+                if not (1 <= cid <= cat_count) or cat_records_opt[cid - 1] is not None:
+                    raise ValueError(f"Invalid or duplicate catchment id in base bundle: {cid}")
+                for idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
+                    overall_bbox[idx] = (
+                        min(overall_bbox[idx], bbox[key]) if idx < 2 else max(overall_bbox[idx], bbox[key])
+                    )
+                is_hillslope = kind == "coastal_hillslope"
+                interned_pname = sys.intern(str(pname))
+                if is_hillslope:
+                    hillslope_count += 1
+                    comid: int | None = None
+                else:
+                    channelized_count += 1
+                    comid = int(sid)
+                    db.execute("INSERT INTO catchments VALUES (?, ?, ?)", (interned_pname, comid, cid))
+                cat_records_opt[cid - 1] = (is_hillslope, interned_pname, comid)
+        if any(rec is None for rec in cat_records_opt):
+            raise ValueError("Gap in catchment id sequence in base bundle")
+        cat_records = cast(list[tuple[bool, str, int | None]], cat_records_opt)
+
+        seen_riv_ids = 0
+        for batch in base_riv_pf.iter_batches(
+            batch_size=batch_rows * 4,
+            columns=[
+                "id",
+                "processing_partition",
+                "source_id",
+                "NextDownID",
+                "maxup",
+                "up1",
+                "up2",
+                "up3",
+                "up4",
+                "bbox",
+            ],
+        ):
+            for rid, pname, sid, next_down, maxup, up1, up2, up3, up4, bbox in zip(
+                batch.column("id").to_pylist(),
+                batch.column("processing_partition").to_pylist(),
+                batch.column("source_id").to_pylist(),
+                batch.column("NextDownID").to_pylist(),
+                batch.column("maxup").to_pylist(),
+                batch.column("up1").to_pylist(),
+                batch.column("up2").to_pylist(),
+                batch.column("up3").to_pylist(),
+                batch.column("up4").to_pylist(),
+                batch.column("bbox").to_pylist(),
+                strict=True,
+            ):
+                if not (1 <= rid <= riv_count):
+                    raise ValueError(f"Invalid river id in base bundle: {rid}")
+                seen_riv_ids += 1
+                for idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
+                    overall_bbox[idx] = (
+                        min(overall_bbox[idx], bbox[key]) if idx < 2 else max(overall_bbox[idx], bbox[key])
+                    )
+                comid_r = int(sid)
+                ups = [int(up1), int(up2), int(up3), int(up4)]
+                non_zero_ups = [u for u in ups if u != 0]
+                if int(maxup) != len(non_zero_ups) or len(set(non_zero_ups)) != len(non_zero_ups):
+                    raise ValueError(f"River {comid_r}: invalid maxup={maxup} vs up1..up4={ups}")
+                if int(next_down) == comid_r or comid_r in non_zero_ups:
+                    raise ValueError(f"River {comid_r}: self-loop in base bundle")
+                db.execute(
+                    "INSERT INTO rivers VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (comid_r, int(rid), str(pname), int(next_down), int(maxup), *ups),
+                )
+        if seen_riv_ids != riv_count:
+            raise ValueError("River count mismatch in base bundle")
+        db.commit()
+
+        topo = _analyze_topology(
+            db,
+            cat_records,
+            unavailable_catchments=unavailable_catchments,
+            unavailable_rivers=unavailable_rivers,
+            omitted_river_comids=omitted_river_comids,
+        )
+        del cat_records, cat_records_opt
+        cat_conn = topo.cat_conn
+
+        base_cut_edges_path = base_spatial_dir / "cut-edges.json"
+        if base_cut_edges_path.exists() and json.loads(base_cut_edges_path.read_bytes()) != topo.cut_edges:
+            raise ValueError("Reconstructed river cut-edges.json differs from base bundle")
+        if base_meta.get("up1_to_up4_overflow_confluences") != topo.overflow_confluences:
+            raise ValueError("Reconstructed up1..up4 overflow confluences differ from base bundle")
+
+        # Stream catchments.parquet -> catchments.arrow, lookup.arrow, graph.parquet.
+        base_cat_names = list(base_cat_pf.schema_arrow.names)
+        prefix_indices = [base_cat_names.index(f.name) for f in CATCHMENT_RAW_FIELDS]
+        native_indices = [base_cat_names.index(f.name) for f in cat_native_fields]
+        id_idx = base_cat_names.index("id")
+        bbox_idx = base_cat_names.index("bbox")
+        with pq.ParquetWriter(output / "graph.parquet", GRAPH_SCHEMA) as cat_graph_writer:
+
+            def base_catchment_batches() -> Iterator[pa.RecordBatch]:
+                for batch in base_cat_pf.iter_batches(batch_size=batch_rows):
+                    ids = batch.column(id_idx).to_pylist()
+                    bboxes = batch.column(bbox_idx).to_pylist()
+                    down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
+                    up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
+                    cat_graph_writer.write_table(
+                        pa.Table.from_pylist(
+                            [
+                                {
+                                    "id": cid,
+                                    "level": 0,
+                                    "upstream_ids": cat_conn.upstream_ids[cid - 1],
+                                    **dict(
+                                        zip(
+                                            ("bbox_minx", "bbox_miny", "bbox_maxx", "bbox_maxy"),
+                                            bbox.values(),
+                                            strict=True,
+                                        )
+                                    ),
+                                }
+                                for cid, bbox in zip(ids, bboxes, strict=True)
+                            ],
+                            schema=GRAPH_SCHEMA,
+                        )
+                    )
+                    cols = [
+                        *[batch.column(i) for i in prefix_indices],
+                        down_arr,
+                        up_arr,
+                        *[batch.column(i) for i in native_indices],
+                    ]
+                    yield pa.RecordBatch.from_arrays(cols, schema=cat_schema)
+
+            cat_directory = write_vectors(
+                cat_schema,
+                base_catchment_batches(),
+                output / "catchments.arrow",
+                output / "lookup.arrow",
+                lookup_binding="hfx:catchments_sha256",
+            )
+            (output / "lookup-directory.json").write_text(json.dumps(cat_directory) + "\n")
+
+        cat_conn.upstream_ids.clear()
+        cat_conn.downstream_status.clear()
+        cat_conn.upstream_cuts.clear()
+
+        # Stream rivers.parquet -> rivers.arrow, river-lookup.arrow, river-graph.parquet, local-associations.parquet.
+        chan_lookup = dict(db.execute("SELECT comid, hfx_id FROM catchments").fetchall())
+        base_riv_names = list(base_riv_pf.schema_arrow.names)
+        riv_col_indices = [base_riv_names.index(f.name) for f in riv_schema]
+        riv_id_idx = base_riv_names.index("id")
+        riv_sid_idx = base_riv_names.index("source_id")
+        riv_bbox_idx = base_riv_names.index("bbox")
+        riv_ds_idx = base_riv_names.index("downstream_boundary_status")
+        riv_uc_idx = base_riv_names.index("upstream_boundary_cuts")
+
+        with (
+            pq.ParquetWriter(output / "river-graph.parquet", GRAPH_SCHEMA) as graph_writer,
+            pq.ParquetWriter(output / "local-associations.parquet", ASSOC_SCHEMA) as assoc_writer,
+        ):
+
+            def base_river_batches() -> Iterator[pa.RecordBatch]:
+                for batch in base_riv_pf.iter_batches(batch_size=batch_rows):
+                    ids = batch.column(riv_id_idx).to_pylist()
+                    sids = batch.column(riv_sid_idx).to_pylist()
+                    bboxes = batch.column(riv_bbox_idx).to_pylist()
+                    obs_ds = batch.column(riv_ds_idx).to_pylist()
+                    obs_uc = batch.column(riv_uc_idx).to_pylist()
+                    graph_rows: list[dict[str, Any]] = []
+                    assoc_rows: list[dict[str, int]] = []
+                    for hfx_id, sid, bbox, ds_val, uc_val in zip(ids, sids, bboxes, obs_ds, obs_uc, strict=True):
+                        if topo.downstream_status_by_id[hfx_id] != ds_val or topo.upstream_cuts_by_id[hfx_id] != uc_val:
+                            raise ValueError(f"River {hfx_id} topology disagrees with base bundle")
+                        comid_r = int(sid)
+                        cat_id = chan_lookup.get(comid_r)
+                        if cat_id is not None:
+                            assoc_rows.append({"river_id": hfx_id, "catchment_id": cat_id})
+                        ups_hfx = sorted(topo.comid_to_hfx[u] for u in topo.incoming_by_comid[comid_r])
+                        graph_rows.append(
+                            {
+                                "id": hfx_id,
+                                "level": 0,
+                                "upstream_ids": ups_hfx,
+                                **dict(
+                                    zip(
+                                        ("bbox_minx", "bbox_miny", "bbox_maxx", "bbox_maxy"),
+                                        bbox.values(),
+                                        strict=True,
+                                    )
+                                ),
+                            }
+                        )
+                    graph_writer.write_table(pa.Table.from_pylist(graph_rows, schema=GRAPH_SCHEMA))
+                    if assoc_rows:
+                        assoc_writer.write_table(pa.Table.from_pylist(assoc_rows, schema=ASSOC_SCHEMA))
+                    yield pa.RecordBatch.from_arrays([batch.column(i) for i in riv_col_indices], schema=riv_schema)
+
+            riv_directory = write_vectors(
+                riv_schema,
+                base_river_batches(),
+                output / "rivers.arrow",
+                output / "river-lookup.arrow",
+                lookup_binding="hfx:data_sha256",
+            )
+            (output / "river-lookup-directory.json").write_text(json.dumps(riv_directory) + "\n")
+
+    for path_obj, expected_digest in raster_before.items():
+        if _sha256(path_obj) != expected_digest:
+            raise ValueError(f"Raster source changed during normalization: {path_obj}")
+
+    return _write_staging_outputs(
+        output,
+        release=release,
+        organization=base_meta.get("organization"),
+        region=base_manifest.get("region", base_meta.get("organization", "global")),
+        original_inventory_bytes=orig_inv_bytes,
+        omitted_features=omitted_features,
+        cut_edges=topo.cut_edges,
+        crs_records=base_meta["crs_evidence"],
+        cat_orig_schemas=base_meta["original_schemas"]["catchments"],
+        riv_orig_schemas=base_meta["original_schemas"]["rivers"],
+        cat_renames=base_meta["column_renames"]["catchments"],
+        riv_renames=base_meta["column_renames"]["rivers"],
+        unavailable_catchments=unavailable_catchments,
+        unavailable_rivers=unavailable_rivers,
+        cat_count=cat_count,
+        channelized_count=channelized_count,
+        hillslope_count=hillslope_count,
+        riv_count=riv_count,
+        omitted_cat_count=omitted_cat_count,
+        omitted_riv_count=omitted_riv_count,
+        cat_conn_counts=cat_conn.counts,
+        not_in_source_rivers=cat_conn.not_in_source_rivers,
+        not_in_source_rivers_truncated=cat_conn.not_in_source_rivers_truncated,
+        overall_bbox=overall_bbox,
+        overflow_confluences=topo.overflow_confluences,
+        aux_declarations=aux_declarations,
+        partial_reason=partial_reason,
+        derived_from_verified_bundle_manifest_sha256=base_manifest_sha,
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("inventory", type=Path)
-    parser.add_argument("output", type=Path)
+    parser.add_argument(
+        "source_or_output", type=Path, help="Inventory JSON path, or output directory with --from-spatial-bundle"
+    )
+    parser.add_argument("output", nargs="?", type=Path)
+    parser.add_argument("--from-spatial-bundle", type=Path)
     parser.add_argument("--auxiliary-json", type=Path)
     parser.add_argument("--batch-rows", type=int, default=4096)
     parser.add_argument("--partial-reason")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
-    result = produce(
-        args.inventory,
-        args.output,
-        auxiliary_spec_path=args.auxiliary_json,
-        batch_rows=args.batch_rows,
-        partial_reason=args.partial_reason,
-    )
+    if args.from_spatial_bundle is not None:
+        if args.output is not None:
+            parser.error("pass only output directory when --from-spatial-bundle is specified")
+        result = produce_from_bundle(
+            args.from_spatial_bundle,
+            args.source_or_output,
+            auxiliary_spec_path=args.auxiliary_json,
+            batch_rows=args.batch_rows,
+            partial_reason=args.partial_reason,
+        )
+    else:
+        if args.output is None:
+            parser.error("output directory is required")
+        result = produce(
+            args.source_or_output,
+            args.output,
+            auxiliary_spec_path=args.auxiliary_json,
+            batch_rows=args.batch_rows,
+            partial_reason=args.partial_reason,
+        )
     if args.report:
         with args.report.open("x") as stream:
             stream.write(json.dumps(result, indent=2) + "\n")

@@ -16,3 +16,9 @@ artifact identities, remote range-probe results, spend accounting, and license
 attributions for the MERIT HFX 0.4.0 delivery (`#281`). They are secret-free
 provenance records for `MERIT Hydro` (CC BY-NC 4.0) and `MERIT-Basins`
 (CC BY-NC-SA 4.0 / UCSD non-commercial research terms).
+
+`merit-catchment-connectivity.json` records the secret-free provenance for the
+candidate MERIT HFX 0.4.0 bundle (`#285`, disjoint candidate prefix) derived
+from the verified `#281` base bundle with derived `catchment_connectivity`,
+mixed raw-shapefile/base-bundle verification receipts, remote range-probe and
+isolated consumer verification results, and bounded Hetzner Cloud spend.
