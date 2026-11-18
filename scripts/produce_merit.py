@@ -275,7 +275,6 @@ def _derive_catchment_connectivity(
     unpaired_riv_not_in_source = 0
     unpaired_riv_unavailable = 0
     hillslope_count = 0
-    cat_out_count = [0] * cat_count
     derived_edges = 0
     cuts_cat_count = 0
     total_up_cut_edges = 0
@@ -327,9 +326,6 @@ def _derive_catchment_connectivity(
             cat_down_status[idx] = sys.intern("source_zero_sentinel")
         elif nd in chan_comid_to_cat and nd in riv_comid_to_hfx:
             cat_down_status[idx] = sys.intern("internal")
-            cat_out_count[idx] += 1
-            if cat_out_count[idx] > 1:
-                raise ValueError(f"Non-tree downstream degree derived for catchment {cid} (COMID {comid})")
         else:
             cat_down_status[idx] = sys.intern("cut_missing_downstream_catchment")
             downstream_cuts += 1
@@ -1234,8 +1230,8 @@ def produce(
             def final_catchment_batches() -> Iterator[pa.RecordBatch]:
                 for batch_idx in range(raw_reader.num_record_batches):
                     batch = raw_reader.get_batch(batch_idx)
-                    ids = batch.column("id").to_pylist()
-                    bboxes = batch.column("bbox").to_pylist()
+                    ids = cast(list[int], batch.column("id").to_pylist())
+                    bboxes = cast(list[dict[str, float]], batch.column("bbox").to_pylist())
                     down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
                     up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
                     cat_graph_writer.write_table(
@@ -1436,6 +1432,7 @@ def produce_from_bundle(
         base_manifest.get("format_version") != "0.4.0"
         or base_manifest.get("fabric_name") != "merit"
         or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
+        or base_manifest.get("representation_version") != 1
     ):
         raise ValueError("Expected verified HFX 0.4.0 MERIT spatial-geoparquet-adjacency bundle")
 
@@ -1526,16 +1523,17 @@ def produce_from_bundle(
         cat_records_opt: list[tuple[bool, str, int | None] | None] = [None] * cat_count
         channelized_count = 0
         hillslope_count = 0
+        seen_global_channelized_comids: set[int] = set()
         for batch in base_cat_pf.iter_batches(
             batch_size=batch_rows * 4,
             columns=["id", "processing_partition", "catchment_kind", "source_id", "bbox"],
         ):
             for cid, pname, kind, sid, bbox in zip(
-                batch.column("id").to_pylist(),
-                batch.column("processing_partition").to_pylist(),
-                batch.column("catchment_kind").to_pylist(),
-                batch.column("source_id").to_pylist(),
-                batch.column("bbox").to_pylist(),
+                cast(list[int], batch.column("id").to_pylist()),
+                cast(list[str], batch.column("processing_partition").to_pylist()),
+                cast(list[str], batch.column("catchment_kind").to_pylist()),
+                cast(list[str], batch.column("source_id").to_pylist()),
+                cast(list[dict[str, float]], batch.column("bbox").to_pylist()),
                 strict=True,
             ):
                 if not (1 <= cid <= cat_count) or cat_records_opt[cid - 1] is not None:
@@ -1552,8 +1550,12 @@ def produce_from_bundle(
                 else:
                     channelized_count += 1
                     comid = int(sid)
+                    if comid in seen_global_channelized_comids:
+                        raise ValueError(f"Duplicate global channelized catchment COMID {comid}")
+                    seen_global_channelized_comids.add(comid)
                     db.execute("INSERT INTO catchments VALUES (?, ?, ?)", (interned_pname, comid, cid))
                 cat_records_opt[cid - 1] = (is_hillslope, interned_pname, comid)
+        del seen_global_channelized_comids
         if any(rec is None for rec in cat_records_opt):
             raise ValueError("Gap in catchment id sequence in base bundle")
         cat_records = cast(list[tuple[bool, str, int | None]], cat_records_opt)
@@ -1575,16 +1577,16 @@ def produce_from_bundle(
             ],
         ):
             for rid, pname, sid, next_down, maxup, up1, up2, up3, up4, bbox in zip(
-                batch.column("id").to_pylist(),
-                batch.column("processing_partition").to_pylist(),
-                batch.column("source_id").to_pylist(),
-                batch.column("NextDownID").to_pylist(),
-                batch.column("maxup").to_pylist(),
-                batch.column("up1").to_pylist(),
-                batch.column("up2").to_pylist(),
-                batch.column("up3").to_pylist(),
-                batch.column("up4").to_pylist(),
-                batch.column("bbox").to_pylist(),
+                cast(list[int], batch.column("id").to_pylist()),
+                cast(list[str], batch.column("processing_partition").to_pylist()),
+                cast(list[str], batch.column("source_id").to_pylist()),
+                cast(list[int], batch.column("NextDownID").to_pylist()),
+                cast(list[int], batch.column("maxup").to_pylist()),
+                cast(list[int], batch.column("up1").to_pylist()),
+                cast(list[int], batch.column("up2").to_pylist()),
+                cast(list[int], batch.column("up3").to_pylist()),
+                cast(list[int], batch.column("up4").to_pylist()),
+                cast(list[dict[str, float]], batch.column("bbox").to_pylist()),
                 strict=True,
             ):
                 if not (1 <= rid <= riv_count):
@@ -1635,8 +1637,8 @@ def produce_from_bundle(
 
             def base_catchment_batches() -> Iterator[pa.RecordBatch]:
                 for batch in base_cat_pf.iter_batches(batch_size=batch_rows):
-                    ids = batch.column(id_idx).to_pylist()
-                    bboxes = batch.column(bbox_idx).to_pylist()
+                    ids = cast(list[int], batch.column(id_idx).to_pylist())
+                    bboxes = cast(list[dict[str, float]], batch.column(bbox_idx).to_pylist())
                     down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
                     up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
                     cat_graph_writer.write_table(
@@ -1697,11 +1699,11 @@ def produce_from_bundle(
 
             def base_river_batches() -> Iterator[pa.RecordBatch]:
                 for batch in base_riv_pf.iter_batches(batch_size=batch_rows):
-                    ids = batch.column(riv_id_idx).to_pylist()
-                    sids = batch.column(riv_sid_idx).to_pylist()
-                    bboxes = batch.column(riv_bbox_idx).to_pylist()
-                    obs_ds = batch.column(riv_ds_idx).to_pylist()
-                    obs_uc = batch.column(riv_uc_idx).to_pylist()
+                    ids = cast(list[int], batch.column(riv_id_idx).to_pylist())
+                    sids = cast(list[str], batch.column(riv_sid_idx).to_pylist())
+                    bboxes = cast(list[dict[str, float]], batch.column(riv_bbox_idx).to_pylist())
+                    obs_ds = cast(list[str], batch.column(riv_ds_idx).to_pylist())
+                    obs_uc = cast(list[int], batch.column(riv_uc_idx).to_pylist())
                     graph_rows: list[dict[str, Any]] = []
                     assoc_rows: list[dict[str, int]] = []
                     for hfx_id, sid, bbox, ds_val, uc_val in zip(ids, sids, bboxes, obs_ds, obs_uc, strict=True):

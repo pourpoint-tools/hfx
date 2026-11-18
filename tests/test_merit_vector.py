@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -315,17 +315,24 @@ def test_no_bridging_across_omitted_middle_polygon_and_unmatched_associations(tm
     src = tmp_path / "source"
     src.mkdir(parents=True)
 
-    # Chain A (101) -> B (102, bowtie invalid polygon) -> C (103), plus unmatched river D (104) -> C (103).
+    # Chain A (101) -> B (102, bowtie) -> C (103) -> E (105), unmatched D (104) -> C (103),
+    # plus leaf-only headwater gap F (201, bowtie) -> G (202).
     rivers = [
         _river_feature(101, [(0.0, 1.0), (0.0, 0.5)], 102, ()),
         _river_feature(102, [(0.0, 0.5), (0.0, 0.2)], 103, (101,)),
-        _river_feature(103, [(0.0, 0.2), (0.0, 0.0)], 0, (102, 104)),
+        _river_feature(103, [(0.0, 0.2), (0.0, 0.1)], 105, (102, 104)),
         _river_feature(104, [(0.2, 0.4), (0.0, 0.2)], 103, ()),
+        _river_feature(105, [(0.0, 0.1), (0.0, 0.0)], 0, (103,)),
+        _river_feature(201, [(1.0, 1.0), (1.0, 0.5)], 202, ()),
+        _river_feature(202, [(1.0, 0.5), (1.0, 0.0)], 0, (201,)),
     ]
     cats = [
         {"geometry": _box_poly(-0.1, 0.5, 0.1, 1.0), "properties": {"COMID": 101, "unitarea": 10.0}},
         {"geometry": _bowtie_poly(-0.1, 0.2), "properties": {"COMID": 102, "unitarea": 10.0}},
-        {"geometry": _box_poly(-0.1, 0.0, 0.1, 0.2), "properties": {"COMID": 103, "unitarea": 10.0}},
+        {"geometry": _box_poly(-0.1, 0.1, 0.1, 0.2), "properties": {"COMID": 103, "unitarea": 10.0}},
+        {"geometry": _box_poly(-0.1, 0.0, 0.1, 0.1), "properties": {"COMID": 105, "unitarea": 10.0}},
+        {"geometry": _bowtie_poly(0.9, 0.5), "properties": {"COMID": 201, "unitarea": 5.0}},
+        {"geometry": _box_poly(0.9, 0.0, 1.1, 0.5), "properties": {"COMID": 202, "unitarea": 5.0}},
     ]
     riv_side = _write_shapefile(
         src / "riv_pfaf_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=rivers, write_prj=True
@@ -364,39 +371,47 @@ def test_no_bridging_across_omitted_middle_polygon_and_unmatched_associations(tm
     staging = tmp_path / "staging"
     spatial = tmp_path / "spatial"
     receipt = produce(inv_path, staging)
-    assert receipt["catchment_flow_edges"] == 0
+    assert receipt["catchment_flow_edges"] == 1
     assert receipt["upstream_complete_catchments"] == 1
     build(staging, spatial, source_manifest_sha256=receipt["manifest_sha256"])
 
     cats_tbl = {r["COMID"]: r for r in pq.read_table(spatial / "catchments.parquet").to_pylist()}
-    assert set(cats_tbl) == {101, 103}
+    assert set(cats_tbl) == {101, 103, 105, 202}
     assert cats_tbl[101]["downstream_boundary_status"] == "cut_missing_downstream_catchment"
     assert cats_tbl[101]["upstream_boundary_cuts"] == 0
-    assert cats_tbl[103]["downstream_boundary_status"] == "source_zero_sentinel"
+    assert cats_tbl[103]["downstream_boundary_status"] == "internal"
     assert cats_tbl[103]["upstream_boundary_cuts"] == 2
+    assert cats_tbl[105]["downstream_boundary_status"] == "source_zero_sentinel"
+    assert cats_tbl[105]["upstream_boundary_cuts"] == 0
+    assert cats_tbl[202]["downstream_boundary_status"] == "source_zero_sentinel"
+    assert cats_tbl[202]["upstream_boundary_cuts"] == 1
 
     with ipc.open_file(str(spatial / "catchments-relationships.arrow")) as reader:
         cat_rels = {r["id"]: r for r in reader.read_all().to_pylist()}
     assert cat_rels[cats_tbl[101]["id"]]["downstream_ids"] == []
     assert cat_rels[cats_tbl[103]["id"]]["upstream_ids"] == []
+    assert cat_rels[cats_tbl[103]["id"]]["downstream_ids"] == [cats_tbl[105]["id"]]
+    assert cat_rels[cats_tbl[105]["id"]]["upstream_ids"] == [cats_tbl[103]["id"]]
+    assert cat_rels[cats_tbl[202]["id"]]["upstream_ids"] == []
 
     rivs_tbl = {r["COMID"]: r for r in pq.read_table(spatial / "rivers.parquet").to_pylist()}
     assert rivs_tbl[102]["local_catchment_status"] == "omitted_invalid_polygon"
+    assert rivs_tbl[201]["local_catchment_status"] == "omitted_invalid_polygon"
     assert rivs_tbl[104]["local_catchment_status"] == "not_in_source"
 
     smeta = json.loads((spatial / "source-metadata.json").read_text())
     cc_counts = smeta["catchment_connectivity"]["counts"]
-    assert cc_counts["derived_flow_edges"] == 0
+    assert cc_counts["derived_flow_edges"] == 1
     assert cc_counts["upstream_complete_catchments"] == 1
-    assert cc_counts["upstream_incomplete_paired_catchments"] == 1
-    assert cc_counts["upstream_incomplete_stranded_delivered_catchments"] == 1
-    assert cc_counts["upstream_incomplete_leaf_only_catchments"] == 0
+    assert cc_counts["upstream_incomplete_paired_catchments"] == 3
+    assert cc_counts["upstream_incomplete_stranded_delivered_catchments"] == 2
+    assert cc_counts["upstream_incomplete_leaf_only_catchments"] == 1
     assert cc_counts["rivers_catchment_not_in_source"] == 1
     assert [r["COMID"] for r in smeta["catchment_connectivity"]["not_in_source_rivers"]] == [104]
 
     verified = verify_spatial_bundle(inv_path, spatial)
     assert verified["status"] == "passed"
-    assert verified["catchment_flow_edges"] == 0
+    assert verified["catchment_flow_edges"] == 1
 
 
 def test_rejects_mismatched_and_cyclic_river_graphs(tmp_path: Path) -> None:
@@ -671,10 +686,15 @@ def test_omits_degenerate_self_loop_river_and_preserves_five_tributary_confluenc
 
 
 @pytest.mark.parametrize(
-    "mutation",
-    ["catchment_edges", "downstream_status", "upstream_cuts", "metadata_counts"],
+    ("mutation", "match"),
+    [
+        ("catchment_edges", "Final catchment flow relationships differ"),
+        ("downstream_status", "downstream_boundary_status"),
+        ("upstream_cuts", "upstream_boundary_cuts"),
+        ("metadata_counts", r"catchment_connectivity\.counts differs"),
+    ],
 )
-def test_verifier_rejects_tampered_catchment_connectivity(tmp_path: Path, mutation: str) -> None:
+def test_verifier_rejects_tampered_catchment_connectivity(tmp_path: Path, mutation: str, match: str) -> None:
     import pyarrow as pa
 
     from hfx.candidates import fingerprint
@@ -693,8 +713,9 @@ def test_verifier_rejects_tampered_catchment_connectivity(tmp_path: Path, mutati
         rel_path = spatial / "catchments-relationships.arrow"
         table = ipc.open_file(str(rel_path)).read_all()
         col_idx = table.schema.get_field_index("upstream_ids")
-        values = table.column(col_idx).to_pylist()
-        values[0] = [table.column("id")[1].as_py()] if not values[0] else []
+        values = cast(list[list[int]], table.column(col_idx).to_pylist())
+        ids = cast(list[int], table.column("id").to_pylist())
+        values[0] = [ids[1]] if not values[0] else []
         table = table.set_column(col_idx, table.schema.field(col_idx), pa.array(values, type=pa.list_(pa.int64())))
         with ipc.new_file(str(rel_path), table.schema) as writer:
             writer.write_table(table)
@@ -724,7 +745,7 @@ def test_verifier_rejects_tampered_catchment_connectivity(tmp_path: Path, mutati
         manifest["artifacts"]["source-metadata.json"] = fingerprint(meta_path)
     (spatial / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=match):
         verify_spatial_bundle(inv, spatial)
 
 
@@ -786,7 +807,7 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
     base_meta_path.write_text(json.dumps(base_meta, indent=2) + "\n")
     base_manifest = json.loads((base_spatial / "manifest.json").read_text())
     base_manifest["catchment_connectivity"] = [{"level": 0, "status": "not_supplied"}]
-    base_manifest["families"]["catchments"].pop("relationship", None)
+    base_manifest["relationships"].pop("catchments", None)
     base_manifest["artifacts"].pop("catchments-relationships.arrow", None)
     base_manifest["categorical_columns"] = [
         item for item in base_manifest.get("categorical_columns", []) if item.get("artifact") != "catchments.parquet"
@@ -860,6 +881,22 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
     with pytest.raises(ValueError, match="base_spatial_dir"):
         verify_spatial_bundle(inv_inherited, spatial2)
 
+    bad_pfaf_inv = json.loads(inv_inherited.read_text())
+    bad_pfaf_inv["partitions"][0]["catchments"]["sidecars"]["cat_pfaf_27_MERIT_Hydro_v07_Basins_v01_bugfix1.shp"][
+        "sha256"
+    ] = "0" * 64
+    bad_pfaf_path = tmp_path / "inventory_bad_pfaf.json"
+    bad_pfaf_path.write_text(json.dumps(bad_pfaf_inv, indent=2))
+    with pytest.raises(ValueError, match="Supplied sidecars differ"):
+        verify_spatial_bundle(bad_pfaf_path, spatial2, base_spatial_dir=base_spatial)
+
+    missing_pfaf_inv = json.loads(inv_inherited.read_text())
+    missing_pfaf_inv["partitions"] = []
+    missing_pfaf_path = tmp_path / "inventory_missing_pfaf.json"
+    missing_pfaf_path.write_text(json.dumps(missing_pfaf_inv, indent=2))
+    with pytest.raises(ValueError, match="partition set differs"):
+        verify_spatial_bundle(missing_pfaf_path, spatial2, base_spatial_dir=base_spatial)
+
     verify_report = tmp_path / "verify_report.json"
     monkeypatch.setattr(
         sys,
@@ -899,5 +936,5 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
     m2["families"]["catchments"]["data_sha256"] = tdig["sha256"]
     (spatial2 / "manifest.json").write_text(json.dumps(m2, indent=2) + "\n")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Catchment native attributes differ"):
         verify_spatial_bundle(inv_inherited, spatial2, base_spatial_dir=base_spatial)

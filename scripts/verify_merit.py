@@ -9,7 +9,7 @@ import math
 import sqlite3
 import struct
 from collections import Counter
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -181,7 +181,7 @@ def _wkb_rings(wkb: bytes) -> list[tuple[tuple[float, float], ...]]:
     return rings
 
 
-def _canon_ring_signature(rings: list[tuple[tuple[float, float], ...]], *, is_polygon: bool) -> str:
+def _canon_ring_signature(rings: Sequence[Sequence[tuple[float, float]]], *, is_polygon: bool) -> str:
     """Hash vertex coordinates preserving exact part/ring coordinate precision."""
     h = hashlib.sha256()
     if is_polygon:
@@ -332,6 +332,8 @@ def _validate_base_bundle_inventory(
         raise ValueError("Release differs from base original-inventory.json")
 
     base_parts = {str(p["partition"]): p for p in base_orig["partitions"]}
+    if {str(p["partition"]) for p in partitions} != set(base_parts):
+        raise ValueError("pfaf_* partition set differs from base original-inventory.json")
     for part in partitions:
         pname = str(part["partition"])
         base_part = base_parts.get(pname)
@@ -841,11 +843,9 @@ def verify_spatial_bundle(
         total_up_cut_edges = 0
         downstream_cuts = 0
         exp_status_counts: Counter[str] = Counter()
-        obs_cat_comid_by_id: dict[int, int | None] = {}
         exp_cat_up_cuts_by_id: dict[int, int | None] = {}
 
         for cid, ckind, pname, comid, obs_down_status, obs_up_cuts in obs_cats:
-            obs_cat_comid_by_id[cid] = comid
             if ckind == "coastal_hillslope":
                 hillslope_count += 1
                 exp_down_status = "unassociated_coastal_hillslope"
