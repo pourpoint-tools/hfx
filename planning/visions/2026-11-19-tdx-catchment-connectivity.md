@@ -73,11 +73,16 @@ targeted probes of `rivers.parquet`, `catchments.parquet`, and raw GeoPackages
   into one `MultiPolygon` per `(processing_basin, streamID)`:**
   - Pack the original polygon parts into one `MultiPolygon` without dissolving,
     simplifying, repairing, or altering vertex coordinates.
+  - Exhaustively verify OGC validity (`is_valid`) across all `334,017` grouped
+    `MultiPolygon`s; if any edge-sharing or overlapping fragment pair produces
+    an invalid `MultiPolygon`, stop and report for an explicit contract decision
+    rather than silently repairing or dissolving.
   - Sum exact WGS84 geodesic `area_km2` across parts and compute the
     outward-covering `bbox`.
   - Preserve original `fid` provenance for grouped rows (exact column/metadata
     representation is left to implementation, provided every original `fid`
-    remains traceable and `source_id` stays unique within `source_namespace`).
+    remains traceable, `source_id` stays unique within `source_namespace`, and
+    any schema change is documented in `docs/site/vector-data.md` and `NOTICE`).
   - Confirm that all 62 basins now have strictly at most 1 catchment per river
     (`15,936,428` catchments, `tree` topology).
   - Update the TDX-specific note in `docs/site/spatial-layout.md` so the
@@ -87,28 +92,35 @@ targeted probes of `rivers.parquet`, `catchments.parquet`, and raw GeoPackages
   confluence stubs:**
   - During production, exhaustively check every polygonless river.
   - Contract (bypass) a polygonless river in the **catchment** flow graph if and
-    only if all five conditions hold: `Length == 0`, `geom.length == 0`,
-    `DSContArea == USContArea`, `upstream_degree >= 1`, and
-    `downstream_degree == 1`. Handle chained virtual stubs transitively if any
-    exist.
+    only if all five conditions hold (failing closed if any attribute is null or
+    non-finite): `Length == 0`, `geom.length == 0`, `DSContArea == USContArea`,
+    `upstream_degree >= 1`, and `downstream_degree == 1`. Handle chained virtual
+    stubs transitively if any exist.
   - Wire the upstream catchments of a contracted stub directly into its
     downstream catchment (producing a 3-way or k-way confluence in the catchment
     tree). Leave the **river** flow graph (`rivers-relationships.arrow`
     `upstream_ids`/`downstream_ids`) completely untouched.
   - Never contract `LINKNO == 0` rivers or any polygonless river that fails any
-    of the five checks. For every non-contracted polygonless river with a
-    downstream catchment, increment `upstream_boundary_cuts` (`int32`, nullable)
-    on that downstream catchment.
+    of the five checks. Transitive contraction must propagate both upstream
+    catchments and upstream boundary cuts across contracted stubs onto the
+    downstream catchment (and must never bridge across a downstream
+    non-contracted polygonless river).
+  - Set `upstream_boundary_cuts` (`int32`, nullable) to `0` (non-null) for every
+    delivered catchment with no incoming cuts, and to the positive count of
+    non-contracted incoming gaps otherwise.
 - **Publish explicit completeness metadata and provenance:**
   - Declare level 0 `catchment_connectivity` as `status: "supplied"`,
     `completeness: "partial"`, `upstream_cuts_column: "upstream_boundary_cuts"`,
     and an explicit `derivation` string under `docs/site/bundle.md` and
     `docs/site/vector-data.md`.
-  - Document the contraction rule, exhaustive audit counts (grouped basins,
-    contracted zero-area stubs, non-contracted `LINKNO == 0` omissions, any
-    unexpected nonzero polygonless rivers, affected downstream closures), and
-    remaining limitations in `docs/site/vector-data.md`, `source-metadata.json`,
-    `NOTICE`, and a committed provenance receipt under `scripts/provenance/`.
+  - Amend `docs/site/vector-data.md` (flow connectivity section) to explicitly
+    distinguish exhaustively verified zero-length, zero-area virtual confluence
+    stubs from omitted/missing polygons with drainage area, and document the
+    exhaustive audit counts (grouped basins, contracted zero-area stubs,
+    non-contracted `LINKNO == 0` omissions, any unexpected nonzero polygonless
+    rivers, affected downstream closures) and remaining limitations in
+    `source-metadata.json`, `NOTICE`, and a committed provenance receipt under
+    `scripts/provenance/`.
   - Keep `scripts/produce_tdx.py`, `scripts/verify_tdx.py`, and tests updated so
     raw-source normalization remains reproducible alongside the derived-bundle
     workflow.
@@ -139,12 +151,17 @@ targeted probes of `rivers.parquet`, `catchments.parquet`, and raw GeoPackages
 
 ## Execution, compute, and delivery boundaries
 
-- **Derive from the verified live `full62-20261027` bundle:** Reuse unchanged
-  river feature and lookup artifacts (`rivers.parquet`, `rivers-lookup.arrow`,
-  `rivers-lookup-directory.json`) via verified S3 server-side copy where valid,
-  and rebuild `catchments.parquet`, catchment lookup, both relationship files
-  (`catchments-relationships*` and `rivers-relationships*`), provenance, and
-  manifests.
+- **Derive from the verified live `full62-20261027` bundle:** Produce a fresh
+  normalized staging manifest (`source-manifest.json` bound by
+  `input_manifest_sha256`) whose semantic declarations (`unit_count`,
+  `catchment_connectivity`, `categorical_columns`, etc.) match the final spatial
+  `manifest.json`, while recording the base `full62-20261027` manifest SHA-256
+  in provenance. Reuse unchanged river feature and lookup artifacts
+  (`rivers.parquet`, `rivers-lookup.arrow`, `rivers-lookup-directory.json`) via
+  verified S3 server-side copy where exact byte identity and provenance bindings
+  hold, and rebuild `catchments.parquet`, catchment lookup, both relationship
+  files (`catchments-relationships*` and `rivers-relationships*`), provenance,
+  and manifests.
 - **Compute:** Prefer the UZH VM (`ubuntu@172.23.211.16`, hostname `nik`, 15
   vCPUs, ~58 GiB RAM, 4.9 TiB `/data` disk; follow the connection, workload
   check, and `/data` preservation rules in `../hydrologeez/README.md`). If the
