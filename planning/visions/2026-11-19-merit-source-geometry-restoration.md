@@ -59,9 +59,11 @@ specification at `docs/site/`, production tooling, and delivery provenance. This
 is not permission for arbitrary geometry cleanup or a new HFX format version.
 
 - Admit a repaired source polygon only when the documented checks establish
-  valid Polygon/MultiPolygon output, exact source vertex and undirected edge
-  preservation, geodesic area preservation within justified numerical tolerance,
-  and no introduced interior overlaps with neighboring catchments. Retain holes
+  valid Polygon/MultiPolygon output, exact source vertex set and undirected edge
+  multiset preservation, and geodesic area preservation within justified numerical
+  tolerance. Accepted repairs must satisfy the existing sibling interior
+  non-overlap invariant against relevant delivered neighbors, including other
+  repaired polygons; pre-existing overlap is not waived. Retain holes
   and disconnected components; do not fill, simplify, move, or discard source land.
 - Verify applicability across all global MERIT catchment partitions. Regional
   staging is allowed, but the deliverable is a global bundle with the same
