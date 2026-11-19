@@ -162,13 +162,10 @@ targeted probes of `rivers.parquet`, `catchments.parquet`, and raw GeoPackages
   hold, and rebuild `catchments.parquet`, catchment lookup, both relationship
   files (`catchments-relationships*` and `rivers-relationships*`), provenance,
   and manifests.
-- **Compute:** Prefer the UZH VM (`ubuntu@172.23.211.16`, hostname `nik`, 15
-  vCPUs, ~58 GiB RAM, 4.9 TiB `/data` disk; follow the connection, workload
-  check, and `/data` preservation rules in `../hydrologeez/README.md`). If the
-  UZH VM is unavailable or unsuitable, renting a temporary Hetzner `fsn1` server
-  is authorized up to a **CHF 20** ceiling (compute, temporary volumes, IPs,
-  transfer, taxes), with mandatory resource cleanup and cost accounting after
-  verified upload.
+- **Compute:** Run the global build on the UZH VM (`ubuntu@172.23.211.16`,
+  hostname `nik`, 15 vCPUs, ~58 GiB RAM, 4.9 TiB `/data` disk; follow the
+  connection, workload check, and `/data` preservation rules in
+  `../hydrologeez/README.md`). Paid cloud compute is not authorized.
 - **Publication:** Publish to a **new unused immutable private prefix** under
   `s3://pourpoint-hfx/tdx/hfx-0.4.0/` using profile `hetzner-pourpoint`. Do not
   modify or delete `NGA-TDX-Hydro-20230126-full62-20261027/`, earlier bundles,
@@ -186,6 +183,6 @@ targeted probes of `rivers.parquet`, `catchments.parquet`, and raw GeoPackages
   exhaustive counts honestly rather than relaxing the rule.
 - Rewriting `catchments.parquet` (60 GB) and rebuilding global relationship
   indices requires bounded-memory streaming; verify disk and memory headroom on
-  `/data` (or the fallback VM) before running the full pass.
+  `/data` before running the full pass.
 - Re-checking S3 bucket storage headroom before upload is required so the new
   ~76 GB bundle fits cleanly alongside existing deliveries.
