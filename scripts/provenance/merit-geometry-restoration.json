@@ -1,0 +1,2378 @@
+{
+  "issue": "https://github.com/pourpoint-tools/hfx/issues/292",
+  "originating_discussion": "https://github.com/CooperBigFoot/hydrologeez/issues/203",
+  "vision": "planning/visions/2026-11-19-merit-source-geometry-restoration.md",
+  "base_candidate_bundle": {
+    "issue": "https://github.com/pourpoint-tools/hfx/issues/285",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate/manifest.json",
+    "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+    "reused_components": [
+      "aux/d8/flow_acc.tif",
+      "aux/d8/flow_dir.tif"
+    ],
+    "status": "preserved_untouched"
+  },
+  "raw_source_acquisition": {
+    "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+    "pinned_inventory": "scripts/provenance/merit-delivery.json",
+    "status": "passed",
+    "pfaf_partitions": 61,
+    "pfaf_catchment_sidecars": 244,
+    "pfaf_river_sidecars": 305,
+    "coastal_hillslopes_supplied": 60,
+    "coastal_hillslopes_inherited": 0,
+    "inventory_path": "/data2/merit-geometry-restoration/inventory.json"
+  },
+  "destination": {
+    "access_mode": "private_authenticated_s3",
+    "unauthenticated_https_status": 403,
+    "public_acl_grants": 0,
+    "s3_endpoint": "https://fsn1.your-objectstorage.com",
+    "bucket": "pourpoint-hfx",
+    "prefix": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/",
+    "s3_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/manifest.json",
+    "https_bundle_url": "https://fsn1.your-objectstorage.com/pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+    "manifest_identity": {
+      "key": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/manifest.json",
+      "upload_method": "put_object_last",
+      "size_bytes": 16282,
+      "sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "etag": "\"dd85c26ff38b244962315fde8b3ab324\""
+    },
+    "artifacts": {
+      "CITATION.txt": {
+        "upload_method": "put_object",
+        "size_bytes": 577,
+        "sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "head_sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "tail_sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "etag": "\"e6366fc1e179b2f8b1a5291709cf972c\""
+      },
+      "NOTICE": {
+        "upload_method": "put_object",
+        "size_bytes": 2506,
+        "sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "head_sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "tail_sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "etag": "\"6cfb3c4adcd0fadeca1d8ff2d1eeaeec\""
+      },
+      "aux/d8/flow_acc.tif": {
+        "upload_method": "server_side_multipart_copy",
+        "size_bytes": 33809377414,
+        "sha256": "47d63b4947b4f39e9aa8825e53b7a8b5adf03312429b4a7145e6b7533be78740",
+        "head_sha256": "5ac803c6b8eff0dc044b17ca5c621a3880493ce684e68ed6bf160ef1ab1191cf",
+        "tail_sha256": "95e9111e7ad825cc5dd2aebaaed85128c960a267dc392068ca14e6616fbef7c0",
+        "etag": "\"4e2062720cb828d796e8454956283c17-323\""
+      },
+      "aux/d8/flow_dir.tif": {
+        "upload_method": "server_side_multipart_copy",
+        "size_bytes": 6357742200,
+        "sha256": "ff060460034ae7210badd2d04e8991373ff0442c7549d2d3f46e4ec9ad2645e4",
+        "head_sha256": "2c3e41454a6a65323d91a87f8ad4aef6b768904a22c143e7b56cc18479d1d8a9",
+        "tail_sha256": "1d6d1f6c833b48b1703f961ad8b2495230156ed3e2232ce0d97432e3512ebe54",
+        "etag": "\"3eb90399dc67320a55f815e4cb944e43-61\""
+      },
+      "catchments-lookup-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3378,
+        "sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "head_sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "tail_sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "etag": "\"a911de097b0397f8ea36409f15073b01\""
+      },
+      "catchments-lookup.arrow": {
+        "upload_method": "put_object",
+        "size_bytes": 51446106,
+        "sha256": "9a0dd45f5e028d31d8f06b5de27e299fb01e843979cb2e750dfc801a389c5ce1",
+        "head_sha256": "6e27e8fcc0be87d3a9b322cdb99c2f12b27d3cca2af4b420680ce14f59118584",
+        "tail_sha256": "dc3eaab430d0e1631d260cbe458b3d04f39b6366f2b14ae8714e97abbd1b2240",
+        "etag": "\"abb18e46bee5999199ffea0bd3ff40d2\""
+      },
+      "catchments-relationships-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 26366,
+        "sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "head_sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "tail_sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "etag": "\"9423ea6a61fe721732d3ffc3ab888b60\""
+      },
+      "catchments-relationships.arrow": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 133961066,
+        "sha256": "a5aa5476d9bf0ce0d6284b666c9739d337cfa3d707ba09bc45514b1f7381b566",
+        "head_sha256": "f01adcbf5b3bb486aec0469f447805612c20379375146abb925f4528da73abe9",
+        "tail_sha256": "b5972c58ef867b82e3dccca6a32b52ac6969db7b90820907a3bf7e5652bd2a2d",
+        "etag": "\"0d2bd1a2d5e29eae18ebcb27ddcbdb78-2\""
+      },
+      "catchments.parquet": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 3627040041,
+        "sha256": "ac775c0cf8546564824b34b46c08b6e23f7487fb76fb9a9097b3aeab0bd622e1",
+        "head_sha256": "79d2a3015d6c272a714af5185c91bd6202e6c46cfb17d085e6752c3d8c4fcab4",
+        "tail_sha256": "472b2b943c54d418555a5fabca6c6918c9c926826c8adf84c4ce010b06b85b64",
+        "etag": "\"97edff94074652359a1e71f725193330-55\""
+      },
+      "cut-edges.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "head_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "tail_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "etag": "\"58e0494c51d30eb3494f7c9198986bb9\""
+      },
+      "omitted-features.json": {
+        "upload_method": "put_object",
+        "size_bytes": 935178,
+        "sha256": "291ae1fd8b0946f88977cd5f81911c258d76256df29828455dabeb1497876663",
+        "head_sha256": "31887b9fbc6581efce7ebefcce9daf9d91c998313785eab07712b267a86c6dbc",
+        "tail_sha256": "d917c7cf4d873339c90c6679e0c16900b43daa094e5ff236e693623f39a70695",
+        "etag": "\"d9ecf18c4c077e8e15cdf0d20d93e391\""
+      },
+      "original-inventory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 301890,
+        "sha256": "0fabe51eaabaef9bf12e2dff7ab616bb03de75af2d2d55b7c52bba398b0ef0d5",
+        "head_sha256": "e3c2a45463e694f2ddd350043a75ce4503fc86d21477da5b198a2438fe3330a5",
+        "tail_sha256": "47406516e34008bf6aedeb01482a0a673977585f0ac52bf82fcd5aade3e86abb",
+        "etag": "\"a9662178d7a65585127e8136e434ec82\""
+      },
+      "repaired-features.jsonl.gz": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 486136059,
+        "sha256": "c3ea2d9730b901d40c526d10fbb9030e7e2adc009e687db2cbcae768e64071c9",
+        "head_sha256": "2c8b425845e9fa8780cb77508692fe2a9b1d053d4a4c40074eb6588f3a3703b0",
+        "tail_sha256": "564140e985d476ea377572d5ab212a60f47a125a405894f523c8dee34c094cf7",
+        "etag": "\"a10596a29e57d007db72838472f085ac-8\""
+      },
+      "rivers-lookup-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3039,
+        "sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "head_sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "tail_sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "etag": "\"f18d03c5e85777482e8b6259310b3233\""
+      },
+      "rivers-lookup.arrow": {
+        "upload_method": "put_object",
+        "size_bytes": 47037498,
+        "sha256": "779ec8a7ac7e9d9719e7278e447b89ab77ee365e5efef16c1599bf47b1fcf7ac",
+        "head_sha256": "de66bd43135db0b857c8670d85f5e32c5fa23eb4ecdafa68c3dc643dc4f92711",
+        "tail_sha256": "5ea5fdf26ceaaec16498515c51d7eaff235a8686b6d77f1c1f1bd560a9c36643",
+        "etag": "\"012086286c6d7d0ab165deb1aa1f51a9\""
+      },
+      "rivers-relationships-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 24054,
+        "sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "head_sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "tail_sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "etag": "\"fef25c1eec1ef7305c908299e43d3a3b\""
+      },
+      "rivers-relationships.arrow": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 128482906,
+        "sha256": "0fe9e4a9a9927b462b4558a8c0ce4264de486d308d9afd02abfdf8ede09790b5",
+        "head_sha256": "b4052a49e35df987c8bca981480096aa958ea9c8b727a4c3f69ae48f3e136af5",
+        "tail_sha256": "0f93e88ad11f64408da9cb757f834c4f91543757891a3933409bcbc7465824cb",
+        "etag": "\"7998980377c9c4452d80b7f0028f79f5-2\""
+      },
+      "rivers.parquet": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 1061960063,
+        "sha256": "4c99a872996f4c61c72ede4da16496d99509b27e1a6bb9b80073ba8a9bd9c9d9",
+        "head_sha256": "f46d09374d8447a526db38f762bd4899d8f42980b0d48d52e719fb766775a377",
+        "tail_sha256": "591cf6ad384a739ab268534e38f4cb5ecb7ef4b1faff871cf09512891cc61f79",
+        "etag": "\"392f258927e9a70ee67756fea3ced728-16\""
+      },
+      "source-manifest.json": {
+        "upload_method": "put_object",
+        "size_bytes": 11110,
+        "sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "head_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "tail_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "etag": "\"cf88ad1778e6b93f67d71bb0f8d02b69\""
+      },
+      "source-metadata.json": {
+        "upload_method": "put_object",
+        "size_bytes": 93471,
+        "sha256": "78c28db357fe280142e9cd1754655122fc9bdbe4957da301c7f1c4df5cdb9d4a",
+        "head_sha256": "7bd1ee7cb3d904801ef8eb06fee6efbc638cc42338c9874d266c17bb869c2b1c",
+        "tail_sha256": "a246377408bd1260f72b1f12c450c2dd7b386713dc5d1402b7dda45d24f20662",
+        "etag": "\"69825ec313793bfce6f3325043470a90\""
+      }
+    },
+    "publication_elapsed_seconds": 1831.9930332460208
+  },
+  "storage_governance": {
+    "allowance_bytes": 1000000000000,
+    "pre_upload_object_count": 599,
+    "pre_upload_total_bytes": 720729113533,
+    "pre_upload_inventory_sha256": "085a59ea0efe2af7532db57ea2379f13e3e1f800bf7db2ca27fd5a73001f319b",
+    "bundle_total_bytes": 45704601207,
+    "post_upload_object_count": 620,
+    "post_upload_total_bytes": 766433714740,
+    "post_upload_remaining_1tb_headroom_bytes": 233566285260,
+    "pre_existing_objects_unchanged_sha256": "085a59ea0efe2af7532db57ea2379f13e3e1f800bf7db2ca27fd5a73001f319b",
+    "concurrent_tdx_connectivity_bundle_bytes": 77894757874,
+    "projected_remaining_1tb_headroom_after_tdx_bytes": 155671527386
+  },
+  "manifest_summary": {
+    "format_version": "0.4.0",
+    "fabric_name": "merit",
+    "fabric_version": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+    "adapter_version": "merit-original-3",
+    "unit_count": 3214509,
+    "river_count": 2939054,
+    "bbox": [
+      -179.15042114257812,
+      -56.53791809082031,
+      191.0029296875,
+      83.67625427246094
+    ],
+    "artifact_count": 20
+  },
+  "produce_receipt": {
+    "status": "passed",
+    "delivered_catchments": 3214509,
+    "delivered_channelized_catchments": 2937138,
+    "delivered_coastal_hillslopes": 277371,
+    "repaired_catchments": 147057,
+    "rejected_repair_catchments": 2266,
+    "delivered_rivers": 2939054,
+    "omitted_catchments": 2266,
+    "omitted_rivers": 354,
+    "cut_edges": 0,
+    "catchment_flow_edges": 2874189,
+    "upstream_complete_catchments": 2850279,
+    "manifest_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+    "derived_from_verified_bundle_manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d"
+  },
+  "geometry_normalization_summary": {
+    "rule": "merit_ring_self_intersection_lossless_split_v1",
+    "algorithm": "shapely.make_valid(method='structure', keep_collapsed=False)",
+    "versions": {
+      "python": "3.13.18",
+      "shapely": "2.2.0",
+      "geos": "3.14.1",
+      "pyproj": "3.8.0",
+      "fiona": "1.10.1"
+    },
+    "tolerances": {
+      "geodesic_area_abs_tol_km2": 1e-09,
+      "geodesic_area_rel_tol": 1e-12,
+      "interior_overlap_pattern": "2********"
+    },
+    "global_counts": {
+      "total_source": 3216775,
+      "already_valid": 3067452,
+      "attempted": 149323,
+      "accepted": 147057,
+      "rejected": 2266,
+      "omitted_other": 0,
+      "max_abs_area_diff_km2": 1.4210854715202004e-13,
+      "max_rel_area_diff": 9.060982293776601e-16
+    },
+    "overlap_validation": {
+      "same_partition_pairs": 927253,
+      "cross_partition_pairs": 4115,
+      "coastal_hillslope_pairs": 8040,
+      "candidate_candidate_pairs": 33213,
+      "candidate_interior_overlaps_detected": 4630,
+      "accepted_interior_overlaps": 0,
+      "total_pairs_checked": 939408
+    },
+    "rejection_characterization": {
+      "total_rejected": 2266,
+      "by_stage": {
+        "sibling_interior_overlap": 1995,
+        "candidate_interior_overlap": 271
+      },
+      "by_overlap_magnitude": {
+        "sub_ulp_cross_partition_slivers_lt_1e_14_deg2": 1961,
+        "pre_existing_coastal_hillslope_overlaps_ge_1_pixel": 305,
+        "same_partition_overlaps": 0
+      },
+      "restored_camels_cut_comids": [
+        "72042012",
+        "72044278",
+        "73010886",
+        "74024994"
+      ],
+      "restored_camels_cut_max_geodesic_area_diff_km2": 0.0
+    },
+    "by_partition": {
+      "hillslope_11": {
+        "total_source": 2593,
+        "already_valid": 2593,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_12": {
+        "total_source": 787,
+        "already_valid": 787,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_13": {
+        "total_source": 481,
+        "already_valid": 481,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_14": {
+        "total_source": 711,
+        "already_valid": 711,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_15": {
+        "total_source": 2040,
+        "already_valid": 2040,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_16": {
+        "total_source": 62,
+        "already_valid": 62,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_17": {
+        "total_source": 61,
+        "already_valid": 61,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_18": {
+        "total_source": 1225,
+        "already_valid": 1225,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_21": {
+        "total_source": 6336,
+        "already_valid": 6336,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_22": {
+        "total_source": 1035,
+        "already_valid": 1035,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_23": {
+        "total_source": 7348,
+        "already_valid": 7348,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_24": {
+        "total_source": 33828,
+        "already_valid": 33828,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_25": {
+        "total_source": 29605,
+        "already_valid": 29605,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_26": {
+        "total_source": 1670,
+        "already_valid": 1670,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_27": {
+        "total_source": 1810,
+        "already_valid": 1810,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_28": {
+        "total_source": 20,
+        "already_valid": 20,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_29": {
+        "total_source": 5521,
+        "already_valid": 5521,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_31": {
+        "total_source": 611,
+        "already_valid": 611,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_32": {
+        "total_source": 444,
+        "already_valid": 444,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_33": {
+        "total_source": 1372,
+        "already_valid": 1372,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_34": {
+        "total_source": 388,
+        "already_valid": 388,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_35": {
+        "total_source": 3415,
+        "already_valid": 3415,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_36": {
+        "total_source": 1,
+        "already_valid": 1,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_41": {
+        "total_source": 6384,
+        "already_valid": 6384,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_42": {
+        "total_source": 4960,
+        "already_valid": 4960,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_43": {
+        "total_source": 6114,
+        "already_valid": 6114,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_44": {
+        "total_source": 3082,
+        "already_valid": 3082,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_45": {
+        "total_source": 2717,
+        "already_valid": 2717,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_46": {
+        "total_source": 15,
+        "already_valid": 15,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_47": {
+        "total_source": 73,
+        "already_valid": 73,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_48": {
+        "total_source": 38,
+        "already_valid": 38,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_51": {
+        "total_source": 4241,
+        "already_valid": 4241,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_52": {
+        "total_source": 6924,
+        "already_valid": 6924,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_53": {
+        "total_source": 6252,
+        "already_valid": 6252,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_54": {
+        "total_source": 2382,
+        "already_valid": 2382,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_55": {
+        "total_source": 1357,
+        "already_valid": 1357,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_56": {
+        "total_source": 7172,
+        "already_valid": 7172,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_57": {
+        "total_source": 1808,
+        "already_valid": 1808,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_61": {
+        "total_source": 1728,
+        "already_valid": 1728,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_62": {
+        "total_source": 274,
+        "already_valid": 274,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_63": {
+        "total_source": 1490,
+        "already_valid": 1490,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_64": {
+        "total_source": 348,
+        "already_valid": 348,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_65": {
+        "total_source": 2447,
+        "already_valid": 2447,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_66": {
+        "total_source": 10194,
+        "already_valid": 10194,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_67": {
+        "total_source": 1543,
+        "already_valid": 1543,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_71": {
+        "total_source": 1736,
+        "already_valid": 1736,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_72": {
+        "total_source": 21092,
+        "already_valid": 21092,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_73": {
+        "total_source": 6175,
+        "already_valid": 6175,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_74": {
+        "total_source": 1951,
+        "already_valid": 1951,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_75": {
+        "total_source": 2497,
+        "already_valid": 2497,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_76": {
+        "total_source": 5058,
+        "already_valid": 5058,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_77": {
+        "total_source": 3244,
+        "already_valid": 3244,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_78": {
+        "total_source": 10227,
+        "already_valid": 10227,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_81": {
+        "total_source": 5186,
+        "already_valid": 5186,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_82": {
+        "total_source": 1108,
+        "already_valid": 1108,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_83": {
+        "total_source": 11060,
+        "already_valid": 11060,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_84": {
+        "total_source": 3462,
+        "already_valid": 3462,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_85": {
+        "total_source": 15070,
+        "already_valid": 15070,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_86": {
+        "total_source": 3850,
+        "already_valid": 3850,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_91": {
+        "total_source": 12748,
+        "already_valid": 12748,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_11": {
+        "total_source": 71519,
+        "already_valid": 68955,
+        "attempted": 2564,
+        "accepted": 2522,
+        "rejected": 42,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.1316086607219384e-16
+      },
+      "pfaf_12": {
+        "total_source": 100418,
+        "already_valid": 95679,
+        "attempted": 4739,
+        "accepted": 4710,
+        "rejected": 29,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 3.417026749042574e-16
+      },
+      "pfaf_13": {
+        "total_source": 108277,
+        "already_valid": 102859,
+        "attempted": 5418,
+        "accepted": 5357,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.1925209243527325e-16
+      },
+      "pfaf_14": {
+        "total_source": 89221,
+        "already_valid": 84864,
+        "attempted": 4357,
+        "accepted": 4286,
+        "rejected": 71,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 8.526512829121202e-14,
+        "max_rel_area_diff": 6.351194200522313e-16
+      },
+      "pfaf_15": {
+        "total_source": 143101,
+        "already_valid": 134675,
+        "attempted": 8426,
+        "accepted": 8340,
+        "rejected": 86,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.207977762804181e-16
+      },
+      "pfaf_16": {
+        "total_source": 51930,
+        "already_valid": 48617,
+        "attempted": 3313,
+        "accepted": 3247,
+        "rejected": 66,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.1523873097509317e-16
+      },
+      "pfaf_17": {
+        "total_source": 70842,
+        "already_valid": 67336,
+        "attempted": 3506,
+        "accepted": 3444,
+        "rejected": 62,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.010410555219763e-16
+      },
+      "pfaf_18": {
+        "total_source": 12958,
+        "already_valid": 12509,
+        "attempted": 449,
+        "accepted": 446,
+        "rejected": 3,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 1.936019177331951e-16
+      },
+      "pfaf_21": {
+        "total_source": 26552,
+        "already_valid": 25692,
+        "attempted": 860,
+        "accepted": 811,
+        "rejected": 49,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 7.105427357601002e-15,
+        "max_rel_area_diff": 1.879204868896133e-16
+      },
+      "pfaf_22": {
+        "total_source": 54401,
+        "already_valid": 51977,
+        "attempted": 2424,
+        "accepted": 2363,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.1222024682035894e-16
+      },
+      "pfaf_23": {
+        "total_source": 33501,
+        "already_valid": 31765,
+        "attempted": 1736,
+        "accepted": 1690,
+        "rejected": 46,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2059425641869795e-16
+      },
+      "pfaf_24": {
+        "total_source": 38429,
+        "already_valid": 35154,
+        "attempted": 3275,
+        "accepted": 3158,
+        "rejected": 117,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.1447363868438467e-16
+      },
+      "pfaf_25": {
+        "total_source": 11975,
+        "already_valid": 11137,
+        "attempted": 838,
+        "accepted": 772,
+        "rejected": 66,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.634953602887589e-16
+      },
+      "pfaf_26": {
+        "total_source": 23070,
+        "already_valid": 21191,
+        "attempted": 1879,
+        "accepted": 1823,
+        "rejected": 56,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 1.9661301070668295e-16
+      },
+      "pfaf_27": {
+        "total_source": 1973,
+        "already_valid": 1856,
+        "attempted": 117,
+        "accepted": 117,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_28": {
+        "total_source": 80609,
+        "already_valid": 76230,
+        "attempted": 4379,
+        "accepted": 4274,
+        "rejected": 105,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-13,
+        "max_rel_area_diff": 9.060982293776601e-16
+      },
+      "pfaf_29": {
+        "total_source": 123120,
+        "already_valid": 117530,
+        "attempted": 5590,
+        "accepted": 5556,
+        "rejected": 34,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.9173614996785306e-16
+      },
+      "pfaf_31": {
+        "total_source": 81442,
+        "already_valid": 75344,
+        "attempted": 6098,
+        "accepted": 6015,
+        "rejected": 83,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 4.4343788067439324e-16
+      },
+      "pfaf_32": {
+        "total_source": 57709,
+        "already_valid": 54742,
+        "attempted": 2967,
+        "accepted": 2889,
+        "rejected": 78,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.348919024295918e-16
+      },
+      "pfaf_33": {
+        "total_source": 25602,
+        "already_valid": 24228,
+        "attempted": 1374,
+        "accepted": 1345,
+        "rejected": 29,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.0851945668827434e-16
+      },
+      "pfaf_34": {
+        "total_source": 54189,
+        "already_valid": 51333,
+        "attempted": 2856,
+        "accepted": 2803,
+        "rejected": 53,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.361789933122367e-16
+      },
+      "pfaf_35": {
+        "total_source": 62633,
+        "already_valid": 59050,
+        "attempted": 3583,
+        "accepted": 3563,
+        "rejected": 20,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.490342991992081e-16
+      },
+      "pfaf_36": {
+        "total_source": 7101,
+        "already_valid": 6805,
+        "attempted": 296,
+        "accepted": 285,
+        "rejected": 11,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 1.7761525518601674e-16
+      },
+      "pfaf_41": {
+        "total_source": 9000,
+        "already_valid": 8773,
+        "attempted": 227,
+        "accepted": 225,
+        "rejected": 2,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 7.105427357601002e-15,
+        "max_rel_area_diff": 1.9804714781022564e-16
+      },
+      "pfaf_42": {
+        "total_source": 68022,
+        "already_valid": 65283,
+        "attempted": 2739,
+        "accepted": 2717,
+        "rejected": 22,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.6639959961016705e-16
+      },
+      "pfaf_43": {
+        "total_source": 99562,
+        "already_valid": 95799,
+        "attempted": 3763,
+        "accepted": 3737,
+        "rejected": 26,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 5.328496815971477e-16
+      },
+      "pfaf_44": {
+        "total_source": 51304,
+        "already_valid": 49458,
+        "attempted": 1846,
+        "accepted": 1835,
+        "rejected": 11,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 4.0709063653157065e-16
+      },
+      "pfaf_45": {
+        "total_source": 104450,
+        "already_valid": 99668,
+        "attempted": 4782,
+        "accepted": 4750,
+        "rejected": 32,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 2.7881532062022213e-16
+      },
+      "pfaf_46": {
+        "total_source": 50261,
+        "already_valid": 47598,
+        "attempted": 2663,
+        "accepted": 2627,
+        "rejected": 36,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.2452778328971773e-16
+      },
+      "pfaf_47": {
+        "total_source": 33868,
+        "already_valid": 32394,
+        "attempted": 1474,
+        "accepted": 1443,
+        "rejected": 31,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.201681115518954e-16
+      },
+      "pfaf_48": {
+        "total_source": 34748,
+        "already_valid": 33293,
+        "attempted": 1455,
+        "accepted": 1439,
+        "rejected": 16,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2193508382797112e-16
+      },
+      "pfaf_49": {
+        "total_source": 14031,
+        "already_valid": 13507,
+        "attempted": 524,
+        "accepted": 510,
+        "rejected": 14,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.8824283375358375e-16
+      },
+      "pfaf_51": {
+        "total_source": 14464,
+        "already_valid": 13897,
+        "attempted": 567,
+        "accepted": 563,
+        "rejected": 4,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.724351280528991e-16
+      },
+      "pfaf_52": {
+        "total_source": 25461,
+        "already_valid": 24512,
+        "attempted": 949,
+        "accepted": 943,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.572643745718573e-16
+      },
+      "pfaf_53": {
+        "total_source": 19414,
+        "already_valid": 18656,
+        "attempted": 758,
+        "accepted": 752,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.728306235066175e-16
+      },
+      "pfaf_54": {
+        "total_source": 12,
+        "already_valid": 12,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_55": {
+        "total_source": 711,
+        "already_valid": 689,
+        "attempted": 22,
+        "accepted": 22,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_56": {
+        "total_source": 172612,
+        "already_valid": 164124,
+        "attempted": 8488,
+        "accepted": 8472,
+        "rejected": 16,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.388154676325043e-16
+      },
+      "pfaf_57": {
+        "total_source": 5380,
+        "already_valid": 5226,
+        "attempted": 154,
+        "accepted": 153,
+        "rejected": 1,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_61": {
+        "total_source": 46751,
+        "already_valid": 44320,
+        "attempted": 2431,
+        "accepted": 2390,
+        "rejected": 41,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.171660894142703e-16
+      },
+      "pfaf_62": {
+        "total_source": 153093,
+        "already_valid": 144934,
+        "attempted": 8159,
+        "accepted": 8098,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.935896316656825e-16
+      },
+      "pfaf_63": {
+        "total_source": 45564,
+        "already_valid": 43763,
+        "attempted": 1801,
+        "accepted": 1786,
+        "rejected": 15,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 3.9334509467827636e-16
+      },
+      "pfaf_64": {
+        "total_source": 77874,
+        "already_valid": 74338,
+        "attempted": 3536,
+        "accepted": 3502,
+        "rejected": 34,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.4519558198526035e-16
+      },
+      "pfaf_65": {
+        "total_source": 32153,
+        "already_valid": 30512,
+        "attempted": 1641,
+        "accepted": 1608,
+        "rejected": 33,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.1758417796198474e-16
+      },
+      "pfaf_66": {
+        "total_source": 22073,
+        "already_valid": 21253,
+        "attempted": 820,
+        "accepted": 788,
+        "rejected": 32,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.597709578686409e-16
+      },
+      "pfaf_67": {
+        "total_source": 10690,
+        "already_valid": 10340,
+        "attempted": 350,
+        "accepted": 344,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.0381137319781733e-16
+      },
+      "pfaf_71": {
+        "total_source": 48951,
+        "already_valid": 45000,
+        "attempted": 3951,
+        "accepted": 3867,
+        "rejected": 84,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.288455508143175e-16
+      },
+      "pfaf_72": {
+        "total_source": 59790,
+        "already_valid": 54750,
+        "attempted": 5040,
+        "accepted": 4953,
+        "rejected": 87,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.684298354437502e-16
+      },
+      "pfaf_73": {
+        "total_source": 23294,
+        "already_valid": 21909,
+        "attempted": 1385,
+        "accepted": 1358,
+        "rejected": 27,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 1.8886672757900955e-16
+      },
+      "pfaf_74": {
+        "total_source": 72659,
+        "already_valid": 69158,
+        "attempted": 3501,
+        "accepted": 3428,
+        "rejected": 73,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 2.2065102672210087e-16
+      },
+      "pfaf_75": {
+        "total_source": 50614,
+        "already_valid": 48598,
+        "attempted": 2016,
+        "accepted": 1976,
+        "rejected": 40,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.1743308043342047e-16
+      },
+      "pfaf_76": {
+        "total_source": 4405,
+        "already_valid": 4245,
+        "attempted": 160,
+        "accepted": 158,
+        "rejected": 2,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_77": {
+        "total_source": 58125,
+        "already_valid": 56085,
+        "attempted": 2040,
+        "accepted": 1984,
+        "rejected": 56,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.1699633756403965e-16
+      },
+      "pfaf_78": {
+        "total_source": 28489,
+        "already_valid": 27276,
+        "attempted": 1213,
+        "accepted": 1188,
+        "rejected": 25,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 3.6312195497407943e-16
+      },
+      "pfaf_81": {
+        "total_source": 37515,
+        "already_valid": 35496,
+        "attempted": 2019,
+        "accepted": 1995,
+        "rejected": 24,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 3.538777212356573e-16
+      },
+      "pfaf_82": {
+        "total_source": 43082,
+        "already_valid": 40199,
+        "attempted": 2883,
+        "accepted": 2805,
+        "rejected": 78,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2045686163037052e-16
+      },
+      "pfaf_83": {
+        "total_source": 23633,
+        "already_valid": 21434,
+        "attempted": 2199,
+        "accepted": 2141,
+        "rejected": 58,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.176272041335929e-16
+      },
+      "pfaf_84": {
+        "total_source": 7141,
+        "already_valid": 6544,
+        "attempted": 597,
+        "accepted": 593,
+        "rejected": 4,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.2177802580733375e-16
+      },
+      "pfaf_85": {
+        "total_source": 10095,
+        "already_valid": 9304,
+        "attempted": 791,
+        "accepted": 779,
+        "rejected": 12,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.499046436576771e-16
+      },
+      "pfaf_86": {
+        "total_source": 7281,
+        "already_valid": 6975,
+        "attempted": 306,
+        "accepted": 303,
+        "rejected": 3,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.122028748996434e-16
+      },
+      "pfaf_91": {
+        "total_source": 42260,
+        "already_valid": 41231,
+        "attempted": 1029,
+        "accepted": 1009,
+        "rejected": 20,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.335699013373303e-16
+      }
+    }
+  },
+  "catchment_connectivity_counts": {
+    "derived_flow_edges": 2874189,
+    "paired_channelized_catchments": 2936784,
+    "unpaired_channelized_catchments_omitted_river": 354,
+    "unpaired_channelized_catchments_river_not_in_source": 0,
+    "unpaired_channelized_catchments_river_unavailable": 0,
+    "unassociated_coastal_hillslopes": 277371,
+    "rivers_omitted_invalid_polygon": 2266,
+    "rivers_catchment_not_in_source": 4,
+    "rivers_catchment_unavailable": 0,
+    "downstream_boundary_status_counts": {
+      "cut_missing_downstream_catchment": 980,
+      "internal": 2874189,
+      "omitted_degenerate_river": 354,
+      "source_zero_sentinel": 61615,
+      "unassociated_coastal_hillslope": 277371
+    },
+    "catchments_with_upstream_cuts": 1928,
+    "total_upstream_catchment_cut_edges": 1951,
+    "catchments_with_downstream_cuts": 980,
+    "upstream_complete_catchments": 2850279,
+    "upstream_incomplete_paired_catchments": 86505,
+    "upstream_incomplete_leaf_only_catchments": 50681,
+    "upstream_incomplete_stranded_delivered_catchments": 35824,
+    "upstream_unverified_catchments": 277725
+  },
+  "spatial_bundle_verification": {
+    "status": "passed",
+    "input_manifest_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+    "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+    "features": {
+      "catchments": {
+        "status": "passed",
+        "rows": 3214509,
+        "row_groups": 2623,
+        "source_batch_reads": 50336,
+        "source_decoded_bytes": 362416226556,
+        "source_logical_bytes": 20247408486,
+        "source_decode_amplification": 17.89938829982076
+      },
+      "rivers": {
+        "status": "passed",
+        "rows": 2939054,
+        "row_groups": 811,
+        "source_batch_reads": 6044,
+        "source_decoded_bytes": 38178046805,
+        "source_logical_bytes": 5530686991,
+        "source_decode_amplification": 6.902948380034259
+      }
+    },
+    "relationships": {
+      "catchments": {
+        "rows": 3214509,
+        "columns": {
+          "upstream_ids": 2874189,
+          "downstream_ids": 2874189,
+          "local_river_ids": 2936784
+        }
+      },
+      "rivers": {
+        "rows": 2939054,
+        "columns": {
+          "upstream_ids": 2877142,
+          "downstream_ids": 2877142,
+          "local_catchment_ids": 2936784
+        }
+      }
+    },
+    "scope": "Complete normalized-input comparison; original-source fidelity is inherited, not rerun. Local raster bytes and identities are checked; raster conformance and public delivery are not checked."
+  },
+  "raw_shapefile_verification": {
+    "status": "passed",
+    "delivered_catchments": 3214509,
+    "repaired_catchments": 147057,
+    "repaired_overlap_pairs_checked": 923283,
+    "delivered_rivers": 2939054,
+    "omitted_catchments": 2266,
+    "omitted_rivers": 354,
+    "flow_edges": 2877142,
+    "catchment_flow_edges": 2874189,
+    "local_associations": 2936784,
+    "cut_edges": 0,
+    "raw_shapefile_verified_hillslope_partitions": [
+      "hillslope_11",
+      "hillslope_12",
+      "hillslope_13",
+      "hillslope_14",
+      "hillslope_15",
+      "hillslope_16",
+      "hillslope_17",
+      "hillslope_18",
+      "hillslope_21",
+      "hillslope_22",
+      "hillslope_23",
+      "hillslope_24",
+      "hillslope_25",
+      "hillslope_26",
+      "hillslope_27",
+      "hillslope_28",
+      "hillslope_29",
+      "hillslope_31",
+      "hillslope_32",
+      "hillslope_33",
+      "hillslope_34",
+      "hillslope_35",
+      "hillslope_36",
+      "hillslope_41",
+      "hillslope_42",
+      "hillslope_43",
+      "hillslope_44",
+      "hillslope_45",
+      "hillslope_46",
+      "hillslope_47",
+      "hillslope_48",
+      "hillslope_51",
+      "hillslope_52",
+      "hillslope_53",
+      "hillslope_54",
+      "hillslope_55",
+      "hillslope_56",
+      "hillslope_57",
+      "hillslope_61",
+      "hillslope_62",
+      "hillslope_63",
+      "hillslope_64",
+      "hillslope_65",
+      "hillslope_66",
+      "hillslope_67",
+      "hillslope_71",
+      "hillslope_72",
+      "hillslope_73",
+      "hillslope_74",
+      "hillslope_75",
+      "hillslope_76",
+      "hillslope_77",
+      "hillslope_78",
+      "hillslope_81",
+      "hillslope_82",
+      "hillslope_83",
+      "hillslope_84",
+      "hillslope_85",
+      "hillslope_86",
+      "hillslope_91"
+    ],
+    "base_bundle_verified_hillslope_partitions": [],
+    "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66"
+  },
+  "remote_access_probes": {
+    "cat-ids": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          3193704,
+          3191808,
+          3194907,
+          3198364
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": null,
+        "level": null
+      },
+      "opening_s": 0.5696158329956234,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.9248296245932579,
+          "total_to_result_s": 1.4944454575888813,
+          "acquisition": {
+            "http_requests": 7,
+            "http_body_bytes": 5478424,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 4103,
+            "materialized_bytes": 24381451,
+            "materialized_geometry_bytes": 23508242
+          },
+          "reference": "not_requested",
+          "rows": 4,
+          "logical_bytes": 34569,
+          "absent": [],
+          "record_groups": [
+            849,
+            852,
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.44520025001838803,
+          "total_to_result_s": 0.44520025001838803,
+          "acquisition": {
+            "http_requests": 4,
+            "http_body_bytes": 5343974,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 4103,
+            "materialized_bytes": 24381451,
+            "materialized_geometry_bytes": 23508242
+          },
+          "reference": "not_requested",
+          "rows": 4,
+          "logical_bytes": 34569,
+          "absent": [],
+          "record_groups": [
+            849,
+            852,
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 15,
+        "http_body_bytes": 14685425,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 8206,
+        "materialized_bytes": 48762902,
+        "materialized_geometry_bytes": 47016484
+      },
+      "peak_rss_bytes": 257720320,
+      "pyarrow_version": "25.0.1"
+    },
+    "cat-bounds": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": null,
+        "bounds": [
+          -68.77,
+          46.78,
+          -68.56,
+          46.9
+        ],
+        "bulk": false,
+        "relationship": null,
+        "level": 0
+      },
+      "opening_s": 0.5131025002337992,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.6049672081135213,
+          "total_to_result_s": 1.1180697083473206,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 1600081,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 7608,
+            "materialized_bytes": 8552493,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 10,
+          "logical_bytes": 85734,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": [
+            909,
+            1120,
+            1121,
+            1122,
+            1147
+          ]
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.3668152908794582,
+          "total_to_result_s": 0.3668152908794582,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 1600081,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 7608,
+            "materialized_bytes": 8552493,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 10,
+          "logical_bytes": 85734,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": [
+            909,
+            1120,
+            1121,
+            1122,
+            1147
+          ]
+        }
+      ],
+      "final": {
+        "http_requests": 16,
+        "http_body_bytes": 7063189,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 15216,
+        "materialized_bytes": 17104986,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 192528384,
+      "pyarrow_version": "25.0.1"
+    },
+    "cat-rel": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          3193704
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": "upstream_ids",
+        "level": null
+      },
+      "opening_s": 0.5300372079946101,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.8902085409499705,
+          "total_to_result_s": 1.4202457489445806,
+          "acquisition": {
+            "http_requests": 11,
+            "http_body_bytes": 2985674,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8547293,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 2,
+          "logical_bytes": 9960,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.5719297919422388,
+          "total_to_result_s": 0.5719297919422388,
+          "acquisition": {
+            "http_requests": 5,
+            "http_body_bytes": 2693786,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8547293,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 2,
+          "logical_bytes": 9960,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 20,
+        "http_body_bytes": 9542487,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 18712,
+        "materialized_bytes": 17094586,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 180961280,
+      "pyarrow_version": "25.0.1"
+    },
+    "riv-rel": {
+      "domain": "rivers",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          2512688
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": "local_catchment_ids",
+        "level": null
+      },
+      "opening_s": 0.7315354999154806,
+      "opening": {
+        "http_requests": 8,
+        "http_body_bytes": 5686512,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 1.2979035419411957,
+          "total_to_result_s": 2.0294390418566763,
+          "acquisition": {
+            "http_requests": 12,
+            "http_body_bytes": 2984722,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8548653,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 1,
+          "logical_bytes": 12754,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.8887235000729561,
+          "total_to_result_s": 0.8887235000729561,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 2695146,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8548653,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 1,
+          "logical_bytes": 12754,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 26,
+        "http_body_bytes": 11366380,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 18712,
+        "materialized_bytes": 17097306,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 202375168,
+      "pyarrow_version": "25.0.1"
+    }
+  },
+  "consumer_verification": {
+    "engine": "pourpoint",
+    "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+    "cache": false,
+    "versions": {
+      "pourpoint": "0.5.0rc5",
+      "shapely": "2.2.0",
+      "pyproj": "3.8.0",
+      "pyarrow": "26.0.1",
+      "rasterio": "1.5.2",
+      "obstore": "0.12.1"
+    },
+    "durable_uzh_evidence_dir": "/data/2026-11-19-merit-restoration-smoke",
+    "local_vs_remote_exact_parity": {
+      "camels_metrics_fields_exact": 6,
+      "negative_controls_exact": 4,
+      "wkb_files_sha256_exact": 24
+    },
+    "camels_smoke_config": {
+      "source": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+      "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+      "python": "3.13.18",
+      "cache": false,
+      "level": 0,
+      "river_level": 0,
+      "snap_radius_m": 100,
+      "river_search_bbox_halfwidth_degrees": 0.02,
+      "window_size": 3,
+      "allow_incomplete": false,
+      "n_jobs": 1,
+      "reference_crs": "EPSG:4269",
+      "outlet_input_crs": "EPSG:4269",
+      "metric_crs": "EPSG:5070",
+      "outlet_source": "docs/camels-extension/2026-11-15-selected-gauges.csv: archived USGS station coordinates, not CAMELS topo",
+      "reference_repair": "shapely.make_valid in EPSG4269 working copy only, original WKB retained; candidate never repaired"
+    },
+    "camels_smoke_metrics": [
+      {
+        "gauge_id": "01013500",
+        "name": "Fish River near Fort Kent, Maine",
+        "usgs_area_km2": 2253.2896559923197,
+        "reference_original_valid": false,
+        "reference_validity_reason": "Ring Self-intersection[-68.2344207757876 47.1546745301591]",
+        "reference_repaired": true,
+        "reference_geometry_type_after_repair": "MultiPolygon",
+        "reference_area_km2": 2303.988086780521,
+        "reference_repair_signed_area_change_km2": -2.384185791015625e-12,
+        "input_outlet_nad83": [
+          -68.58277778,
+          47.2375
+        ],
+        "input_outlet_wgs84": [
+          -68.58277778,
+          47.2375
+        ],
+        "snapped_outlet_wgs84": [
+          -68.58166666666668,
+          47.23750000524422
+        ],
+        "snap_distance_m": 84.13163272220619,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -68.58166666666666,
+          47.23833333333333
+        ],
+        "raster_outlet_row_col": [
+          45313,
+          133702
+        ],
+        "raster_adjustment_from_snap_m": 92.64565119579306,
+        "total_outlet_adjustment_m": 125.14529702179155,
+        "candidate_valid": true,
+        "candidate_area_km2": 2249.5420631680067,
+        "relative_area_error": -0.02363120882651537,
+        "iou": 0.9466142521290432,
+        "status": "success",
+        "elapsed_seconds": 9.726557671034243
+      },
+      {
+        "gauge_id": "02053200",
+        "name": "POTECASI CREEK NEAR UNION, NC",
+        "usgs_area_km2": 582.7473248256,
+        "reference_original_valid": false,
+        "reference_validity_reason": "Ring Self-intersection[-77.2866363527009 36.2656364441758]",
+        "reference_repaired": true,
+        "reference_geometry_type_after_repair": "MultiPolygon",
+        "reference_area_km2": 581.6116956634769,
+        "reference_repair_signed_area_change_km2": -2.0265579223632812e-12,
+        "input_outlet_nad83": [
+          -77.0255556,
+          36.3708333
+        ],
+        "input_outlet_wgs84": [
+          -77.0255556,
+          36.3708333
+        ],
+        "snapped_outlet_wgs84": [
+          -77.02572353411608,
+          36.37094313255059
+        ],
+        "snap_distance_m": 19.381807130606724,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -77.02499999999999,
+          36.37166666666666
+        ],
+        "raster_outlet_row_col": [
+          58353,
+          123570
+        ],
+        "raster_adjustment_from_snap_m": 103.25656455891149,
+        "total_outlet_adjustment_m": 105.06001658604512,
+        "candidate_valid": true,
+        "candidate_area_km2": 572.7206839265351,
+        "relative_area_error": -0.01528685169716082,
+        "iou": 0.9430617037409831,
+        "status": "success",
+        "elapsed_seconds": 1.9964358289726079
+      },
+      {
+        "gauge_id": "05444000",
+        "name": "ELKHORN CREEK NEAR PENROSE, IL",
+        "usgs_area_km2": 378.13826410905597,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 377.29348722680623,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -89.6963889,
+          41.90275
+        ],
+        "input_outlet_wgs84": [
+          -89.6963889,
+          41.90275
+        ],
+        "snapped_outlet_wgs84": [
+          -89.69666666666669,
+          41.902750000582294
+        ],
+        "snap_distance_m": 23.048186820155003,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -89.69666666666666,
+          41.901666666666664
+        ],
+        "raster_outlet_row_col": [
+          51717,
+          108364
+        ],
+        "raster_adjustment_from_snap_m": 120.32739846209458,
+        "total_outlet_adjustment_m": 122.5148772642407,
+        "candidate_valid": true,
+        "candidate_area_km2": 375.8117726592688,
+        "relative_area_error": -0.003927220102388662,
+        "iou": 0.98231738741063,
+        "status": "success",
+        "elapsed_seconds": 2.3081477219820954
+      },
+      {
+        "gauge_id": "08104900",
+        "name": "S Fk San Gabriel Rv at Georgetown, TX",
+        "usgs_area_km2": 344.468418674688,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 347.9139935667444,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -97.6911204,
+          30.6257499
+        ],
+        "input_outlet_wgs84": [
+          -97.6911204,
+          30.6257499
+        ],
+        "snapped_outlet_wgs84": [
+          -97.69112039900872,
+          30.62583333333334
+        ],
+        "snap_distance_m": 9.249674272336126,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -97.69,
+          30.626666666666665
+        ],
+        "raster_outlet_row_col": [
+          65247,
+          98772
+        ],
+        "raster_adjustment_from_snap_m": 141.68191272167715,
+        "total_outlet_adjustment_m": 147.87978188809092,
+        "candidate_valid": true,
+        "candidate_area_km2": 341.26368502697613,
+        "relative_area_error": -0.019114806138122442,
+        "iou": 0.9613364328004612,
+        "status": "success",
+        "elapsed_seconds": 1.877829905017279
+      },
+      {
+        "gauge_id": "09066000",
+        "name": "BLACK GORE CREEK NEAR MINTURN, CO.",
+        "usgs_area_km2": 32.374851379199995,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 32.62890465956152,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -106.2650264,
+          39.59637495
+        ],
+        "input_outlet_wgs84": [
+          -106.2650264,
+          39.59637495
+        ],
+        "snapped_outlet_wgs84": [
+          -106.26482739182573,
+          39.59649405849238
+        ],
+        "snap_distance_m": 21.611919406608806,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -106.26583333333333,
+          39.596666666666664
+        ],
+        "raster_outlet_row_col": [
+          54483,
+          88481
+        ],
+        "raster_adjustment_from_snap_m": 88.50434391372166,
+        "total_outlet_adjustment_m": 76.50504795894928,
+        "candidate_valid": true,
+        "candidate_area_km2": 31.90926353584183,
+        "relative_area_error": -0.022055325829296812,
+        "iou": 0.9533792690459281,
+        "status": "success",
+        "elapsed_seconds": 1.5237310720258392
+      },
+      {
+        "gauge_id": "11141280",
+        "name": "LOPEZ C NR ARROYO GRANDE CA",
+        "usgs_area_km2": 54.13075150602239,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 56.053846460758976,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -120.4723504,
+          35.23551667
+        ],
+        "input_outlet_wgs84": [
+          -120.4723504,
+          35.23551667
+        ],
+        "snapped_outlet_wgs84": [
+          -120.4725,
+          35.23551666990605
+        ],
+        "snap_distance_m": 13.617464445732029,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -120.4725,
+          35.235
+        ],
+        "raster_outlet_row_col": [
+          59717,
+          71433
+        ],
+        "raster_adjustment_from_snap_m": 57.321885302331395,
+        "total_outlet_adjustment_m": 58.91719819654582,
+        "candidate_valid": true,
+        "candidate_area_km2": 54.28051317356522,
+        "relative_area_error": -0.031636246201858786,
+        "iou": 0.954746312484274,
+        "status": "success",
+        "elapsed_seconds": 0.6862081279978156
+      }
+    ],
+    "negative_controls": [
+      {
+        "label": "upstream_cut_not_in_source_COMID_41000014",
+        "expected_unit_id": 1260850,
+        "COMID": 41000014,
+        "native_FID": null,
+        "kind": "upstream_cuts",
+        "strict_error_code": "selection.incomplete_coverage",
+        "strict_error_reason": "upstream closure has 1 cut catchment(s) (1 cut edges; IDs: 1260850)",
+        "allow_incomplete_status": "incomplete",
+        "allow_incomplete_total_cuts": 1,
+        "allow_incomplete_cut_unit_ids": [
+          1260850
+        ],
+        "allow_incomplete_unverified_unit_ids": [],
+        "selected_unit_count": null
+      },
+      {
+        "label": "upstream_cut_rejected_repair_COMID_66020859",
+        "expected_unit_id": 3185088,
+        "COMID": 66020859,
+        "native_FID": null,
+        "kind": "upstream_cuts",
+        "strict_error_code": "selection.incomplete_coverage",
+        "strict_error_reason": "upstream closure has 1 cut catchment(s) (1 cut edges; IDs: 3185088)",
+        "allow_incomplete_status": "incomplete",
+        "allow_incomplete_total_cuts": 1,
+        "allow_incomplete_cut_unit_ids": [
+          3185088
+        ],
+        "allow_incomplete_unverified_unit_ids": [],
+        "selected_unit_count": null
+      },
+      {
+        "label": "unverified_degenerate_river_COMID_11021766",
+        "expected_unit_id": 41899,
+        "COMID": 11021766,
+        "native_FID": null,
+        "kind": "unverified_null_cuts",
+        "strict_error_code": "selection.unverified_coverage",
+        "strict_error_reason": "upstream closure has 1 unverified catchment(s) (IDs: 41899)",
+        "allow_incomplete_status": "unverified",
+        "allow_incomplete_total_cuts": 0,
+        "allow_incomplete_cut_unit_ids": [],
+        "allow_incomplete_unverified_unit_ids": [
+          41899
+        ],
+        "selected_unit_count": null
+      },
+      {
+        "label": "unverified_coastal_hillslope_27_FID_1704",
+        "expected_unit_id": 2879551,
+        "COMID": null,
+        "native_FID": 1704,
+        "kind": "unverified_null_cuts",
+        "strict_error_code": "selection.unverified_coverage",
+        "strict_error_reason": "upstream closure has 1 unverified catchment(s) (IDs: 2879551)",
+        "allow_incomplete_status": "unverified",
+        "allow_incomplete_total_cuts": 0,
+        "allow_incomplete_cut_unit_ids": [],
+        "allow_incomplete_unverified_unit_ids": [
+          2879551
+        ],
+        "selected_unit_count": null
+      }
+    ],
+    "remote_elapsed_seconds": 27.64678199600894
+  }
+}

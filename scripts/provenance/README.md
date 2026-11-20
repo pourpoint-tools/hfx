@@ -22,3 +22,13 @@ candidate MERIT HFX 0.4.0 bundle (`#285`, disjoint candidate prefix) derived
 from the verified `#281` base bundle with derived `catchment_connectivity`,
 mixed raw-shapefile/base-bundle verification receipts, remote range-probe and
 isolated consumer verification results, and bounded Hetzner Cloud spend.
+
+`merit-geometry-restoration.json` records the secret-free provenance for the
+promoted MERIT HFX 0.4.0 bundle
+(`s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration`,
+`manifest.json` SHA-256
+`03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66`, `#292`),
+including 61-partition global source acquisition, narrow ring-normalization and
+global overlap audit receipts, independent raw-shapefile verification, S3
+publication and 1 TB storage headroom verification, remote range probes, and
+uncached Pourpoint CAMELS smoke and negative-control checks.

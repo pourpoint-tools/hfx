@@ -77,6 +77,11 @@ addressing. `NOTICE`, `CITATION.txt` and dataset publication notes carry applica
 licenses, transformations and caveats. GRIT data remains CC BY-NC 4.0, separate
 from this repository's MIT code license. A new physical layout does not certify
 source hydrology. Source and derived quantities retain their distinct meanings.
+When a dataset applies an approved source geometry normalization rule (such as
+MERIT ring normalization), per-feature original geometries, raw failure reasons,
+algorithm versions, and measured acceptance checks (`repaired-features.jsonl.gz`)
+along with exhaustive per-partition summaries in `source-metadata.json` remain
+part of bundle provenance alongside `omitted-features.json`.
 
 ## Artifact identity and range access
 

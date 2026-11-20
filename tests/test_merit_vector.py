@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -102,6 +104,80 @@ def _bowtie_poly(x0: float, y0: float) -> dict[str, Any]:
     return {
         "type": "Polygon",
         "coordinates": [[(x0, y0), (x0 + 0.1, y0 + 0.1), (x0 + 0.1, y0), (x0, y0 + 0.1), (x0, y0)]],
+    }
+
+
+def _pinched_hole_poly(x0: float, y0: float, cell: float = 0.05) -> dict[str, Any]:
+    """3x3 grid minus bottom-left [0,1]x[0,1] and center [1,2]x[1,2] hole pinched at (1,1)."""
+
+    def pt(ix: int, iy: int) -> tuple[float, float]:
+        return (x0 + ix * cell, y0 + iy * cell)
+
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                pt(1, 0),
+                pt(3, 0),
+                pt(3, 3),
+                pt(0, 3),
+                pt(0, 1),
+                pt(1, 1),
+                pt(1, 2),
+                pt(2, 2),
+                pt(2, 1),
+                pt(1, 1),
+                pt(1, 0),
+            ]
+        ],
+    }
+
+
+def _opposite_winding_fig8_poly(x0: float, y0: float, cell: float = 0.05) -> dict[str, Any]:
+    """Two diagonal squares touching at (1,1) traced with opposite winding so raw area cancels."""
+
+    def pt(ix: int, iy: int) -> tuple[float, float]:
+        return (x0 + ix * cell, y0 + iy * cell)
+
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                pt(0, 0),
+                pt(1, 0),
+                pt(1, 1),
+                pt(1, 2),
+                pt(2, 2),
+                pt(2, 1),
+                pt(1, 1),
+                pt(0, 1),
+                pt(0, 0),
+            ]
+        ],
+    }
+
+
+def _same_winding_fig8_poly(x0: float, y0: float, cell: float = 0.0625) -> dict[str, Any]:
+    """Two diagonal squares touching at (1,1) traced with same winding -> splits into 2-part MultiPolygon."""
+
+    def pt(ix: int, iy: int) -> tuple[float, float]:
+        return (x0 + ix * cell, y0 + iy * cell)
+
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                pt(0, 0),
+                pt(1, 0),
+                pt(1, 1),
+                pt(2, 1),
+                pt(2, 2),
+                pt(1, 2),
+                pt(1, 1),
+                pt(0, 1),
+                pt(0, 0),
+            ]
+        ],
     }
 
 
@@ -792,23 +868,29 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
     ref_receipt = produce(inv_path, staging_ref)
     build(staging_ref, spatial_ref, source_manifest_sha256=ref_receipt["manifest_sha256"])
 
-    # Build a #281-style base bundle (no derived catchment connectivity columns or artifact).
+    # Build a #281-style base bundle (no derived catchment connectivity columns,
+    # no geometry_normalization column/metadata, and no repaired-features artifact).
     base_spatial = tmp_path / "base_spatial"
     base_staging = tmp_path / "base_staging"
     base_receipt = produce(inv_path, base_staging)
     build(base_staging, base_spatial, source_manifest_sha256=base_receipt["manifest_sha256"])
     base_cat_path = base_spatial / "catchments.parquet"
-    base_cat = pq.read_table(base_cat_path).drop(["downstream_boundary_status", "upstream_boundary_cuts"])
+    base_cat = pq.read_table(base_cat_path).drop(
+        ["downstream_boundary_status", "upstream_boundary_cuts", "geometry_normalization"]
+    )
     pq.write_table(base_cat, base_cat_path)
     (base_spatial / "catchments-relationships.arrow").unlink()
+    (base_spatial / "repaired-features.jsonl.gz").unlink()
     base_meta_path = base_spatial / "source-metadata.json"
     base_meta = json.loads(base_meta_path.read_text())
     base_meta.pop("catchment_connectivity", None)
+    base_meta.pop("geometry_normalization", None)
     base_meta_path.write_text(json.dumps(base_meta, indent=2) + "\n")
     base_manifest = json.loads((base_spatial / "manifest.json").read_text())
     base_manifest["catchment_connectivity"] = [{"level": 0, "status": "not_supplied"}]
     base_manifest["relationships"].pop("catchments", None)
     base_manifest["artifacts"].pop("catchments-relationships.arrow", None)
+    base_manifest["artifacts"].pop("repaired-features.jsonl.gz", None)
     base_manifest["categorical_columns"] = [
         item for item in base_manifest.get("categorical_columns", []) if item.get("artifact") != "catchments.parquet"
     ]
@@ -863,6 +945,9 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
         smeta2["catchment_connectivity"]
         == json.loads((spatial_ref / "source-metadata.json").read_text())["catchment_connectivity"]
     )
+    assert smeta2["geometry_normalization"]["global_counts"]["total_source"] > 0
+    assert smeta2["geometry_normalization"]["global_counts"]["accepted"] == 0
+    assert verify_spatial_bundle(inv_path, spatial2)["status"] == "passed"
 
     # Mark hillslope_pfaf_27 as inherited and delete its raw .shp so verification cannot read it from disk.
     inv_data = json.loads(inv_path.read_text())
@@ -938,3 +1023,770 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
 
     with pytest.raises(ValueError, match="Catchment native attributes differ"):
         verify_spatial_bundle(inv_inherited, spatial2, base_spatial_dir=base_spatial)
+
+
+def _read_repaired_jsonl(path: Path) -> list[dict[str, Any]]:
+    with gzip.open(path, "rt", encoding="utf-8") as stream:
+        return [json.loads(line) for line in stream if line.strip()]
+
+
+def test_restores_ring_self_intersection_reconnects_upstream_and_writes_provenance(tmp_path: Path) -> None:
+    from shapely import from_wkb
+
+    from hfx.spatial_bundle import build, verify
+    from scripts.produce_merit import produce
+    from scripts.verify_merit import verify_spatial_bundle
+
+    src = tmp_path / "source"
+    src.mkdir(parents=True)
+
+    # Chain A (101) -> B (102, pinched hole at (0.0625, 0.0625)) -> C (103), with valid neighbor N (104)
+    # exactly filling B's 1-cell hole [0.0625, 0.125] x [0.0625, 0.125] (shared border only, 0 interior overlap).
+    rivers = [
+        _river_feature(101, [(0.02, 0.22), (0.0625, 0.15)], 102, ()),
+        _river_feature(102, [(0.0625, 0.15), (0.15, 0.02)], 103, (101,)),
+        _river_feature(103, [(0.15, 0.02), (0.25, 0.01)], 0, (102,)),
+        _river_feature(104, [(0.09, 0.09), (0.10, 0.10)], 0, ()),
+    ]
+    cats = [
+        {"geometry": _box_poly(0.0, 0.1875, 0.1875, 0.28), "properties": {"COMID": 101, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(0.0, 0.0, cell=0.0625), "properties": {"COMID": 102, "unitarea": 12.0}},
+        {"geometry": _box_poly(0.1875, 0.0, 0.28, 0.125), "properties": {"COMID": 103, "unitarea": 10.0}},
+        {"geometry": _box_poly(0.0625, 0.0625, 0.125, 0.125), "properties": {"COMID": 104, "unitarea": 3.0}},
+    ]
+    riv_35 = [_river_feature(3501, [(185.01, 66.01), (185.05, 66.05)], 0, ())]
+    cat_35 = [
+        {"geometry": _same_winding_fig8_poly(185.0, 66.0, cell=0.0625), "properties": {"COMID": 3501, "unitarea": 96.0}}
+    ]
+
+    riv_side = _write_shapefile(
+        src / "riv_pfaf_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=rivers, write_prj=True
+    )
+    cat_side = _write_shapefile(
+        src / "cat_pfaf_11.shp", geom_type="Polygon", properties_schema=CAT_PROPS, features=cats, write_prj=False
+    )
+    riv35_side = _write_shapefile(
+        src / "riv_pfaf_35.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_35, write_prj=True
+    )
+    cat35_side = _write_shapefile(
+        src / "cat_pfaf_35.shp", geom_type="Polygon", properties_schema=CAT_PROPS, features=cat_35, write_prj=False
+    )
+    inv_path = tmp_path / "inventory.json"
+    inv_path.write_text(
+        json.dumps(
+            {
+                "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+                "organization": "pfaf_level_02",
+                "partitions": [
+                    {
+                        "partition": "pfaf_11",
+                        "rivers": {
+                            "status": "supplied",
+                            "shp": str(src / "riv_pfaf_11.shp"),
+                            "crs_evidence": "supplied_prj",
+                            "sidecars": riv_side,
+                        },
+                        "catchments": {
+                            "status": "supplied",
+                            "shp": str(src / "cat_pfaf_11.shp"),
+                            "crs_evidence": "paired_river_wgs84_degree_grid",
+                            "sidecars": cat_side,
+                        },
+                    },
+                    {
+                        "partition": "pfaf_35",
+                        "rivers": {
+                            "status": "supplied",
+                            "shp": str(src / "riv_pfaf_35.shp"),
+                            "crs_evidence": "supplied_prj",
+                            "sidecars": riv35_side,
+                        },
+                        "catchments": {
+                            "status": "supplied",
+                            "shp": str(src / "cat_pfaf_35.shp"),
+                            "crs_evidence": "paired_river_wgs84_degree_grid",
+                            "sidecars": cat35_side,
+                        },
+                    },
+                ],
+            },
+            indent=2,
+        )
+    )
+
+    staging = tmp_path / "staging"
+    spatial = tmp_path / "spatial"
+    receipt = produce(inv_path, staging)
+    assert receipt["delivered_catchments"] == 5
+    assert receipt["omitted_catchments"] == 0
+    assert receipt["catchment_flow_edges"] == 2
+    assert receipt["upstream_complete_catchments"] == 5
+    assert (staging / "repaired-features.jsonl.gz").is_file()
+
+    src_digest = hashlib.sha256((staging / "manifest.json").read_bytes()).hexdigest()
+    build(staging, spatial, source_manifest_sha256=src_digest)
+    assert verify(staging, spatial, source_manifest_sha256=src_digest)["status"] == "passed"
+
+    manifest = json.loads((spatial / "manifest.json").read_text())
+    assert "repaired-features.jsonl.gz" in manifest["artifacts"]
+    norm_cat_col = [
+        item
+        for item in manifest["categorical_columns"]
+        if item.get("artifact") == "catchments.parquet" and item.get("column") == "geometry_normalization"
+    ]
+    assert len(norm_cat_col) == 1
+    assert {c["code"] for c in norm_cat_col[0]["codes"]} == {"original", "ring_self_intersection_split"}
+
+    cats_tbl = {r["COMID"]: r for r in pq.read_table(spatial / "catchments.parquet").to_pylist()}
+    assert set(cats_tbl) == {101, 102, 103, 104, 3501}
+    assert cats_tbl[101]["geometry_normalization"] == "original"
+    assert cats_tbl[102]["geometry_normalization"] == "ring_self_intersection_split"
+    assert cats_tbl[3501]["geometry_normalization"] == "ring_self_intersection_split"
+    assert cats_tbl[103]["geometry_normalization"] == "original"
+    assert cats_tbl[104]["geometry_normalization"] == "original"
+    assert cats_tbl[103]["upstream_boundary_cuts"] == 0
+
+    repaired_geom = from_wkb(cats_tbl[102]["geometry"])
+    assert repaired_geom.is_valid
+    assert repaired_geom.geom_type == "Polygon"
+    assert len(repaired_geom.interiors) == 1
+
+    repaired_mp = from_wkb(cats_tbl[3501]["geometry"])
+    assert repaired_mp.is_valid
+    assert repaired_mp.geom_type == "MultiPolygon"
+    assert len(repaired_mp.geoms) == 2
+
+    with ipc.open_file(str(spatial / "catchments-relationships.arrow")) as reader:
+        cat_rels = {r["id"]: r for r in reader.read_all().to_pylist()}
+    assert cat_rels[cats_tbl[103]["id"]]["upstream_ids"] == [cats_tbl[102]["id"]]
+    assert cat_rels[cats_tbl[102]["id"]]["upstream_ids"] == [cats_tbl[101]["id"]]
+
+    rivs_tbl = {r["COMID"]: r for r in pq.read_table(spatial / "rivers.parquet").to_pylist()}
+    assert rivs_tbl[102]["local_catchment_status"] == "supplied"
+    with ipc.open_file(str(spatial / "rivers-relationships.arrow")) as reader:
+        riv_rels = {r["id"]: r for r in reader.read_all().to_pylist()}
+    assert riv_rels[rivs_tbl[102]["id"]]["local_catchment_ids"] == [cats_tbl[102]["id"]]
+
+    repaired_records = {r["COMID"]: r for r in _read_repaired_jsonl(spatial / "repaired-features.jsonl.gz")}
+    assert set(repaired_records) == {102, 3501}
+    rec = repaired_records[102]
+    assert rec["hfx_id"] == cats_tbl[102]["id"]
+    assert rec["raw_validity_reason"].startswith("Ring Self-intersection[")
+    assert rec["repaired_hole_count"] == 1
+    assert rec["checks"]["vertices_exact"] is True
+    assert rec["checks"]["edges_exact"] is True
+    assert rec["checks"]["geodesic_area_within_tolerance"] is True
+    assert rec["checks"]["zero_sibling_interior_overlap"] is True
+    orig_geom = from_wkb(base64.b64decode(rec["original_wkb_base64"]))
+    assert not orig_geom.is_valid
+    assert repaired_records[3501]["repaired_geom_type"] == "MultiPolygon"
+    assert repaired_records[3501]["repaired_part_count"] == 2
+
+    smeta = json.loads((spatial / "source-metadata.json").read_text())
+    gnorm = smeta["geometry_normalization"]
+    assert gnorm["global_counts"]["attempted"] == 2
+    assert gnorm["global_counts"]["accepted"] == 2
+    assert gnorm["global_counts"]["rejected"] == 0
+    assert gnorm["by_partition"]["pfaf_11"]["accepted"] == 1
+    assert gnorm["by_partition"]["pfaf_35"]["accepted"] == 1
+
+    verified = verify_spatial_bundle(inv_path, spatial)
+    assert verified["status"] == "passed"
+    assert verified["repaired_catchments"] == 2
+
+
+def test_ring_normalization_rejects_area_mismatch_and_sibling_overlaps(tmp_path: Path) -> None:
+    from scripts.produce_merit import produce
+    from scripts.verify_merit import verify_spatial_bundle
+
+    src = tmp_path / "source"
+    src.mkdir(parents=True)
+
+    # pfaf_11:
+    # - 1101: valid neighbor at [0.05, 0.20] x [0.05, 0.20] (overlaps 1102 and cross-partition 1201!)
+    # - 1102: pinched hole at (0, 0) overlapping 1101 -> REJECTED
+    # - 1103: opposite-winding figure-8 at (1.0, 0.0) -> REJECTED for geodesic area mismatch
+    # - 1104 & 1105: two pinched-hole candidates overlapping each other at (2.0, 0.0) / (2.02, 0.02) -> BOTH REJECTED
+    # - 1106: pinched hole at (3.0, 0.0) overlapping coastal hillslope 9901 -> REJECTED
+    riv_11 = [_river_feature(c, [(0.0, 0.0), (0.01, 0.01)], 0, ()) for c in (1101, 1102, 1103, 1104, 1105, 1106)]
+    cat_11 = [
+        {"geometry": _box_poly(0.05, 0.05, 0.20, 0.20), "properties": {"COMID": 1101, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(0.0, 0.0, cell=0.05), "properties": {"COMID": 1102, "unitarea": 10.0}},
+        {"geometry": _opposite_winding_fig8_poly(1.0, 0.0, cell=0.05), "properties": {"COMID": 1103, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(2.0, 0.0, cell=0.05), "properties": {"COMID": 1104, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(2.02, 0.02, cell=0.05), "properties": {"COMID": 1105, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(3.0, 0.0, cell=0.05), "properties": {"COMID": 1106, "unitarea": 10.0}},
+    ]
+
+    # pfaf_12:
+    # - 1201: pinched hole at (0.10, 0.10) overlapping cross-partition valid neighbor 1101 -> REJECTED
+    riv_12 = [_river_feature(1201, [(0.1, 0.1), (0.12, 0.12)], 0, ())]
+    cat_12 = [{"geometry": _pinched_hole_poly(0.10, 0.10, cell=0.05), "properties": {"COMID": 1201, "unitarea": 10.0}}]
+
+    # pfaf_35 (unwrapped antimeridian >180 E) & pfaf_36 (wrapped -180 W):
+    # - 3501: pinched hole around 185.00..185.15 overlapping wrapped neighbor 3601 at -174.98..-174.90 -> REJECTED
+    # - 3502: unwrapped valid at [186.02, 186.12] overlapping wrapped candidate 3602 at -174.0..-173.85 -> 3602 REJECTED
+    # - 3503 & 3603: two pinched-hole candidates overlapping across antimeridian (187.0 & -172.98) -> BOTH REJECTED
+    riv_35 = [
+        _river_feature(3501, [(185.01, 66.01), (185.02, 66.02)], 0, ()),
+        _river_feature(3502, [(186.05, 66.05), (186.08, 66.08)], 0, ()),
+        _river_feature(3503, [(187.01, 66.01), (187.05, 66.05)], 0, ()),
+    ]
+    cat_35 = [
+        {"geometry": _pinched_hole_poly(185.0, 66.0, cell=0.05), "properties": {"COMID": 3501, "unitarea": 10.0}},
+        {"geometry": _box_poly(186.02, 66.02, 186.12, 66.12), "properties": {"COMID": 3502, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(187.0, 66.0, cell=0.05), "properties": {"COMID": 3503, "unitarea": 10.0}},
+    ]
+    riv_36 = [
+        _river_feature(3601, [(-174.95, 66.05), (-174.94, 66.06)], 0, ()),
+        _river_feature(3602, [(-173.95, 66.05), (-173.90, 66.08)], 0, ()),
+        _river_feature(3603, [(-172.95, 66.05), (-172.90, 66.08)], 0, ()),
+    ]
+    cat_36 = [
+        {"geometry": _box_poly(-174.98, 66.02, -174.90, 66.12), "properties": {"COMID": 3601, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(-174.0, 66.0, cell=0.05), "properties": {"COMID": 3602, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(-172.98, 66.02, cell=0.05), "properties": {"COMID": 3603, "unitarea": 10.0}},
+    ]
+
+    # Coastal hillslope overlapping 1106
+    hills = [{"geometry": _box_poly(3.01, 0.01, 3.04, 0.12), "properties": {"FID": 9901, "area_km2": 3.0}}]
+
+    inv = {
+        "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+        "organization": "pfaf_level_02",
+        "partitions": [
+            {
+                "partition": "pfaf_11",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_11.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_11
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_11.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_11.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cat_11,
+                        write_prj=False,
+                    ),
+                },
+            },
+            {
+                "partition": "pfaf_12",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_12.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_12.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_12
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_12.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_12.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cat_12,
+                        write_prj=False,
+                    ),
+                },
+            },
+            {
+                "partition": "pfaf_35",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_35.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_35.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_35
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_35.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_35.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cat_35,
+                        write_prj=False,
+                    ),
+                },
+            },
+            {
+                "partition": "pfaf_36",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_36.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_36.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_36
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_36.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_36.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cat_36,
+                        write_prj=False,
+                    ),
+                },
+            },
+        ],
+        "coastal_hillslopes": [
+            {
+                "partition": "hillslope_11",
+                "status": "supplied",
+                "shp": str(src / "hill_11.shp"),
+                "crs_evidence": "supplied_prj",
+                "sidecars": _write_shapefile(
+                    src / "hill_11.shp", geom_type="Polygon", properties_schema=HILL_PROPS, features=hills
+                ),
+            }
+        ],
+    }
+    inv_path = tmp_path / "inventory.json"
+    inv_path.write_text(json.dumps(inv, indent=2))
+
+    staging = tmp_path / "staging"
+    spatial = tmp_path / "spatial"
+    receipt = produce(inv_path, staging)
+    assert receipt["delivered_catchments"] == 4  # 1101, 3502, 3601, 9901 only
+    assert receipt["omitted_catchments"] == 10
+
+    from hfx.spatial_bundle import build
+
+    build(staging, spatial, source_manifest_sha256=receipt["manifest_sha256"])
+
+    omitted = {item["COMID"]: item for item in json.loads((spatial / "omitted-features.json").read_text())}
+    assert set(omitted) == {1102, 1103, 1104, 1105, 1106, 1201, 3501, 3503, 3602, 3603}
+    assert omitted[1103]["repair_rejection"] == "geodesic_area_mismatch"
+    for comid in (1102, 1104, 1105, 1106, 1201, 3501, 3503, 3602, 3603):
+        assert "overlap" in omitted[comid]["repair_rejection"]
+
+    smeta = json.loads((spatial / "source-metadata.json").read_text())
+    gnorm = smeta["geometry_normalization"]
+    assert gnorm["global_counts"]["attempted"] == 10
+    assert gnorm["global_counts"]["accepted"] == 0
+    assert gnorm["global_counts"]["rejected"] == 10
+    assert _read_repaired_jsonl(spatial / "repaired-features.jsonl.gz") == []
+    assert verify_spatial_bundle(inv_path, spatial)["status"] == "passed"
+
+
+def test_produce_hybrid_with_inherited_hillslopes_and_restored_catchments(tmp_path: Path) -> None:
+    from hfx.spatial_bundle import build
+    from scripts.produce_merit import produce
+    from scripts.verify_merit import verify_spatial_bundle
+
+    # 1. Build base bundle containing a coastal hillslope at [3.01, 0.01, 3.04, 0.12].
+    base_src = tmp_path / "base_src"
+    base_src.mkdir(parents=True)
+    riv_base = [
+        _river_feature(1101, [(0.02, 0.20), (0.05, 0.12)], 0, ()),
+        _river_feature(1102, [(3.1, 0.1), (3.15, 0.15)], 0, ()),
+    ]
+    cat_base = [
+        {"geometry": _pinched_hole_poly(0.0, 0.0, cell=0.05), "properties": {"COMID": 1101, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(3.0, 0.0, cell=0.05), "properties": {"COMID": 1102, "unitarea": 10.0}},
+    ]
+    hill_base = [{"geometry": _box_poly(3.01, 0.01, 3.04, 0.12), "properties": {"FID": 9901, "area_km2": 3.0}}]
+
+    base_inv: dict[str, Any] = {
+        "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+        "organization": "pfaf_level_02",
+        "partitions": [
+            {
+                "partition": "pfaf_11",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(base_src / "riv_11.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        base_src / "riv_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=riv_base
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(base_src / "cat_11.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        base_src / "cat_11.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cat_base,
+                        write_prj=False,
+                    ),
+                },
+            }
+        ],
+        "coastal_hillslopes": [
+            {
+                "partition": "hillslope_11",
+                "status": "supplied",
+                "shp": str(base_src / "hill_11.shp"),
+                "crs_evidence": "supplied_prj",
+                "sidecars": _write_shapefile(
+                    base_src / "hill_11.shp", geom_type="Polygon", properties_schema=HILL_PROPS, features=hill_base
+                ),
+            }
+        ],
+    }
+    base_inv_path = tmp_path / "base_inv.json"
+    base_inv_path.write_text(json.dumps(base_inv, indent=2))
+    base_staging = tmp_path / "base_staging"
+    base_spatial = tmp_path / "base_spatial"
+    base_rec = produce(base_inv_path, base_staging, normalize_rings=False)
+    build(base_staging, base_spatial, source_manifest_sha256=base_rec["manifest_sha256"])
+
+    # Convert base_spatial into an exact #285-schema bundle (without geometry_normalization or
+    # repaired-features.jsonl.gz) so hybrid inheritance exercises the actual #285 schema.
+    from hfx.candidates import fingerprint as hfx_fingerprint
+
+    base_cat_path = base_spatial / "catchments.parquet"
+    pq.write_table(pq.read_table(base_cat_path).drop(["geometry_normalization"]), base_cat_path)
+    (base_spatial / "repaired-features.jsonl.gz").unlink()
+    bm = json.loads((base_spatial / "manifest.json").read_text())
+    bm["artifacts"].pop("repaired-features.jsonl.gz", None)
+    bm["categorical_columns"] = [
+        item for item in bm.get("categorical_columns", []) if item.get("column") != "geometry_normalization"
+    ]
+    base_cat_dig = hfx_fingerprint(base_cat_path)
+    bm["artifacts"]["catchments.parquet"] = base_cat_dig
+    bm["families"]["catchments"]["data_sha256"] = base_cat_dig["sha256"]
+    (base_spatial / "manifest.json").write_text(json.dumps(bm, indent=2) + "\n")
+
+    # 2. Relocate pfaf_11 sidecars to a new directory and delete raw hillslope files to prove
+    # path-independent sidecar matching and inherited hillslope overlap checking.
+    new_src = tmp_path / "relocated_src"
+    new_src.mkdir(parents=True)
+    part0 = cast(list[dict[str, Any]], base_inv["partitions"])[0]
+    for part_dom in ("rivers", "catchments"):
+        entry = cast(dict[str, Any], part0[part_dom])
+        new_sidecars = {}
+        for sname, meta in entry["sidecars"].items():
+            dst = new_src / sname
+            dst.write_bytes(Path(meta["path"]).read_bytes())
+            new_sidecars[sname] = {**meta, "path": str(dst)}
+        entry["shp"] = str(new_src / Path(entry["shp"]).name)
+        entry["sidecars"] = new_sidecars
+    for meta in base_inv["coastal_hillslopes"][0]["sidecars"].values():
+        Path(meta["path"]).unlink()
+    base_inv["coastal_hillslopes"] = [
+        {"partition": "hillslope_11", "status": "inherited_from_verified_bundle", "reason": "Quota test"}
+    ]
+    hybrid_inv_path = tmp_path / "hybrid_inv.json"
+    hybrid_inv_path.write_text(json.dumps(base_inv, indent=2))
+
+    staging = tmp_path / "hybrid_staging"
+    spatial = tmp_path / "hybrid_spatial"
+    rec = produce(hybrid_inv_path, staging, base_spatial_dir=base_spatial)
+    assert rec["delivered_catchments"] == 2  # restored 1101 + inherited hillslope 9901 (1102 overlaps 9901!)
+    assert rec["omitted_catchments"] == 1
+    build(staging, spatial, source_manifest_sha256=rec["manifest_sha256"])
+
+    verified = verify_spatial_bundle(hybrid_inv_path, spatial, base_spatial_dir=base_spatial)
+    assert verified["status"] == "passed"
+    assert verified["repaired_catchments"] == 1
+    assert verified["base_bundle_verified_hillslope_partitions"] == ["hillslope_11"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "match"),
+    [
+        ("tamper_repaired_geom", "Catchment geometry|edge|vertex|hole"),
+        ("tamper_repaired_jsonl_wkb", "repaired-features|original_wkb|raw"),
+        ("tamper_geom_norm_col", "geometry_normalization"),
+        ("silent_valid_omission", "Valid catchment unexpectedly omitted"),
+        ("tamper_norm_metadata", "geometry_normalization"),
+    ],
+)
+def test_verifier_rejects_tampered_repair_provenance_and_silent_omissions(
+    tmp_path: Path, mutation: str, match: str
+) -> None:
+    import pyarrow as pa
+    from shapely import from_wkb, to_wkb
+    from shapely.geometry import Polygon
+
+    from hfx.candidates import fingerprint
+    from hfx.spatial_bundle import build
+    from scripts.produce_merit import produce
+    from scripts.verify_merit import verify_spatial_bundle
+
+    src = tmp_path / "source"
+    src.mkdir(parents=True)
+    rivers = [
+        _river_feature(101, [(0.02, 0.20), (0.05, 0.12)], 102, ()),
+        _river_feature(102, [(0.05, 0.12), (0.12, 0.02)], 0, (101,)),
+    ]
+    cats = [
+        {"geometry": _box_poly(0.0, 0.16, 0.15, 0.25), "properties": {"COMID": 101, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(0.0, 0.0, cell=0.05), "properties": {"COMID": 102, "unitarea": 12.0}},
+    ]
+    inv = {
+        "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+        "organization": "pfaf_level_02",
+        "partitions": [
+            {
+                "partition": "pfaf_11",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_11.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=rivers
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_11.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_11.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cats,
+                        write_prj=False,
+                    ),
+                },
+            }
+        ],
+    }
+    inv_path = tmp_path / "inv.json"
+    inv_path.write_text(json.dumps(inv, indent=2))
+    staging = tmp_path / "staging"
+    spatial = tmp_path / "spatial"
+    rec = produce(inv_path, staging)
+    build(staging, spatial, source_manifest_sha256=rec["manifest_sha256"])
+
+    manifest = json.loads((spatial / "manifest.json").read_text())
+    if mutation == "tamper_repaired_geom":
+        cat_path = spatial / "catchments.parquet"
+        tbl = pq.read_table(cat_path)
+        rows = tbl.to_pylist()
+        for r in rows:
+            if r["COMID"] == 102:
+                # Fill the hole (dropping interior ring!) while remaining valid.
+                g = from_wkb(r["geometry"])
+                r["geometry"] = to_wkb(Polygon(g.exterior))
+        new_tbl = pa.Table.from_pylist(rows, schema=tbl.schema)
+        pq.write_table(new_tbl, cat_path)
+        dig = fingerprint(cat_path)
+        manifest["artifacts"]["catchments.parquet"] = dig
+        manifest["families"]["catchments"]["data_sha256"] = dig["sha256"]
+    elif mutation == "tamper_repaired_jsonl_wkb":
+        rep_path = spatial / "repaired-features.jsonl.gz"
+        recs = _read_repaired_jsonl(rep_path)
+        recs[0]["original_wkb_base64"] = base64.b64encode(
+            to_wkb(Polygon([(0.0, 0.0), (0.1, 0.0), (0.1, 0.1), (0.0, 0.1), (0.0, 0.0)]))
+        ).decode("ascii")
+        with gzip.GzipFile(rep_path, mode="wb", mtime=0) as gz:
+            gz.write((json.dumps(recs[0]) + "\n").encode("utf-8"))
+        manifest["artifacts"]["repaired-features.jsonl.gz"] = fingerprint(rep_path)
+    elif mutation == "tamper_geom_norm_col":
+        cat_path = spatial / "catchments.parquet"
+        tbl = pq.read_table(cat_path)
+        col_idx = tbl.schema.get_field_index("geometry_normalization")
+        vals = ["original" for _ in range(tbl.num_rows)]
+        tbl = tbl.set_column(col_idx, tbl.schema.field(col_idx), pa.array(vals, type=pa.string()))
+        pq.write_table(tbl, cat_path)
+        dig = fingerprint(cat_path)
+        manifest["artifacts"]["catchments.parquet"] = dig
+        manifest["families"]["catchments"]["data_sha256"] = dig["sha256"]
+    elif mutation == "silent_valid_omission":
+        omit_path = spatial / "omitted-features.json"
+        omitted = json.loads(omit_path.read_text())
+        omitted.append(
+            {
+                "domain": "catchments",
+                "partition": "pfaf_11",
+                "source_namespace": "MERIT-Hydro-v07-Basins-v01-bugfix1/pfaf_11/catchments",
+                "source_id": "101",
+                "COMID": 101,
+                "reason": "Simulated silent omission",
+            }
+        )
+        omit_path.write_text(json.dumps(omitted, indent=2) + "\n")
+        manifest["artifacts"]["omitted-features.json"] = fingerprint(omit_path)
+    else:
+        meta_path = spatial / "source-metadata.json"
+        smeta = json.loads(meta_path.read_text())
+        smeta["geometry_normalization"]["global_counts"]["accepted"] += 1
+        meta_path.write_text(json.dumps(smeta, indent=2) + "\n")
+        manifest["artifacts"]["source-metadata.json"] = fingerprint(meta_path)
+
+    (spatial / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    with pytest.raises(ValueError, match=match):
+        verify_spatial_bundle(inv_path, spatial)
+
+
+def test_verifier_step4_rejects_overlapping_repaired_catchment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import scripts.produce_merit as pm
+    from hfx.spatial_bundle import build
+    from scripts.verify_merit import verify_spatial_bundle
+
+    src = tmp_path / "source"
+    src.mkdir(parents=True)
+    rivers = [
+        _river_feature(101, [(0.06, 0.06), (0.10, 0.10)], 0, ()),
+        _river_feature(102, [(0.15, 0.05), (0.18, 0.08)], 0, ()),
+    ]
+    cats = [
+        {"geometry": _box_poly(0.02, 0.02, 0.14, 0.14), "properties": {"COMID": 101, "unitarea": 10.0}},
+        {"geometry": _pinched_hole_poly(0.0, 0.0, cell=0.0625), "properties": {"COMID": 102, "unitarea": 12.0}},
+    ]
+    inv = {
+        "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+        "organization": "pfaf_level_02",
+        "partitions": [
+            {
+                "partition": "pfaf_11",
+                "rivers": {
+                    "status": "supplied",
+                    "shp": str(src / "riv_11.shp"),
+                    "crs_evidence": "supplied_prj",
+                    "sidecars": _write_shapefile(
+                        src / "riv_11.shp", geom_type="LineString", properties_schema=RIV_PROPS, features=rivers
+                    ),
+                },
+                "catchments": {
+                    "status": "supplied",
+                    "shp": str(src / "cat_11.shp"),
+                    "crs_evidence": "paired_river_wgs84_degree_grid",
+                    "sidecars": _write_shapefile(
+                        src / "cat_11.shp",
+                        geom_type="Polygon",
+                        properties_schema=CAT_PROPS,
+                        features=cats,
+                        write_prj=False,
+                    ),
+                },
+            }
+        ],
+    }
+    inv_path = tmp_path / "inv.json"
+    inv_path.write_text(json.dumps(inv, indent=2))
+
+    monkeypatch.setattr(
+        pm,
+        "_validate_candidate_overlaps",
+        lambda cands, _valid: (
+            {},
+            dict.fromkeys(range(len(cands)), 0),
+            {
+                "same_partition_pairs": 0,
+                "cross_partition_pairs": 0,
+                "coastal_hillslope_pairs": 0,
+                "candidate_candidate_pairs": 0,
+                "candidate_interior_overlaps_detected": 0,
+                "accepted_interior_overlaps": 0,
+            },
+        ),
+    )
+    staging = tmp_path / "staging"
+    spatial = tmp_path / "spatial"
+    rec = pm.produce(inv_path, staging)
+    build(staging, spatial, source_manifest_sha256=rec["manifest_sha256"])
+
+    with pytest.raises(ValueError, match="sibling interior overlap"):
+        verify_spatial_bundle(inv_path, spatial)
+
+
+def test_stage_base_rasters_hardlink_copy_and_tamper_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import os
+
+    import scripts.produce_merit as pm
+    from hfx.spatial_bundle import build
+
+    inv_path = _build_fixture(tmp_path)
+    ras_dir = tmp_path / "rasters"
+    ras_dir.mkdir(parents=True)
+    fdir = ras_dir / "flow_dir.tif"
+    facc = ras_dir / "flow_acc.tif"
+    fdir.write_bytes(b"MOCK_FLOW_DIR_BYTES_V1")
+    facc.write_bytes(b"MOCK_FLOW_ACC_BYTES_V1")
+    aux_spec = {
+        "auxiliary": [
+            {
+                "kind": "d8_raster",
+                "schema": "hfx.aux.d8_raster.v2",
+                "artifacts": {"flow_dir": "aux/d8/flow_dir.tif", "flow_acc": "aux/d8/flow_acc.tif"},
+            }
+        ],
+        "files": {"aux/d8/flow_dir.tif": str(fdir), "aux/d8/flow_acc.tif": str(facc)},
+    }
+    aux_path = tmp_path / "aux_spec.json"
+    aux_path.write_text(json.dumps(aux_spec))
+
+    base_staging = tmp_path / "base_staging"
+    base_spatial = tmp_path / "base_spatial"
+    base_rec = pm.produce(inv_path, base_staging, auxiliary_spec_path=aux_path)
+    build(base_staging, base_spatial, source_manifest_sha256=base_rec["manifest_sha256"])
+
+    # 1. Hardlink reuse in both produce(..., base_spatial_dir=...) and produce_from_bundle(...)
+    hl_staging = tmp_path / "hl_staging"
+    pm.produce(inv_path, hl_staging, base_spatial_dir=base_spatial)
+    assert (hl_staging / "aux/d8/flow_dir.tif").stat().st_ino == (base_spatial / "aux/d8/flow_dir.tif").stat().st_ino
+    assert (hl_staging / "aux/d8/flow_acc.tif").stat().st_ino == (base_spatial / "aux/d8/flow_acc.tif").stat().st_ino
+
+    fb_staging = tmp_path / "fb_staging"
+    pm.produce_from_bundle(base_spatial, fb_staging)
+    assert (fb_staging / "aux/d8/flow_dir.tif").stat().st_ino == (base_spatial / "aux/d8/flow_dir.tif").stat().st_ino
+
+    # 2. Fallback to shutil.copyfile when os.link raises OSError + normalized non-canonical relative path
+    monkeypatch.setattr(os, "link", lambda _src, _dst: (_ for _ in ()).throw(OSError("EXDEV")))
+    copy_spec = {
+        "auxiliary": [
+            {
+                "kind": "d8_raster",
+                "schema": "hfx.aux.d8_raster.v2",
+                "artifacts": {"flow_dir": "./aux/d8/flow_dir.tif", "flow_acc": "aux/d8/flow_acc.tif"},
+            }
+        ],
+        "files": {"./aux/d8/flow_dir.tif": str(fdir), "aux/d8/flow_acc.tif": str(facc)},
+    }
+    copy_spec_path = tmp_path / "copy_spec.json"
+    copy_spec_path.write_text(json.dumps(copy_spec))
+    cp_staging = tmp_path / "cp_staging"
+    pm.produce(inv_path, cp_staging, auxiliary_spec_path=copy_spec_path)
+    assert (cp_staging / "aux/d8/flow_dir.tif").stat().st_ino != fdir.stat().st_ino
+    assert (cp_staging / "aux/d8/flow_dir.tif").read_bytes() == fdir.read_bytes()
+
+    # 3. Source deleted/mutated after copy fallback triggers ValueError("Raster source changed during normalization")
+    mut_staging = tmp_path / "mut_staging"
+    orig_write = pm._write_staging_outputs
+
+    def _mutate_and_write(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        fdir.unlink()
+        return orig_write(*args, **kwargs)
+
+    monkeypatch.setattr(pm, "_write_staging_outputs", _mutate_and_write)
+    with pytest.raises(ValueError, match="Raster source changed during normalization"):
+        pm.produce(inv_path, mut_staging, auxiliary_spec_path=aux_path)
+    monkeypatch.setattr(pm, "_write_staging_outputs", orig_write)
+
+    # 4. Path escape and missing manifest sha256 fail explicitly in _stage_base_rasters
+    bad_manifest = {"auxiliary": [{"schema": "hfx.aux.d8_raster.v2", "artifacts": {"flow_dir": "../escape.tif"}}]}
+    with pytest.raises(ValueError, match="Raster path escapes bundle"):
+        pm._stage_base_rasters(base_spatial, bad_manifest, tmp_path / "bad_esc")
+
+    missing_sha_manifest = {
+        "auxiliary": [{"schema": "hfx.aux.d8_raster.v2", "artifacts": {"flow_dir": "aux/d8/flow_dir.tif"}}],
+        "artifacts": {},
+    }
+    with pytest.raises(ValueError, match="Base manifest missing verified sha256"):
+        pm._stage_base_rasters(base_spatial, missing_sha_manifest, tmp_path / "bad_sha")

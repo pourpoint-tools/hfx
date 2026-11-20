@@ -1,11 +1,14 @@
-"""Normalize MERIT Basins vectors (+ optional MERIT Hydro rasters) without source repair."""
+"""Normalize MERIT Basins vectors (+ optional MERIT Hydro rasters) with narrow ring normalization."""
 
 from __future__ import annotations
 
 import argparse
+import base64
+import gzip
 import hashlib
 import json
 import os
+import platform
 import shutil
 import sqlite3
 import sys
@@ -23,8 +26,10 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.ipc as ipc
 import pyarrow.parquet as pq
+import shapely
 from pyproj import Geod
-from shapely import get_coordinates
+from shapely import STRtree, from_wkb, get_coordinates, make_valid, prepare
+from shapely import box as shapely_box
 from shapely.geometry import shape as shapely_shape
 from shapely.validation import explain_validity
 
@@ -34,6 +39,25 @@ from hfx.vector_storage import write_vectors
 BOUNDS = pa.struct([pa.field(name, pa.float32(), nullable=False) for name in ("xmin", "ymin", "xmax", "ymax")])
 MIN_WGS84_LON = -180.0
 MAX_UNWRAPPED_ANTIMERIDIAN_LON = 195.0
+ANTIMERIDIAN_QUERY_MIN_X = -165.0
+ANTIMERIDIAN_MAX_X = 180.0
+
+GEOMETRY_NORMALIZATION_RULE = "merit_ring_self_intersection_lossless_split_v1"
+GEOMETRY_NORMALIZATION_ALGORITHM = "shapely.make_valid(method='structure', keep_collapsed=False)"
+GEODESIC_AREA_ABS_TOL_KM2 = 1e-9
+GEODESIC_AREA_REL_TOL = 1e-12
+REPAIRED_FEATURES_ARTIFACT = "repaired-features.jsonl.gz"
+
+CATCHMENT_GEOMETRY_NORMALIZATION_CODES: list[dict[str, str]] = [
+    {"code": "original", "meaning": "Source polygon was OGC-valid and preserved unchanged"},
+    {
+        "code": "ring_self_intersection_split",
+        "meaning": (
+            "Invalid MERIT Ring Self-intersection polygon normalized into valid rings preserving exact float64 "
+            "vertices, undirected edges, geodesic area, and zero sibling interior overlap"
+        ),
+    },
+]
 
 STRUCTURAL_FIELDS = {
     "id",
@@ -43,6 +67,7 @@ STRUCTURAL_FIELDS = {
     "source_id",
     "processing_partition",
     "catchment_kind",
+    "geometry_normalization",
     "bbox",
     "geometry",
     "area_km2",
@@ -69,6 +94,7 @@ CATCHMENT_RAW_FIELDS: list[pa.Field] = [
     pa.field("source_id", pa.string(), nullable=False),
     pa.field("processing_partition", pa.string(), nullable=False),
     pa.field("catchment_kind", pa.string(), nullable=False),
+    pa.field("geometry_normalization", pa.string(), nullable=False),
     pa.field("bbox", BOUNDS, nullable=False),
     pa.field("geometry", pa.binary(), nullable=False),
     pa.field("area_km2", pa.float32(), nullable=False),
@@ -204,6 +230,107 @@ def _validate_coordinates(geom: Any) -> None:
         or np.any(np.abs(coords[:, 1]) > 90.0)
     ):
         raise ValueError("Coordinates outside finite WGS84 longitude/latitude bounds")
+
+
+def _ring_edges_and_vertices(
+    geom: Any,
+) -> tuple[Counter[tuple[tuple[float, float], tuple[float, float]]], set[tuple[float, float]], int]:
+    """Return exact IEEE 754 float64 undirected edge multiset, vertex set, and zero-length edge count."""
+    parts = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    edges: Counter[tuple[tuple[float, float], tuple[float, float]]] = Counter()
+    verts: set[tuple[float, float]] = set()
+    zero_len = 0
+    for poly in parts:
+        for ring in [poly.exterior, *poly.interiors]:
+            pts = [(float(x), float(y)) for x, y in ring.coords]
+            verts.update(pts)
+            for a, b in zip(pts[:-1], pts[1:], strict=True):
+                if a == b:
+                    zero_len += 1
+                edges[(a, b) if a <= b else (b, a)] += 1
+    return edges, verts, zero_len
+
+
+def _part_and_hole_counts(geom: Any) -> tuple[int, int]:
+    parts = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    return len(parts), sum(len(poly.interiors) for poly in parts)
+
+
+def _shift_x(geom: Any, dx: float) -> Any:
+    return shapely.transform(geom, lambda coords: coords + np.array([dx, 0.0], dtype=np.float64))
+
+
+def _attempt_ring_normalization(
+    raw_geom: Any, raw_reason: str, geod: Geod
+) -> tuple[Any | None, dict[str, Any] | None, str | None]:
+    """Attempt narrow lossless MERIT Ring Self-intersection split; fail closed on any invariant breach."""
+    if not raw_reason.startswith("Ring Self-intersection["):
+        return None, None, "ineligible_validity_reason"
+
+    repaired = make_valid(raw_geom, method="structure", keep_collapsed=False)
+    if repaired is None or repaired.is_empty:
+        return None, None, "empty_after_repair"
+    if repaired.geom_type not in {"Polygon", "MultiPolygon"}:
+        return None, None, f"unsupported_repaired_type:{repaired.geom_type}"
+    if repaired.has_z or repaired.has_m:
+        return None, None, "repaired_has_zm"
+    if not repaired.is_valid:
+        return None, None, f"invalid_after_repair:{explain_validity(repaired)}"
+    try:
+        _validate_coordinates(repaired)
+    except ValueError:
+        return None, None, "repaired_coords_out_of_bounds"
+
+    raw_edges, raw_verts, raw_zero = _ring_edges_and_vertices(raw_geom)
+    rep_edges, rep_verts, rep_zero = _ring_edges_and_vertices(repaired)
+    if raw_verts != rep_verts:
+        return None, None, "vertex_set_mismatch"
+    if raw_edges != rep_edges or raw_zero > 0 or rep_zero > 0:
+        return None, None, "edge_multiset_mismatch"
+
+    raw_area = _geodesic_area_km2(raw_geom, geod)
+    rep_area = _geodesic_area_km2(repaired, geod)
+    if not (np.isfinite(raw_area) and np.isfinite(rep_area)) or raw_area <= 0 or rep_area <= 0:
+        return None, None, "non_positive_geodesic_area"
+
+    area_diff = abs(rep_area - raw_area)
+    area_rel_diff = area_diff / raw_area
+    if area_diff > max(GEODESIC_AREA_ABS_TOL_KM2, GEODESIC_AREA_REL_TOL * raw_area):
+        return None, None, "geodesic_area_mismatch"
+
+    raw_parts, raw_holes = _part_and_hole_counts(raw_geom)
+    rep_parts, rep_holes = _part_and_hole_counts(repaired)
+    metrics = {
+        "raw_geom_type": raw_geom.geom_type,
+        "raw_part_count": raw_parts,
+        "raw_hole_count": raw_holes,
+        "repaired_geom_type": repaired.geom_type,
+        "repaired_part_count": rep_parts,
+        "repaired_hole_count": rep_holes,
+        "vertex_count": len(rep_verts),
+        "edge_count": sum(rep_edges.values()),
+        "raw_geodesic_area_km2": raw_area,
+        "repaired_geodesic_area_km2": rep_area,
+        "geodesic_area_diff_km2": rep_area - raw_area,
+        "geodesic_area_abs_diff_km2": area_diff,
+        "geodesic_area_rel_diff": area_rel_diff,
+    }
+    return repaired, metrics, None
+
+
+@dataclass(slots=True)
+class _RepairCandidate:
+    partition: str
+    ns_domain: str
+    ns: str
+    raw_sid: str
+    comid: int | None
+    is_hillslope: bool
+    raw_reason: str
+    repaired_geom: Any
+    original_wkb: bytes
+    metrics: dict[str, Any]
+    native_row_values: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -605,7 +732,9 @@ def _write_staging_outputs(
     overflow_confluences: list[dict[str, Any]],
     aux_declarations: list[dict[str, Any]],
     partial_reason: str | None,
+    geometry_normalization_meta: dict[str, Any],
     derived_from_verified_bundle_manifest_sha256: str | None = None,
+    expected_raster_sha256: dict[str, tuple[Path, str]] | None = None,
 ) -> dict[str, Any]:
     (output / "original-inventory.json").write_bytes(original_inventory_bytes)
     (output / "omitted-features.json").write_text(json.dumps(omitted_features, indent=2) + "\n")
@@ -626,6 +755,7 @@ def _write_staging_outputs(
             "omitted_rivers": omitted_riv_count,
             "cut_edges": len(cut_edges),
         },
+        "geometry_normalization": geometry_normalization_meta,
         "catchment_connectivity": {
             "derivation_rule": (
                 "Joined channelized catchments and delivered rivers on globally unique COMID within matching "
@@ -648,8 +778,16 @@ def _write_staging_outputs(
         "unwrapped_antimeridian_max_lon": float(overall_bbox[2]) if overall_bbox[2] > 180.0 else None,
         "up1_to_up4_overflow_confluences": overflow_confluences,
         "transformations": (
-            "Zero geometry repair, clipping, simplification, reversal, or dissolving. Invalid polygons and degenerate "
-            "zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) omitted with explicit provenance. "
+            "Valid source catchments and rivers preserve original coordinates, part order, and native attributes "
+            "without clipping, simplification, reversal, or dissolving. Narrow MERIT ring normalization admits "
+            "invalid source catchment polygons whose raw OGC validity failure begins with 'Ring Self-intersection[' "
+            "strictly via shapely.make_valid(method='structure', keep_collapsed=False) only when output is valid "
+            "Polygon/MultiPolygon, exact float64 vertex set and undirected edge multiset match, WGS84 geodesic area "
+            "changes by <= max(1e-9, 1e-12 * raw_area_km2) km2, and global sibling interior non-overlap holds across "
+            "all partitions and coastal hillslopes; original WKBs and per-feature audit records are preserved in "
+            "repaired-features.jsonl.gz, with geometry_normalization flagging 'original' vs "
+            "'ring_self_intersection_split'. Ineligible or failed source polygons and degenerate zero-length "
+            "self-referencing river records (NextDownID=up1=COMID, maxup=0) are omitted with explicit provenance. "
             "River graph upstream_ids derived from verified NextDownID links so >4-tributary confluences keep all incoming "
             "edges while native maxup and up1..up4 attributes remain intact. Catchment connectivity in graph.parquet "
             "derived from verified NextDownID links and 1-to-1 COMID associations without bridging omitted polygons or "
@@ -676,7 +814,7 @@ def _write_staging_outputs(
         "bbox": overall_bbox,
         "unit_count": cat_count,
         "created_at": datetime.now(UTC).isoformat(),
-        "adapter_version": "merit-original-2",
+        "adapter_version": "merit-original-3",
         "region": region,
         "catchments": "catchments.arrow",
         "graph": "graph.parquet",
@@ -694,6 +832,13 @@ def _write_staging_outputs(
                     {"code": "channelized", "meaning": "MERIT-Basins channelized unit catchment (25 km2 threshold)"},
                     {"code": "coastal_hillslope", "meaning": "MERIT-Basins coastal hillslope below 25 km2 threshold"},
                 ],
+                "null_meaning": "not permitted",
+            },
+            {
+                "artifact": "catchments.arrow",
+                "column": "geometry_normalization",
+                "physical_type": "string",
+                "codes": CATCHMENT_GEOMETRY_NORMALIZATION_CODES,
                 "null_meaning": "not permitted",
             },
             {
@@ -754,16 +899,27 @@ def _write_staging_outputs(
             "river_column": "river_id",
             "catchment_column": "catchment_id",
         },
-        "artifacts": {
-            p.relative_to(output).as_posix(): fingerprint(p) for p in sorted(output.rglob("*")) if p.is_file()
-        },
     }
+    artifacts = {p.relative_to(output).as_posix(): fingerprint(p) for p in sorted(output.rglob("*")) if p.is_file()}
+    for rel_ref, (src_path, expected_digest) in (expected_raster_sha256 or {}).items():
+        if rel_ref not in artifacts or artifacts[rel_ref]["sha256"] != expected_digest:
+            raise ValueError(f"Raster source changed during normalization: {src_path}")
+        dest = output / rel_ref
+        try:
+            same_file = os.path.samefile(src_path, dest)
+        except OSError:
+            same_file = False
+        if not same_file and (not src_path.is_file() or _sha256(src_path) != expected_digest):
+            raise ValueError(f"Raster source changed during normalization: {src_path}")
+    manifest["artifacts"] = artifacts
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     receipt: dict[str, Any] = {
         "status": "passed",
         "delivered_catchments": cat_count,
         "delivered_channelized_catchments": channelized_count,
         "delivered_coastal_hillslopes": hillslope_count,
+        "repaired_catchments": geometry_normalization_meta["global_counts"]["accepted"],
+        "rejected_repair_catchments": geometry_normalization_meta["global_counts"]["rejected"],
         "delivered_rivers": riv_count,
         "omitted_catchments": omitted_cat_count,
         "omitted_rivers": omitted_riv_count,
@@ -778,8 +934,8 @@ def _write_staging_outputs(
 
 
 @contextmanager
-def _workspace_db() -> Iterator[tuple[sqlite3.Connection, Path]]:
-    with TemporaryDirectory(prefix="hfx-merit-work-") as scratch:
+def _workspace_db(scratch_parent: Path | None = None) -> Iterator[tuple[sqlite3.Connection, Path]]:
+    with TemporaryDirectory(prefix="hfx-merit-work-", dir=scratch_parent) as scratch:
         scratch_dir = Path(scratch)
         conn = sqlite3.connect(scratch_dir / "merit.sqlite")
         try:
@@ -857,21 +1013,28 @@ def _coerce_value(value: object, dtype: pa.DataType) -> object:
     return str(value)
 
 
+def _normalize_bundle_rel_path(rel_path: str, root: Path) -> str:
+    rel = Path(rel_path)
+    dest = root / rel
+    if rel.is_absolute() or ".." in rel.parts or not dest.resolve().is_relative_to(root.resolve()):
+        raise ValueError(f"Raster path escapes bundle: {rel_path}")
+    return dest.resolve().relative_to(root.resolve()).as_posix()
+
+
 def _check_and_stage_rasters(
     auxiliary_spec: dict[str, Any] | None, output: Path
-) -> tuple[list[dict[str, Any]], dict[Path, str]]:
+) -> tuple[list[dict[str, Any]], dict[str, tuple[Path, str]]]:
     if auxiliary_spec is None:
         return [], {}
     entries = auxiliary_spec.get("auxiliary", [])
     source_paths = cast(dict[str, str], auxiliary_spec.get("files", {}))
-    raster_hashes: dict[Path, str] = {}
+    raster_hashes: dict[str, tuple[Path, str]] = {}
     for rel_path, expected_src in source_paths.items():
         src_path = Path(expected_src)
         digest = _sha256(src_path)
-        raster_hashes[src_path] = digest
-        dest = output / rel_path
-        if Path(rel_path).is_absolute() or not dest.resolve().is_relative_to(output.resolve()):
-            raise ValueError(f"Raster path escapes bundle: {rel_path}")
+        norm_rel = _normalize_bundle_rel_path(rel_path, output)
+        dest = output / norm_rel
+        raster_hashes[norm_rel] = (src_path, digest)
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
             os.link(src_path, dest)
@@ -891,9 +1054,14 @@ def _default_notices(output: Path, *, partial_reason: str | None) -> None:
         "under CC BY-NC-SA 4.0 and UCSD non-commercial/research license terms.\n\n"
         "Transformations: native raster grids and direction codes preserved with ocean code 247 explicitly tagged as "
         "GeoTIFF nodata, river mouth code 0 and inland depression code 255 retained distinct under flow_dir_encoding='merit'. "
-        "Vectors keep original coordinates, part order, and native attributes; invalid source polygons and degenerate "
-        "zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) are omitted with explicit provenance "
-        "rather than repaired. Upstream IDs in river-graph.parquet derive from verified incoming NextDownID links so "
+        "Vectors keep original coordinates, part order, and native attributes on valid features. Narrow MERIT ring "
+        "normalization admits invalid source catchment polygons with raw OGC 'Ring Self-intersection[' only when "
+        "shapely.make_valid(method='structure', keep_collapsed=False) produces a valid Polygon/MultiPolygon preserving "
+        "exact float64 vertices, undirected edge multiset, WGS84 geodesic area within max(1e-9, 1e-12*raw_area_km2), "
+        "and zero sibling interior overlap globally (audit records and original WKBs preserved in "
+        "repaired-features.jsonl.gz; features marked via geometry_normalization). Ineligible or failed source polygons "
+        "and degenerate zero-length self-referencing river records (NextDownID=up1=COMID, maxup=0) are omitted with "
+        "explicit provenance. Upstream IDs in river-graph.parquet derive from verified incoming NextDownID links so "
         "confluences exceeding the shapefile's four up1..up4 slots retain all incoming edges while native maxup and up1..up4 "
         "columns stay intact. Catchment connectivity in graph.parquet derives from verified river NextDownID links and "
         "1-to-1 COMID associations without bridging omitted polygons or unmatched rivers; completeness is declared "
@@ -915,11 +1083,282 @@ def _default_notices(output: Path, *, partial_reason: str | None) -> None:
     )
 
 
+def _open_verified_base_bundle(base_spatial_dir: Path) -> tuple[dict[str, Any], str]:
+    """Verify and return (manifest_dict, manifest_sha256) for a base HFX 0.4.0 MERIT bundle."""
+    base_manifest_path = base_spatial_dir / "manifest.json"
+    base_manifest = json.loads(base_manifest_path.read_bytes())
+    base_manifest_sha = _sha256(base_manifest_path)
+    if (
+        base_manifest.get("format_version") != "0.4.0"
+        or base_manifest.get("fabric_name") != "merit"
+        or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
+        or base_manifest.get("representation_version") != 1
+    ):
+        raise ValueError("Expected verified HFX 0.4.0 MERIT spatial-geoparquet-adjacency bundle")
+
+    for rel, identity in base_manifest["artifacts"].items():
+        path = base_spatial_dir / rel
+        if (
+            Path(rel).is_absolute()
+            or not path.resolve().is_relative_to(base_spatial_dir.resolve())
+            or not path.is_file()
+            or fingerprint(path) != identity
+        ):
+            raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+    return base_manifest, base_manifest_sha
+
+
+def _validate_and_open_base_bundle(
+    base_spatial_dir: Path,
+    inventory: dict[str, Any],
+    inherited_hillslopes: set[str],
+) -> tuple[dict[str, Any], str, dict[str, Any]]:
+    """Verify base spatial bundle integrity and sidecar equivalence for hybrid inheritance."""
+    base_manifest, base_manifest_sha = _open_verified_base_bundle(base_spatial_dir)
+
+    base_orig = json.loads((base_spatial_dir / "original-inventory.json").read_bytes())
+    if base_orig.get("release") != inventory.get("release"):
+        raise ValueError("Release differs from base original-inventory.json")
+
+    base_parts = {str(p["partition"]): p for p in base_orig["partitions"]}
+    inv_parts = {str(p["partition"]): p for p in inventory["partitions"]}
+    if set(inv_parts) != set(base_parts):
+        raise ValueError("pfaf_* partition set differs from base original-inventory.json")
+    for pname, inv_p in inv_parts.items():
+        base_p = base_parts[pname]
+        for domain in ("catchments", "rivers"):
+            if inv_p[domain].get("status") != "supplied" or base_p[domain].get("status") != "supplied":
+                raise ValueError(f"Partition {pname}/{domain} must be supplied when using base_spatial_dir")
+            inv_sides = {n: (int(m["size_bytes"]), str(m["sha256"])) for n, m in inv_p[domain]["sidecars"].items()}
+            base_sides = {n: (int(m["size_bytes"]), str(m["sha256"])) for n, m in base_p[domain]["sidecars"].items()}
+            if inv_sides != base_sides:
+                raise ValueError(f"Supplied sidecars differ from base original-inventory.json for {pname}/{domain}")
+
+    base_hills = {str(h["partition"]): h for h in base_orig.get("coastal_hillslopes", [])}
+    inv_hills = {str(h["partition"]): h for h in inventory.get("coastal_hillslopes", [])}
+    if set(inv_hills) != set(base_hills):
+        raise ValueError("Coastal hillslope partition set differs from base original-inventory.json")
+    for pname, inv_h in inv_hills.items():
+        base_h = base_hills[pname]
+        if pname in inherited_hillslopes:
+            if base_h.get("status") != "supplied":
+                raise ValueError(f"Inherited hillslope {pname} was not supplied in base original-inventory.json")
+        elif inv_h.get("status") == "supplied" and base_h.get("status") == "supplied":
+            inv_sides = {n: (int(m["size_bytes"]), str(m["sha256"])) for n, m in inv_h["sidecars"].items()}
+            base_sides = {n: (int(m["size_bytes"]), str(m["sha256"])) for n, m in base_h["sidecars"].items()}
+            if inv_sides != base_sides:
+                raise ValueError(f"Supplied hillslope sidecars differ from base original-inventory.json for {pname}")
+
+    base_meta = json.loads((base_spatial_dir / "source-metadata.json").read_bytes())
+    return base_manifest, base_manifest_sha, base_meta
+
+
+def _stage_base_rasters(
+    base_spatial_dir: Path, base_manifest: dict[str, Any], output: Path
+) -> tuple[list[dict[str, Any]], dict[str, tuple[Path, str]]]:
+    aux_declarations = list(base_manifest.get("auxiliary", []))
+    base_artifacts = base_manifest.get("artifacts", {})
+    raster_before: dict[str, tuple[Path, str]] = {}
+    for entry in aux_declarations:
+        if entry.get("schema") != "hfx.aux.d8_raster.v2":
+            continue
+        for rel_ref in entry.get("artifacts", {}).values():
+            if not isinstance(rel_ref, str):
+                continue
+            norm_rel = _normalize_bundle_rel_path(rel_ref, output)
+            src_path = base_spatial_dir / norm_rel
+            dest = output / norm_rel
+            identity = base_artifacts.get(rel_ref) or base_artifacts.get(norm_rel)
+            if not isinstance(identity, dict) or not isinstance(identity.get("sha256"), str):
+                raise ValueError(f"Base manifest missing verified sha256 for raster: {rel_ref}")
+            raster_before[norm_rel] = (src_path, str(identity["sha256"]))
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.link(src_path, dest)
+            except OSError:
+                shutil.copyfile(src_path, dest)
+    return aux_declarations, raster_before
+
+
+def _validate_candidate_overlaps(
+    candidates: list[_RepairCandidate],
+    valid_cat_path: Path,
+) -> tuple[dict[int, str], dict[int, int], dict[str, Any]]:
+    """Verify sibling interior non-overlap across all candidate repairs and all valid catchments globally."""
+    overlap_stats: dict[str, int] = {
+        "same_partition_pairs": 0,
+        "cross_partition_pairs": 0,
+        "coastal_hillslope_pairs": 0,
+        "candidate_candidate_pairs": 0,
+        "candidate_interior_overlaps_detected": 0,
+        "accepted_interior_overlaps": 0,
+    }
+    reject_reasons: dict[int, str] = {}
+    neighbors_checked: dict[int, int] = dict.fromkeys(range(len(candidates)), 0)
+    if not candidates:
+        return reject_reasons, neighbors_checked, overlap_stats
+
+    cand_geoms = [c.repaired_geom for c in candidates]
+    for g in cand_geoms:
+        prepare(g)
+    cand_bounds = [g.bounds for g in cand_geoms]
+    has_antimeridian = any(b[0] < ANTIMERIDIAN_QUERY_MIN_X or b[2] > ANTIMERIDIAN_MAX_X for b in cand_bounds)
+    tree = STRtree(cand_geoms)
+
+    def _record_pair(p_a: str, p_b: str, involves_hillslope: bool) -> None:
+        if involves_hillslope:
+            overlap_stats["coastal_hillslope_pairs"] += 1
+        elif p_a == p_b:
+            overlap_stats["same_partition_pairs"] += 1
+        else:
+            overlap_stats["cross_partition_pairs"] += 1
+
+    # 1. Candidate vs candidate (all partitions globally, including antimeridian wrap).
+    for i, cand in enumerate(candidates):
+        g_i = cand_geoms[i]
+        b_i = cand_bounds[i]
+        queries: list[tuple[float, Any]] = [(0.0, g_i)]
+        if has_antimeridian:
+            if b_i[2] > ANTIMERIDIAN_MAX_X:
+                queries.append((-360.0, _shift_x(g_i, -360.0)))
+            if b_i[0] < ANTIMERIDIAN_QUERY_MIN_X:
+                queries.append((360.0, _shift_x(g_i, 360.0)))
+        for shift_dx, q_geom in queries:
+            for j in tree.query(q_geom, predicate="intersects"):
+                j_idx = int(j)
+                if j_idx <= i:
+                    continue
+                cand_j = candidates[j_idx]
+                g_j = _shift_x(cand_geoms[j_idx], -shift_dx) if shift_dx else cand_geoms[j_idx]
+                if shift_dx != 0.0 and not g_i.intersects(g_j):
+                    continue
+                overlap_stats["candidate_candidate_pairs"] += 1
+                neighbors_checked[i] += 1
+                neighbors_checked[j_idx] += 1
+                _record_pair(cand.partition, cand_j.partition, cand.is_hillslope or cand_j.is_hillslope)
+                if g_i.relate_pattern(g_j, "2********"):
+                    overlap_stats["candidate_interior_overlaps_detected"] += 1
+                    reject_reasons.setdefault(i, "candidate_interior_overlap")
+                    reject_reasons.setdefault(j_idx, "candidate_interior_overlap")
+
+    # 2. Candidate vs all valid catchments + coastal hillslopes (streamed in Arrow batches).
+    with pa.memory_map(str(valid_cat_path), "r") as valid_stream:
+        valid_reader = ipc.open_file(valid_stream)
+        for batch_idx in range(valid_reader.num_record_batches):
+            batch = valid_reader.get_batch(batch_idx)
+            bounds_arr = cast(pa.StructArray, batch.column("bbox"))
+            xmins = bounds_arr.field("xmin").to_numpy().astype(np.float64)
+            ymins = bounds_arr.field("ymin").to_numpy().astype(np.float64)
+            xmaxs = bounds_arr.field("xmax").to_numpy().astype(np.float64)
+            ymaxs = bounds_arr.field("ymax").to_numpy().astype(np.float64)
+            pnames = cast(list[str], batch.column("processing_partition").to_pylist())
+            kinds = cast(list[str], batch.column("catchment_kind").to_pylist())
+            wkbs = batch.column("geometry")
+
+            hit_batches: list[tuple[float, np.ndarray, np.ndarray]] = []
+            rows_0, cands_0 = tree.query(shapely_box(xmins, ymins, xmaxs, ymaxs))
+            if len(rows_0):
+                hit_batches.append((0.0, rows_0, cands_0))
+            if has_antimeridian:
+                west_rows = np.flatnonzero(xmins < ANTIMERIDIAN_QUERY_MIN_X)
+                if len(west_rows):
+                    wr, wc = tree.query(
+                        shapely_box(
+                            xmins[west_rows] + 360.0, ymins[west_rows], xmaxs[west_rows] + 360.0, ymaxs[west_rows]
+                        )
+                    )
+                    if len(wr):
+                        hit_batches.append((360.0, west_rows[wr], wc))
+                east_rows = np.flatnonzero(xmaxs > ANTIMERIDIAN_MAX_X)
+                if len(east_rows):
+                    er, ec = tree.query(
+                        shapely_box(
+                            xmins[east_rows] - 360.0, ymins[east_rows], xmaxs[east_rows] - 360.0, ymaxs[east_rows]
+                        )
+                    )
+                    if len(er):
+                        hit_batches.append((-360.0, east_rows[er], ec))
+
+            decoded_cache: dict[int, Any] = {}
+            for shift_dx, row_arr, cand_arr in hit_batches:
+                for row_pos_raw, cand_idx_raw in zip(row_arr.tolist(), cand_arr.tolist(), strict=True):
+                    row_pos = int(row_pos_raw)
+                    cand_idx = int(cand_idx_raw)
+                    v_base = decoded_cache.get(row_pos)
+                    if v_base is None:
+                        v_base = from_wkb(wkbs[row_pos].as_py())
+                        decoded_cache[row_pos] = v_base
+                    v_geom = _shift_x(v_base, shift_dx) if shift_dx else v_base
+                    g_cand = cand_geoms[cand_idx]
+                    if not g_cand.intersects(v_geom):
+                        continue
+                    neighbors_checked[cand_idx] += 1
+                    _record_pair(
+                        candidates[cand_idx].partition,
+                        pnames[row_pos],
+                        candidates[cand_idx].is_hillslope or kinds[row_pos] == "coastal_hillslope",
+                    )
+                    if g_cand.relate_pattern(v_geom, "2********"):
+                        overlap_stats["candidate_interior_overlaps_detected"] += 1
+                        reject_reasons.setdefault(cand_idx, "sibling_interior_overlap")
+
+    del tree
+    return reject_reasons, neighbors_checked, overlap_stats
+
+
+def _build_geometry_normalization_meta(
+    *,
+    enabled: bool,
+    part_stats: dict[str, dict[str, Any]],
+    overlap_stats: dict[str, int],
+) -> dict[str, Any]:
+    global_counts = {
+        "total_source": sum(s["total_source"] for s in part_stats.values()),
+        "already_valid": sum(s["already_valid"] for s in part_stats.values()),
+        "attempted": sum(s["attempted"] for s in part_stats.values()),
+        "accepted": sum(s["accepted"] for s in part_stats.values()),
+        "rejected": sum(s["rejected"] for s in part_stats.values()),
+        "omitted_other": sum(s["omitted_other"] for s in part_stats.values()),
+        "max_abs_area_diff_km2": max((s["max_abs_area_diff_km2"] for s in part_stats.values()), default=0.0),
+        "max_rel_area_diff": max((s["max_rel_area_diff"] for s in part_stats.values()), default=0.0),
+    }
+    return {
+        "artifact": REPAIRED_FEATURES_ARTIFACT,
+        "enabled": enabled,
+        "rule": GEOMETRY_NORMALIZATION_RULE if enabled else "disabled",
+        "algorithm": GEOMETRY_NORMALIZATION_ALGORITHM,
+        "versions": {
+            "python": platform.python_version(),
+            "shapely": shapely.__version__,
+            "geos": ".".join(str(x) for x in shapely.geos_version),
+            "pyproj": sys.modules["pyproj"].__version__,
+            "fiona": fiona.__version__,
+        },
+        "tolerances": {
+            "geodesic_area_abs_tol_km2": GEODESIC_AREA_ABS_TOL_KM2,
+            "geodesic_area_rel_tol": GEODESIC_AREA_REL_TOL,
+            "interior_overlap_pattern": "2********",
+        },
+        "global_counts": global_counts,
+        "overlap_validation": {
+            **overlap_stats,
+            "total_pairs_checked": (
+                overlap_stats["same_partition_pairs"]
+                + overlap_stats["cross_partition_pairs"]
+                + overlap_stats["coastal_hillslope_pairs"]
+            ),
+        },
+        "by_partition": {k: part_stats[k] for k in sorted(part_stats)},
+    }
+
+
 def produce(
     inventory_path: Path,
     output: Path,
     *,
     auxiliary_spec_path: Path | None = None,
+    base_spatial_dir: Path | None = None,
+    normalize_rings: bool = True,
     batch_rows: int = 4096,
     partial_reason: str | None = None,
 ) -> dict[str, Any]:
@@ -937,6 +1376,7 @@ def produce(
     supplied_riv_sources: list[tuple[str, dict[str, Any]]] = []
     unavailable_catchments: dict[str, str] = {}
     unavailable_rivers: dict[str, str] = {}
+    inherited_hillslopes: set[str] = set()
 
     for part in partitions:
         pname = str(part["partition"])
@@ -955,19 +1395,58 @@ def produce(
 
     for h_entry in hillslopes:
         pname = str(h_entry["partition"])
-        if h_entry.get("status") == "supplied":
+        status = h_entry.get("status")
+        if status == "supplied":
             before_hashes.update(_verify_sidecars(h_entry))
             supplied_cat_sources.append((pname, h_entry))
+        elif status == "inherited_from_verified_bundle":
+            inherited_hillslopes.add(pname)
+        else:
+            raise ValueError(f"Unsupported coastal_hillslopes status {status!r} for {pname}")
 
-    if not supplied_cat_sources or not supplied_riv_sources:
+    if inherited_hillslopes and base_spatial_dir is None:
+        raise ValueError("Inherited coastal_hillslopes require base_spatial_dir")
+    if (not supplied_cat_sources and not inherited_hillslopes) or not supplied_riv_sources:
         raise ValueError("Both supplied catchments and rivers are required")
+
+    base_manifest: dict[str, Any] | None = None
+    base_manifest_sha: str | None = None
+    base_meta: dict[str, Any] | None = None
+    if base_spatial_dir is not None:
+        base_manifest, base_manifest_sha, base_meta = _validate_and_open_base_bundle(
+            base_spatial_dir, inventory, inherited_hillslopes
+        )
 
     auxiliary_spec = json.loads(auxiliary_spec_path.read_bytes()) if auxiliary_spec_path else None
 
     output.mkdir(parents=True, exist_ok=False)
-    aux_declarations, raster_before = _check_and_stage_rasters(auxiliary_spec, output)
+    if auxiliary_spec is not None:
+        aux_declarations, raster_before = _check_and_stage_rasters(auxiliary_spec, output)
+    elif base_spatial_dir is not None and base_manifest is not None:
+        aux_declarations, raster_before = _stage_base_rasters(base_spatial_dir, base_manifest, output)
+    else:
+        aux_declarations, raster_before = [], {}
 
     cat_native_fields, cat_renames, cat_orig_schemas = _unify_native_schema(supplied_cat_sources)
+    if inherited_hillslopes and base_spatial_dir is not None and base_manifest is not None and base_meta is not None:
+        base_cat_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["catchments"]["data"]))
+        cat_field_types = {f.name: f.type for f in cat_native_fields}
+        base_structural = {f.name for f in CATCHMENT_FIELDS}
+        for field in base_cat_pf.schema_arrow.with_metadata({}):
+            if field.name in base_structural:
+                continue
+            if field.name in cat_field_types:
+                if cat_field_types[field.name] != field.type:
+                    raise ValueError(f"Conflicting inherited type for {field.name}")
+            else:
+                cat_native_fields.append(pa.field(field.name, field.type, nullable=True))
+                cat_field_types[field.name] = field.type
+        for pname in sorted(inherited_hillslopes):
+            if pname in base_meta.get("original_schemas", {}).get("catchments", {}):
+                cat_orig_schemas[pname] = base_meta["original_schemas"]["catchments"][pname]
+            if pname in base_meta.get("column_renames", {}).get("catchments", {}):
+                cat_renames[pname] = base_meta["column_renames"]["catchments"][pname]
+
     riv_native_fields, riv_renames, riv_orig_schemas = _unify_native_schema(supplied_riv_sources)
 
     raw_cat_schema = pa.schema(CATCHMENT_RAW_FIELDS + cat_native_fields)
@@ -986,15 +1465,35 @@ def produce(
     omitted_cat_count = 0
     omitted_riv_count = 0
 
-    with _workspace_db() as (db, scratch_dir):
-        # Pass 1a: Validate catchments + coastal hillslopes into temporary IPC before river connectivity derivation.
-        raw_cat_path = scratch_dir / "catchments_raw.arrow"
+    part_stats: dict[str, dict[str, Any]] = {}
+
+    def _pstat(pname: str) -> dict[str, Any]:
+        return part_stats.setdefault(
+            pname,
+            {
+                "total_source": 0,
+                "already_valid": 0,
+                "attempted": 0,
+                "accepted": 0,
+                "rejected": 0,
+                "omitted_other": 0,
+                "max_abs_area_diff_km2": 0.0,
+                "max_rel_area_diff": 0.0,
+            },
+        )
+
+    with _workspace_db(scratch_parent=output.parent) as (db, scratch_dir):
+        # Pass 1a: Stream valid catchments/hillslopes to disk and collect eligible ring-normalization candidates.
+        valid_cat_path = scratch_dir / "catchments_valid.arrow"
+        repaired_cat_path = scratch_dir / "catchments_repaired.arrow"
         cat_records: list[tuple[bool, str, int | None]] = []
         seen_source_ids: set[tuple[str, str]] = set()
         seen_global_channelized_comids: set[int] = set()
+        candidates: list[_RepairCandidate] = []
+
         with ipc.new_file(
-            str(raw_cat_path), raw_cat_schema, options=ipc.IpcWriteOptions(compression="zstd")
-        ) as raw_cat_writer:
+            str(valid_cat_path), raw_cat_schema, options=ipc.IpcWriteOptions(compression="zstd")
+        ) as valid_cat_writer:
             for pname, entry in supplied_cat_sources:
                 is_hillslope = entry in hillslopes
                 kind = "coastal_hillslope" if is_hillslope else "channelized"
@@ -1002,10 +1501,12 @@ def produce(
                 ns = f"{release}/{pname}/{ns_domain}"
                 rename_map = cat_renames.get(pname, {})
                 interned_pname = sys.intern(pname)
+                pstat = _pstat(pname)
                 with fiona.open(entry["shp"]) as src:
                     crs_records[f"{pname}/{ns_domain}"] = _check_crs(src, entry)
                     rows: list[dict[str, Any]] = []
                     for feat in src:
+                        pstat["total_source"] += 1
                         props = dict(feat["properties"])
                         comid = int(props["COMID"]) if "COMID" in props and props["COMID"] is not None else None
                         raw_sid = str(comid) if comid is not None else str(props.get("FID", feat.id))
@@ -1048,6 +1549,52 @@ def produce(
                                             reason = ""
 
                         if reason:
+                            if normalize_rings and geom is not None and reason.startswith("Ring Self-intersection["):
+                                pstat["attempted"] += 1
+                                rep_geom, metrics, fail_code = _attempt_ring_normalization(geom, reason, geod)
+                                if rep_geom is not None and metrics is not None:
+                                    native_vals: dict[str, Any] = {}
+                                    for orig_name, val in props.items():
+                                        mapped = rename_map.get(orig_name, orig_name)
+                                        dtype = raw_cat_schema.field(mapped).type
+                                        native_vals[mapped] = _coerce_value(val, dtype)
+                                    candidates.append(
+                                        _RepairCandidate(
+                                            partition=pname,
+                                            ns_domain=ns_domain,
+                                            ns=ns,
+                                            raw_sid=raw_sid,
+                                            comid=comid,
+                                            is_hillslope=is_hillslope,
+                                            raw_reason=reason,
+                                            repaired_geom=rep_geom,
+                                            original_wkb=geom.wkb,
+                                            metrics=metrics,
+                                            native_row_values=native_vals,
+                                        )
+                                    )
+                                    continue
+                                pstat["rejected"] += 1
+                                omitted_cat_count += 1
+                                omitted_features.append(
+                                    {
+                                        "domain": ns_domain,
+                                        "partition": pname,
+                                        "source_namespace": ns,
+                                        "source_id": raw_sid,
+                                        "COMID": comid,
+                                        "reason": reason,
+                                        "repair_rejection": fail_code or "repair_check_failed",
+                                    }
+                                )
+                                if not is_hillslope and comid is not None:
+                                    db.execute(
+                                        "INSERT INTO omitted_catchments VALUES (?, ?, ?)",
+                                        (pname, comid, reason),
+                                    )
+                                continue
+
+                            pstat["omitted_other"] += 1
                             omitted_cat_count += 1
                             omitted_features.append(
                                 {
@@ -1067,6 +1614,7 @@ def produce(
                             continue
 
                         assert geom is not None
+                        pstat["already_valid"] += 1
                         wkb = geom.wkb
                         bbox = _narrowed_bbox(geom.bounds)
                         for idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
@@ -1090,6 +1638,7 @@ def produce(
                             "source_id": raw_sid,
                             "processing_partition": pname,
                             "catchment_kind": kind,
+                            "geometry_normalization": "original",
                             "bbox": bbox,
                             "geometry": wkb,
                             "area_km2": float(np.float32(area_km2)),
@@ -1105,12 +1654,201 @@ def produce(
                             out_row[mapped] = _coerce_value(val, dtype)
                         rows.append(out_row)
                         if len(rows) >= batch_rows:
-                            raw_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
+                            valid_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
                             rows = []
                     if rows:
-                        raw_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
+                        valid_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
                 db.commit()
+
+            if inherited_hillslopes:
+                assert base_spatial_dir is not None and base_manifest is not None and base_meta is not None
+                for pname in sorted(inherited_hillslopes):
+                    crs_key = f"{pname}/coastal_hillslopes"
+                    if crs_key in base_meta.get("crs_evidence", {}):
+                        crs_records[crs_key] = base_meta["crs_evidence"][crs_key]
+                    _pstat(pname)["source"] = "inherited_from_verified_bundle"
+                base_cat_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["catchments"]["data"]))
+                inherited_native_names = [f.name for f in cat_native_fields if f.name in base_cat_pf.schema_arrow.names]
+                for batch in base_cat_pf.iter_batches(batch_size=batch_rows):
+                    kinds = batch.column("catchment_kind").to_pylist()
+                    pnames = batch.column("processing_partition").to_pylist()
+                    indices = [
+                        i
+                        for i, (k_val, p_val) in enumerate(zip(kinds, pnames, strict=True))
+                        if k_val == "coastal_hillslope" and p_val in inherited_hillslopes
+                    ]
+                    if not indices:
+                        continue
+                    matched = batch.take(indices)
+                    rows = []
+                    for row in matched.to_pylist():
+                        if row.get("geometry_normalization", "original") != "original":
+                            raise ValueError(
+                                f"Unexpected geometry_normalization on inherited hillslope: "
+                                f"{(row['source_namespace'], row['source_id'])}"
+                            )
+                        pname = str(row["processing_partition"])
+                        ns = str(row["source_namespace"])
+                        raw_sid = str(row["source_id"])
+                        if (ns, raw_sid) in seen_source_ids:
+                            raise ValueError(f"Duplicate source identity {(ns, raw_sid)}")
+                        seen_source_ids.add((ns, raw_sid))
+                        pstat = _pstat(pname)
+                        pstat["total_source"] += 1
+                        pstat["already_valid"] += 1
+                        bbox = row["bbox"]
+                        for idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
+                            overall_bbox[idx] = (
+                                min(overall_bbox[idx], bbox[key]) if idx < 2 else max(overall_bbox[idx], bbox[key])
+                            )
+                        cat_count += 1
+                        hillslope_count += 1
+                        cat_records.append((True, sys.intern(pname), None))
+                        out_row = {
+                            "id": cat_count,
+                            "level": 0,
+                            "parent_id": None,
+                            "source_namespace": ns,
+                            "source_id": raw_sid,
+                            "processing_partition": pname,
+                            "catchment_kind": "coastal_hillslope",
+                            "geometry_normalization": "original",
+                            "bbox": bbox,
+                            "geometry": row["geometry"],
+                            "area_km2": float(row["area_km2"]),
+                            "up_area_km2": None,
+                            "outlet_lon": None,
+                            "outlet_lat": None,
+                        }
+                        for field in cat_native_fields:
+                            out_row[field.name] = row[field.name] if field.name in inherited_native_names else None
+                        rows.append(out_row)
+                    if rows:
+                        valid_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
+                base_omitted_path = base_spatial_dir / "omitted-features.json"
+                if base_omitted_path.is_file():
+                    for item in json.loads(base_omitted_path.read_bytes()):
+                        pname = str(item.get("partition", ""))
+                        if item.get("domain") != "rivers" and pname in inherited_hillslopes:
+                            omitted_features.append(item)
+                            omitted_cat_count += 1
+                            pstat = _pstat(pname)
+                            pstat["total_source"] += 1
+                            pstat["omitted_other"] += 1
         del seen_source_ids, seen_global_channelized_comids
+
+        # Pass 1b: Global sibling interior non-overlap validation across all partitions and hillslopes.
+        reject_reasons, neighbors_checked, overlap_stats = _validate_candidate_overlaps(candidates, valid_cat_path)
+        has_repaired_rows = False
+        repaired_gz_path = output / REPAIRED_FEATURES_ARTIFACT
+        with (
+            gzip.GzipFile(repaired_gz_path, mode="wb", mtime=0) as gz_stream,
+            ipc.new_file(
+                str(repaired_cat_path), raw_cat_schema, options=ipc.IpcWriteOptions(compression="zstd")
+            ) as rep_cat_writer,
+        ):
+            repaired_rows: list[dict[str, Any]] = []
+            for idx, cand in enumerate(candidates):
+                pstat = _pstat(cand.partition)
+                rej = reject_reasons.get(idx)
+                if rej is not None:
+                    pstat["rejected"] += 1
+                    omitted_cat_count += 1
+                    omitted_features.append(
+                        {
+                            "domain": cand.ns_domain,
+                            "partition": cand.partition,
+                            "source_namespace": cand.ns,
+                            "source_id": cand.raw_sid,
+                            "COMID": cand.comid,
+                            "reason": cand.raw_reason,
+                            "repair_rejection": rej,
+                        }
+                    )
+                    if not cand.is_hillslope and cand.comid is not None:
+                        db.execute(
+                            "INSERT INTO omitted_catchments VALUES (?, ?, ?)",
+                            (cand.partition, cand.comid, cand.raw_reason),
+                        )
+                    continue
+
+                rep_geom = cand.repaired_geom
+                bbox = _narrowed_bbox(rep_geom.bounds)
+                for b_idx, key in enumerate(("xmin", "ymin", "xmax", "ymax")):
+                    overall_bbox[b_idx] = (
+                        min(overall_bbox[b_idx], bbox[key]) if b_idx < 2 else max(overall_bbox[b_idx], bbox[key])
+                    )
+                cat_count += 1
+                if cand.is_hillslope:
+                    hillslope_count += 1
+                else:
+                    channelized_count += 1
+                    assert cand.comid is not None
+                    db.execute("INSERT INTO catchments VALUES (?, ?, ?)", (cand.partition, cand.comid, cat_count))
+                cat_records.append(
+                    (cand.is_hillslope, sys.intern(cand.partition), None if cand.is_hillslope else cand.comid)
+                )
+
+                pstat["accepted"] += 1
+                pstat["max_abs_area_diff_km2"] = max(
+                    pstat["max_abs_area_diff_km2"], cand.metrics["geodesic_area_abs_diff_km2"]
+                )
+                pstat["max_rel_area_diff"] = max(pstat["max_rel_area_diff"], cand.metrics["geodesic_area_rel_diff"])
+
+                audit_entry = {
+                    "hfx_id": cat_count,
+                    "domain": cand.ns_domain,
+                    "partition": cand.partition,
+                    "source_namespace": cand.ns,
+                    "source_id": cand.raw_sid,
+                    "COMID": cand.comid,
+                    "rule": GEOMETRY_NORMALIZATION_RULE,
+                    "algorithm": GEOMETRY_NORMALIZATION_ALGORITHM,
+                    "raw_validity_reason": cand.raw_reason,
+                    **cand.metrics,
+                    "overlap_neighbors_checked": neighbors_checked[idx],
+                    "checks": {
+                        "valid_polygonal": True,
+                        "vertices_exact": True,
+                        "edges_exact": True,
+                        "geodesic_area_within_tolerance": True,
+                        "zero_sibling_interior_overlap": True,
+                    },
+                    "original_wkb_base64": base64.b64encode(cand.original_wkb).decode("ascii"),
+                }
+                gz_stream.write((json.dumps(audit_entry, sort_keys=True) + "\n").encode("utf-8"))
+
+                out_row = {
+                    "id": cat_count,
+                    "level": 0,
+                    "parent_id": None,
+                    "source_namespace": cand.ns,
+                    "source_id": cand.raw_sid,
+                    "processing_partition": cand.partition,
+                    "catchment_kind": "coastal_hillslope" if cand.is_hillslope else "channelized",
+                    "geometry_normalization": "ring_self_intersection_split",
+                    "bbox": bbox,
+                    "geometry": rep_geom.wkb,
+                    "area_km2": float(np.float32(cand.metrics["repaired_geodesic_area_km2"])),
+                    "up_area_km2": None,
+                    "outlet_lon": None,
+                    "outlet_lat": None,
+                }
+                for field in cat_native_fields:
+                    out_row[field.name] = cand.native_row_values.get(field.name)
+                repaired_rows.append(out_row)
+                has_repaired_rows = True
+                if len(repaired_rows) >= batch_rows:
+                    rep_cat_writer.write_batch(pa.RecordBatch.from_pylist(repaired_rows, schema=raw_cat_schema))
+                    repaired_rows = []
+
+            if repaired_rows:
+                rep_cat_writer.write_batch(pa.RecordBatch.from_pylist(repaired_rows, schema=raw_cat_schema))
+                repaired_rows = []
+        if not has_repaired_rows:
+            repaired_cat_path.unlink(missing_ok=True)
+        db.commit()
+        del candidates, reject_reasons, neighbors_checked
 
         # Pass 2a: Validate river geometries and load connectivity into SQLite.
         omitted_river_comids: dict[int, str] = {}
@@ -1219,43 +1957,40 @@ def produce(
         del cat_records
         cat_conn = topo.cat_conn
 
-        # Pass 1b: Stream catchments.arrow, lookup.arrow, and catchment graph.parquet.
+        # Pass 1c: Stream valid_cat_path (and repaired_cat_path if present) -> catchments.arrow, lookup.arrow, graph.parquet.
         insert_idx = len(CATCHMENT_RAW_FIELDS)
-        with (
-            pa.memory_map(str(raw_cat_path), "r") as raw_stream,
-            pq.ParquetWriter(output / "graph.parquet", GRAPH_SCHEMA) as cat_graph_writer,
-        ):
-            raw_reader = ipc.open_file(raw_stream)
+        cat_arrow_inputs = [valid_cat_path, *([repaired_cat_path] if has_repaired_rows else [])]
+        with pq.ParquetWriter(output / "graph.parquet", GRAPH_SCHEMA) as cat_graph_writer:
 
             def final_catchment_batches() -> Iterator[pa.RecordBatch]:
-                for batch_idx in range(raw_reader.num_record_batches):
-                    batch = raw_reader.get_batch(batch_idx)
-                    ids = cast(list[int], batch.column("id").to_pylist())
-                    bboxes = cast(list[dict[str, float]], batch.column("bbox").to_pylist())
-                    down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
-                    up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
-                    cat_graph_writer.write_table(
-                        pa.Table.from_pylist(
-                            [
-                                {
-                                    "id": cid,
-                                    "level": 0,
-                                    "upstream_ids": cat_conn.upstream_ids[cid - 1],
-                                    **dict(
-                                        zip(
-                                            ("bbox_minx", "bbox_miny", "bbox_maxx", "bbox_maxy"),
-                                            bbox.values(),
-                                            strict=True,
-                                        )
-                                    ),
-                                }
-                                for cid, bbox in zip(ids, bboxes, strict=True)
-                            ],
-                            schema=GRAPH_SCHEMA,
-                        )
-                    )
-                    cols = [*batch.columns[:insert_idx], down_arr, up_arr, *batch.columns[insert_idx:]]
-                    yield pa.RecordBatch.from_arrays(cols, schema=cat_schema)
+                for cat_input_path in cat_arrow_inputs:
+                    with pa.memory_map(str(cat_input_path), "r") as raw_stream:
+                        raw_reader = ipc.open_file(raw_stream)
+                        for batch_idx in range(raw_reader.num_record_batches):
+                            batch = raw_reader.get_batch(batch_idx)
+                            ids = cast(list[int], batch.column("id").to_pylist())
+                            bboxes = cast(list[dict[str, float]], batch.column("bbox").to_pylist())
+                            down_arr = pa.array([cat_conn.downstream_status[cid - 1] for cid in ids], type=pa.string())
+                            up_arr = pa.array([cat_conn.upstream_cuts[cid - 1] for cid in ids], type=pa.int32())
+                            cat_graph_writer.write_table(
+                                pa.Table.from_pylist(
+                                    [
+                                        {
+                                            "id": cid,
+                                            "level": 0,
+                                            "upstream_ids": cat_conn.upstream_ids[cid - 1],
+                                            "bbox_minx": bbox["xmin"],
+                                            "bbox_miny": bbox["ymin"],
+                                            "bbox_maxx": bbox["xmax"],
+                                            "bbox_maxy": bbox["ymax"],
+                                        }
+                                        for cid, bbox in zip(ids, bboxes, strict=True)
+                                    ],
+                                    schema=GRAPH_SCHEMA,
+                                )
+                            )
+                            cols = [*batch.columns[:insert_idx], down_arr, up_arr, *batch.columns[insert_idx:]]
+                            yield pa.RecordBatch.from_arrays(cols, schema=cat_schema)
 
             cat_directory = write_vectors(
                 cat_schema,
@@ -1265,7 +2000,8 @@ def produce(
                 lookup_binding="hfx:catchments_sha256",
             )
             (output / "lookup-directory.json").write_text(json.dumps(cat_directory) + "\n")
-        raw_cat_path.unlink()
+        valid_cat_path.unlink(missing_ok=True)
+        repaired_cat_path.unlink(missing_ok=True)
         cat_conn.upstream_ids.clear()
         cat_conn.downstream_status.clear()
         cat_conn.upstream_cuts.clear()
@@ -1348,13 +2084,10 @@ def produce(
                                     "id": hfx_id,
                                     "level": 0,
                                     "upstream_ids": ups_hfx,
-                                    **dict(
-                                        zip(
-                                            ("bbox_minx", "bbox_miny", "bbox_maxx", "bbox_maxy"),
-                                            bbox.values(),
-                                            strict=True,
-                                        )
-                                    ),
+                                    "bbox_minx": bbox["xmin"],
+                                    "bbox_miny": bbox["ymin"],
+                                    "bbox_maxx": bbox["xmax"],
+                                    "bbox_maxy": bbox["ymax"],
                                 }
                             )
                             if len(rows) >= batch_rows:
@@ -1381,10 +2114,12 @@ def produce(
     for path_str, expected_meta in before_hashes.items():
         if _sha256(Path(path_str)) != expected_meta["sha256"]:
             raise ValueError(f"Source file changed during normalization: {path_str}")
-    for path_obj, expected_digest in raster_before.items():
-        if _sha256(path_obj) != expected_digest:
-            raise ValueError(f"Raster source changed during normalization: {path_obj}")
 
+    geom_norm_meta = _build_geometry_normalization_meta(
+        enabled=normalize_rings,
+        part_stats=part_stats,
+        overlap_stats=overlap_stats,
+    )
     return _write_staging_outputs(
         output,
         release=release,
@@ -1413,6 +2148,9 @@ def produce(
         overflow_confluences=topo.overflow_confluences,
         aux_declarations=aux_declarations,
         partial_reason=partial_reason,
+        geometry_normalization_meta=geom_norm_meta,
+        derived_from_verified_bundle_manifest_sha256=base_manifest_sha,
+        expected_raster_sha256=raster_before,
     )
 
 
@@ -1425,26 +2163,7 @@ def produce_from_bundle(
     partial_reason: str | None = None,
 ) -> dict[str, Any]:
     """Derive catchment connectivity directly from a verified HFX 0.4.0 MERIT spatial bundle."""
-    base_manifest_path = base_spatial_dir / "manifest.json"
-    base_manifest = json.loads(base_manifest_path.read_bytes())
-    base_manifest_sha = _sha256(base_manifest_path)
-    if (
-        base_manifest.get("format_version") != "0.4.0"
-        or base_manifest.get("fabric_name") != "merit"
-        or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
-        or base_manifest.get("representation_version") != 1
-    ):
-        raise ValueError("Expected verified HFX 0.4.0 MERIT spatial-geoparquet-adjacency bundle")
-
-    for rel, identity in base_manifest["artifacts"].items():
-        path = base_spatial_dir / rel
-        if (
-            Path(rel).is_absolute()
-            or not path.resolve().is_relative_to(base_spatial_dir.resolve())
-            or not path.is_file()
-            or fingerprint(path) != identity
-        ):
-            raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+    base_manifest, base_manifest_sha = _open_verified_base_bundle(base_spatial_dir)
 
     base_meta = json.loads((base_spatial_dir / "source-metadata.json").read_bytes())
     omitted_features: list[dict[str, Any]] = json.loads((base_spatial_dir / "omitted-features.json").read_bytes())
@@ -1458,24 +2177,7 @@ def produce_from_bundle(
     if auxiliary_spec_path is not None:
         aux_declarations, raster_before = _check_and_stage_rasters(json.loads(auxiliary_spec_path.read_bytes()), output)
     else:
-        aux_declarations = list(base_manifest.get("auxiliary", []))
-        raster_before = {}
-        for entry in aux_declarations:
-            if entry.get("schema") != "hfx.aux.d8_raster.v2":
-                continue
-            for rel_ref in entry.get("artifacts", {}).values():
-                if not isinstance(rel_ref, str):
-                    continue
-                src_path = base_spatial_dir / rel_ref
-                dest = output / rel_ref
-                if Path(rel_ref).is_absolute() or not dest.resolve().is_relative_to(output.resolve()):
-                    raise ValueError(f"Raster path escapes bundle: {rel_ref}")
-                raster_before[src_path] = _sha256(src_path)
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                try:
-                    os.link(src_path, dest)
-                except OSError:
-                    shutil.copyfile(src_path, dest)
+        aux_declarations, raster_before = _stage_base_rasters(base_spatial_dir, base_manifest, output)
 
     base_cat_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["catchments"]["data"]))
     base_riv_pf = pq.ParquetFile(base_spatial_dir / str(base_manifest["families"]["rivers"]["data"]))
@@ -1485,9 +2187,14 @@ def produce_from_bundle(
         for f in base_cat_pf.schema_arrow.with_metadata({})
         if f.name not in {"downstream_boundary_status", "upstream_boundary_cuts"}
     ]
-    if [f.name for f in base_cat_fields[: len(CATCHMENT_RAW_FIELDS)]] != [f.name for f in CATCHMENT_RAW_FIELDS]:
+    base_raw_prefix = [
+        f
+        for f in CATCHMENT_RAW_FIELDS
+        if f.name != "geometry_normalization" or any(bf.name == "geometry_normalization" for bf in base_cat_fields)
+    ]
+    if [f.name for f in base_cat_fields[: len(base_raw_prefix)]] != [f.name for f in base_raw_prefix]:
         raise ValueError("Unexpected base catchments.parquet prefix layout")
-    cat_native_fields = base_cat_fields[len(CATCHMENT_RAW_FIELDS) :]
+    cat_native_fields = base_cat_fields[len(base_raw_prefix) :]
     cat_schema = pa.schema(CATCHMENT_FIELDS + cat_native_fields)
 
     riv_structural_names = {f.name for f in RIVER_FIELDS}
@@ -1500,6 +2207,7 @@ def produce_from_bundle(
     cat_count = base_cat_pf.metadata.num_rows
     riv_count = base_riv_pf.metadata.num_rows
     overall_bbox = [float("inf"), float("inf"), -float("inf"), -float("inf")]
+    delivered_part_counts: dict[str, int] = {}
 
     with _workspace_db() as (db, _scratch_dir):
         omitted_cat_count = 0
@@ -1544,6 +2252,7 @@ def produce_from_bundle(
                     )
                 is_hillslope = kind == "coastal_hillslope"
                 interned_pname = sys.intern(str(pname))
+                delivered_part_counts[interned_pname] = delivered_part_counts.get(interned_pname, 0) + 1
                 if is_hillslope:
                     hillslope_count += 1
                     comid: int | None = None
@@ -1629,7 +2338,7 @@ def produce_from_bundle(
 
         # Stream catchments.parquet -> catchments.arrow, lookup.arrow, graph.parquet.
         base_cat_names = list(base_cat_pf.schema_arrow.names)
-        prefix_indices = [base_cat_names.index(f.name) for f in CATCHMENT_RAW_FIELDS]
+        has_geom_norm = "geometry_normalization" in base_cat_names
         native_indices = [base_cat_names.index(f.name) for f in cat_native_fields]
         id_idx = base_cat_names.index("id")
         bbox_idx = base_cat_names.index("bbox")
@@ -1661,8 +2370,14 @@ def produce_from_bundle(
                             schema=GRAPH_SCHEMA,
                         )
                     )
+                    prefix_cols: list[pa.Array] = []
+                    for f in CATCHMENT_RAW_FIELDS:
+                        if f.name == "geometry_normalization" and not has_geom_norm:
+                            prefix_cols.append(pa.array(["original"] * batch.num_rows, type=pa.string()))
+                        else:
+                            prefix_cols.append(batch.column(base_cat_names.index(f.name)))
                     cols = [
-                        *[batch.column(i) for i in prefix_indices],
+                        *prefix_cols,
                         down_arr,
                         up_arr,
                         *[batch.column(i) for i in native_indices],
@@ -1742,9 +2457,59 @@ def produce_from_bundle(
             )
             (output / "river-lookup-directory.json").write_text(json.dumps(riv_directory) + "\n")
 
-    for path_obj, expected_digest in raster_before.items():
-        if _sha256(path_obj) != expected_digest:
-            raise ValueError(f"Raster source changed during normalization: {path_obj}")
+    base_repaired_src = base_spatial_dir / REPAIRED_FEATURES_ARTIFACT
+    if base_repaired_src.is_file():
+        shutil.copyfile(base_repaired_src, output / REPAIRED_FEATURES_ARTIFACT)
+    else:
+        with gzip.GzipFile(output / REPAIRED_FEATURES_ARTIFACT, mode="wb", mtime=0):
+            pass
+    geom_norm_meta = base_meta.get("geometry_normalization")
+    if geom_norm_meta is None:
+        fallback_part_stats: dict[str, dict[str, Any]] = {}
+
+        def _fstat(pname: str) -> dict[str, Any]:
+            return fallback_part_stats.setdefault(
+                pname,
+                {
+                    "total_source": 0,
+                    "already_valid": 0,
+                    "attempted": 0,
+                    "accepted": 0,
+                    "rejected": 0,
+                    "omitted_other": 0,
+                    "max_abs_area_diff_km2": 0.0,
+                    "max_rel_area_diff": 0.0,
+                },
+            )
+
+        for pname, cnt in delivered_part_counts.items():
+            fstat = _fstat(pname)
+            fstat["total_source"] += cnt
+            fstat["already_valid"] += cnt
+        for item in omitted_features:
+            if item.get("domain") == "rivers":
+                continue
+            pname = str(item["partition"])
+            fstat = _fstat(pname)
+            fstat["total_source"] += 1
+            if "repair_rejection" in item:
+                fstat["attempted"] += 1
+                fstat["rejected"] += 1
+            else:
+                fstat["omitted_other"] += 1
+
+        geom_norm_meta = _build_geometry_normalization_meta(
+            enabled=False,
+            part_stats=fallback_part_stats,
+            overlap_stats={
+                "same_partition_pairs": 0,
+                "cross_partition_pairs": 0,
+                "coastal_hillslope_pairs": 0,
+                "candidate_candidate_pairs": 0,
+                "candidate_interior_overlaps_detected": 0,
+                "accepted_interior_overlaps": 0,
+            },
+        )
 
     return _write_staging_outputs(
         output,
@@ -1774,7 +2539,9 @@ def produce_from_bundle(
         overflow_confluences=topo.overflow_confluences,
         aux_declarations=aux_declarations,
         partial_reason=partial_reason,
+        geometry_normalization_meta=geom_norm_meta,
         derived_from_verified_bundle_manifest_sha256=base_manifest_sha,
+        expected_raster_sha256=raster_before,
     )
 
 
@@ -1785,8 +2552,10 @@ def main() -> None:
     )
     parser.add_argument("output", nargs="?", type=Path)
     parser.add_argument("--from-spatial-bundle", type=Path)
+    parser.add_argument("--base-spatial-dir", type=Path)
     parser.add_argument("--auxiliary-json", type=Path)
     parser.add_argument("--batch-rows", type=int, default=4096)
+    parser.add_argument("--no-normalize-rings", action="store_true")
     parser.add_argument("--partial-reason")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
@@ -1807,6 +2576,8 @@ def main() -> None:
             args.source_or_output,
             args.output,
             auxiliary_spec_path=args.auxiliary_json,
+            base_spatial_dir=args.base_spatial_dir,
+            normalize_rings=not args.no_normalize_rings,
             batch_rows=args.batch_rows,
             partial_reason=args.partial_reason,
         )
