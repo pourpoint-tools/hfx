@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import gzip
 import hashlib
 import json
 import math
@@ -13,15 +15,30 @@ from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, cast
 
+import numpy as np
+import pyarrow as pa
 import pyarrow.ipc as ipc
 import pyarrow.parquet as pq
+import shapely
 from pyproj import Geod
-from shapely import from_wkb
+from shapely import STRtree, from_wkb, get_coordinates, prepare
+from shapely import box as shapely_box
+from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import orient
+from shapely.validation import explain_validity
 
 from hfx.candidates import fingerprint
+
+GEOMETRY_NORMALIZATION_RULE = "merit_ring_self_intersection_lossless_split_v1"
+GEODESIC_AREA_ABS_TOL_KM2 = 1e-9
+GEODESIC_AREA_REL_TOL = 1e-12
+REPAIRED_FEATURES_ARTIFACT = "repaired-features.jsonl.gz"
+MIN_WGS84_LON = -180.0
+MAX_UNWRAPPED_ANTIMERIDIAN_LON = 195.0
+ANTIMERIDIAN_QUERY_MIN_X = -165.0
+ANTIMERIDIAN_MAX_X = 180.0
 
 STRUCTURAL_FIELDS = {
     "id",
@@ -31,6 +48,7 @@ STRUCTURAL_FIELDS = {
     "source_id",
     "processing_partition",
     "catchment_kind",
+    "geometry_normalization",
     "bbox",
     "geometry",
     "area_km2",
@@ -231,6 +249,91 @@ def _raw_river_is_invalid_or_out_of_bounds(rings: list[tuple[tuple[float, float]
     return len(distinct_pts) < 2
 
 
+def _signed_ring_area(ring: tuple[tuple[float, float], ...]) -> float:
+    total = 0.0
+    for (x1, y1), (x2, y2) in zip(ring[:-1], ring[1:], strict=True):
+        total += x1 * y2 - x2 * y1
+    return 0.5 * total
+
+
+def _rings_to_raw_polygon(rings: list[tuple[tuple[float, float], ...]]) -> Polygon | MultiPolygon | None:
+    if not rings:
+        return None
+    parts: list[tuple[tuple[tuple[float, float], ...], list[tuple[tuple[float, float], ...]]]] = []
+    for ring in rings:
+        if len(ring) < 4:
+            return None
+        if _signed_ring_area(ring) <= 0 or not parts:
+            parts.append((ring, []))
+        else:
+            parts[-1][1].append(ring)
+    if len(parts) == 1:
+        return Polygon(parts[0][0], parts[0][1])
+    return MultiPolygon([Polygon(ext, holes) for ext, holes in parts])
+
+
+def _geodesic_area_km2(geom: Any, geod: Geod) -> float:
+    parts = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    area = 0.0
+    for poly in parts:
+        ext = abs(geod.polygon_area_perimeter(*poly.exterior.xy)[0])
+        holes = sum(abs(geod.polygon_area_perimeter(*ring.xy)[0]) for ring in poly.interiors)
+        area += (ext - holes) / 1e6
+    return area
+
+
+def _canon_edge_vertex_digest(rings: Sequence[Sequence[tuple[float, float]]]) -> tuple[str, int]:
+    """Hash exact IEEE 754 float64 vertex set and undirected edge multiset across rings."""
+    verts: set[tuple[float, float]] = set()
+    edges: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    zero_len = 0
+    for ring in rings:
+        pts = [(0.0 if x == 0.0 else float(x), 0.0 if y == 0.0 else float(y)) for x, y in ring]
+        verts.update(pts)
+        for a, b in zip(pts[:-1], pts[1:], strict=True):
+            if a == b:
+                zero_len += 1
+            edges.append((a, b) if a <= b else (b, a))
+    h = hashlib.sha256()
+    sorted_verts = sorted(verts)
+    h.update(struct.pack("<I", len(sorted_verts)))
+    for x, y in sorted_verts:
+        h.update(struct.pack("<2d", x, y))
+    edges.sort()
+    h.update(struct.pack("<I", len(edges)))
+    for (x1, y1), (x2, y2) in edges:
+        h.update(struct.pack("<4d", x1, y1, x2, y2))
+    return h.hexdigest(), zero_len
+
+
+def _raw_catchment_is_invalid_or_out_of_bounds(rings: list[tuple[tuple[float, float], ...]], geod: Geod) -> bool:
+    if not rings:
+        return True
+    for ring in rings:
+        for x, y in ring:
+            if (
+                not (math.isfinite(x) and math.isfinite(y))
+                or x < MIN_WGS84_LON
+                or x > MAX_UNWRAPPED_ANTIMERIDIAN_LON
+                or abs(y) > 90.0
+            ):
+                return True
+    geom = _rings_to_raw_polygon(rings)
+    if geom is None or geom.is_empty or not geom.is_valid:
+        return True
+    area_km2 = _geodesic_area_km2(geom, geod)
+    return not math.isfinite(area_km2) or area_km2 <= 0
+
+
+def _part_and_hole_counts(geom: Any) -> tuple[int, int]:
+    parts = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    return len(parts), sum(len(poly.interiors) for poly in parts)
+
+
+def _shift_x(geom: Any, dx: float) -> Any:
+    return shapely.transform(geom, lambda coords: coords + np.array([dx, 0.0], dtype=np.float64))
+
+
 def _check_acyclic_downstream(edges: set[tuple[int, int]], node_ids: Iterable[int], label: str) -> None:
     """Verify out-degree <= 1 and global acyclicity via downstream path traversal."""
     successor: dict[int, int] = {}
@@ -253,8 +356,8 @@ def _check_acyclic_downstream(edges: set[tuple[int, int]], node_ids: Iterable[in
 
 
 @contextmanager
-def _verify_db() -> Iterator[sqlite3.Connection]:
-    with TemporaryDirectory(prefix="hfx-merit-verify-") as scratch:
+def _verify_db(scratch_parent: Path | None = None) -> Iterator[sqlite3.Connection]:
+    with TemporaryDirectory(prefix="hfx-merit-verify-", dir=scratch_parent) as scratch:
         conn = sqlite3.connect(Path(scratch) / "verify.sqlite")
         try:
             conn.execute("PRAGMA cache_size = -32768")
@@ -264,7 +367,8 @@ def _verify_db() -> Iterator[sqlite3.Connection]:
             conn.execute(
                 "CREATE TABLE expected_features ("
                 "domain TEXT NOT NULL, source_namespace TEXT NOT NULL, source_id TEXT NOT NULL, "
-                "attr_digest TEXT NOT NULL, geom_sig TEXT NOT NULL, seen INTEGER NOT NULL DEFAULT 0, "
+                "attr_digest TEXT NOT NULL, geom_sig TEXT NOT NULL, is_repaired INTEGER NOT NULL DEFAULT 0, "
+                "raw_area_km2 REAL NOT NULL DEFAULT 0.0, seen INTEGER NOT NULL DEFAULT 0, "
                 "PRIMARY KEY(domain, source_namespace, source_id))"
             )
             conn.execute(
@@ -291,6 +395,7 @@ def _verify_db() -> Iterator[sqlite3.Connection]:
 
 def _validate_base_bundle_inventory(
     inventory: dict[str, Any],
+    inventory_path_bytes: bytes,
     base_spatial_dir: Path,
     spatial_dir: Path,
     *,
@@ -324,8 +429,9 @@ def _validate_base_bundle_inventory(
             raise ValueError(f"All pfaf_* partitions must be supplied when verifying with base_spatial_dir: {pname}")
 
     base_orig_path = base_spatial_dir / "original-inventory.json"
-    if (spatial_dir / "original-inventory.json").read_bytes() != base_orig_path.read_bytes():
-        raise ValueError("original-inventory.json differs from base_spatial_dir")
+    spatial_orig_bytes = (spatial_dir / "original-inventory.json").read_bytes()
+    if spatial_orig_bytes not in {base_orig_path.read_bytes(), inventory_path_bytes}:
+        raise ValueError("original-inventory.json differs from inventory and base_spatial_dir")
 
     base_orig = json.loads(base_orig_path.read_bytes())
     if base_orig.get("release") != inventory.get("release"):
@@ -398,7 +504,8 @@ def verify_spatial_bundle(
     ):
         raise ValueError("Unexpected catchment connectivity, topology, or has_up_area")
 
-    inventory = json.loads(inventory_path.read_bytes())
+    inventory_bytes = inventory_path.read_bytes()
+    inventory = json.loads(inventory_bytes)
     release = str(inventory["release"])
     partitions = sorted(inventory["partitions"], key=lambda item: item["partition"])
     hillslopes = sorted(inventory.get("coastal_hillslopes", []), key=lambda item: item["partition"])
@@ -422,18 +529,22 @@ def verify_spatial_bundle(
     if base_spatial_dir is not None:
         base_manifest, _ = _validate_base_bundle_inventory(
             inventory,
+            inventory_bytes,
             base_spatial_dir,
             spatial_dir,
             inherited_hillslopes=inherited_hillslopes,
             supplied_hillslopes=set(raw_verified_hillslopes),
         )
-    elif (spatial_dir / "original-inventory.json").read_bytes() != inventory_path.read_bytes():
+    elif (spatial_dir / "original-inventory.json").read_bytes() != inventory_bytes:
         raise ValueError("original-inventory.json differs from inventory")
 
     for rel, identity in manifest["artifacts"].items():
         path = spatial_dir / rel
         if not path.resolve().is_relative_to(spatial_dir.resolve()) or fingerprint(path) != identity:
             raise ValueError(f"Final artifact fingerprint differs: {rel}")
+
+    if REPAIRED_FEATURES_ARTIFACT not in manifest["artifacts"]:
+        raise ValueError(f"Missing {REPAIRED_FEATURES_ARTIFACT} in manifest artifacts")
 
     omitted_list = json.loads((spatial_dir / "omitted-features.json").read_bytes())
     omitted_keys = {(item["source_namespace"], item["source_id"]): item for item in omitted_list}
@@ -442,10 +553,30 @@ def verify_spatial_bundle(
     }
     cut_edges = json.loads((spatial_dir / "cut-edges.json").read_bytes())
 
+    repaired_records: dict[tuple[str, str], dict[str, Any]] = {}
+    with gzip.open(spatial_dir / REPAIRED_FEATURES_ARTIFACT, "rt", encoding="utf-8") as rep_stream:
+        for line in rep_stream:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            rec = json.loads(stripped)
+            rkey = (str(rec["source_namespace"]), str(rec["source_id"]))
+            if rkey in repaired_records:
+                raise ValueError(f"Duplicate entry in {REPAIRED_FEATURES_ARTIFACT}: {rkey}")
+            if rkey in omitted_keys:
+                raise ValueError(f"Feature in both {REPAIRED_FEATURES_ARTIFACT} and omitted-features.json: {rkey}")
+            if rec.get("rule") != GEOMETRY_NORMALIZATION_RULE:
+                raise ValueError(f"Unexpected repair rule in {REPAIRED_FEATURES_ARTIFACT}: {rec.get('rule')!r}")
+            repaired_records[rkey] = rec
+
     source_hashes: dict[str, str] = {}
     geod = Geod(ellps="WGS84")
+    obs_part_counts: dict[str, dict[str, int]] = {}
 
-    with _verify_db() as db:
+    def _opstat(pname: str) -> dict[str, int]:
+        return obs_part_counts.setdefault(pname, {"already_valid": 0, "accepted": 0, "rejected": 0, "omitted_other": 0})
+
+    with _verify_db(scratch_parent=spatial_dir.parent) as db:
         # 1. Verify original sidecar hashes and record expected delivered/omitted source features directly from .shp/.dbf.
         cat_entries: list[tuple[str, str, dict[str, Any]]] = []
         riv_entries: list[tuple[str, dict[str, Any]]] = []
@@ -487,26 +618,92 @@ def verify_spatial_bundle(
             dbf_path = shp_path.with_suffix(".dbf")
             dbf_rows = _read_dbf(dbf_path)
             shp_rows = _read_shp_parts(shp_path)
+            pstat = _opstat(pname)
             for attrs, (_, rings) in zip(dbf_rows, shp_rows, strict=True):
                 comid = int(attrs["COMID"]) if "COMID" in attrs and attrs["COMID"] is not None else None
                 raw_sid = str(comid) if comid is not None else str(attrs.get("FID"))
-                if (ns, raw_sid) in omitted_keys:
+                key = (ns, raw_sid)
+                if key in omitted_keys:
+                    if not _raw_catchment_is_invalid_or_out_of_bounds(rings, geod):
+                        raise ValueError(f"Valid catchment unexpectedly omitted: {key}")
                     if ns_domain == "catchments" and comid is not None:
                         omitted_catchments_by_part_comid.add((pname, comid))
+                    omitted_entry = omitted_keys[key]
+                    if "repair_rejection" in omitted_entry:
+                        raw_poly = _rings_to_raw_polygon(rings)
+                        if raw_poly is None or not str(explain_validity(raw_poly)).startswith(
+                            "Ring Self-intersection["
+                        ):
+                            raise ValueError(f"Rejected repair feature lacked Ring Self-intersection reason: {key}")
+                        if omitted_entry["repair_rejection"] == "geodesic_area_mismatch":
+                            rep_poly = shapely.make_valid(raw_poly, method="structure", keep_collapsed=False)
+                            raw_a = _geodesic_area_km2(raw_poly, geod)
+                            rep_a = _geodesic_area_km2(rep_poly, geod)
+                            if abs(rep_a - raw_a) <= max(GEODESIC_AREA_ABS_TOL_KM2, GEODESIC_AREA_REL_TOL * raw_a):
+                                raise ValueError(f"Rejected feature marked geodesic_area_mismatch within tol: {key}")
+                        pstat["rejected"] += 1
+                    else:
+                        pstat["omitted_other"] += 1
                     continue
                 if ns_domain == "catchments" and comid is not None:
                     delivered_catchments_by_part_comid.add((pname, comid))
                 renamed = {("native_" + k if k in STRUCTURAL_FIELDS else k): v for k, v in attrs.items()}
-                db.execute(
-                    "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0)",
-                    (
-                        "catchments",
-                        ns,
-                        raw_sid,
-                        _canon_attrs_digest(renamed),
-                        _canon_ring_signature(rings, is_polygon=True),
-                    ),
-                )
+                if key in repaired_records:
+                    rec = repaired_records[key]
+                    shp_ev_digest, shp_zero = _canon_edge_vertex_digest(rings)
+                    orig_wkb = base64.b64decode(rec["original_wkb_base64"])
+                    orig_ev_digest, orig_zero = _canon_edge_vertex_digest(_wkb_rings(orig_wkb))
+                    if shp_zero > 0 or orig_zero > 0 or shp_ev_digest != orig_ev_digest:
+                        raise ValueError(f"repaired-features.jsonl.gz original_wkb differs from raw shapefile: {key}")
+                    raw_geom = from_wkb(orig_wkb)
+                    if raw_geom.is_valid:
+                        raise ValueError(f"Repaired feature had valid original geometry: {key}")
+                    raw_reason = str(explain_validity(raw_geom))
+                    if not raw_reason.startswith("Ring Self-intersection["):
+                        raise ValueError(f"Repaired feature had ineligible raw validity reason {raw_reason!r}: {key}")
+                    raw_area = _geodesic_area_km2(raw_geom, geod)
+                    if not math.isfinite(raw_area) or raw_area <= 0:
+                        raise ValueError(f"Repaired feature had non-positive raw geodesic area: {key}")
+                    raw_parts, raw_holes = _part_and_hole_counts(raw_geom)
+                    if raw_parts != rec.get("raw_part_count") or raw_holes != rec.get("raw_hole_count"):
+                        raise ValueError(f"Repaired feature raw part/hole counts disagree with provenance: {key}")
+                    if rec.get("raw_validity_reason") != raw_reason:
+                        raise ValueError(f"Repaired feature raw_validity_reason disagrees with raw geometry: {key}")
+                    expected_checks = {
+                        "valid_polygonal": True,
+                        "vertices_exact": True,
+                        "edges_exact": True,
+                        "geodesic_area_within_tolerance": True,
+                        "zero_sibling_interior_overlap": True,
+                    }
+                    if rec.get("checks") != expected_checks:
+                        raise ValueError(f"Repaired feature checks disagree with contract: {key}")
+                    rec_raw_area = float(rec.get("raw_geodesic_area_km2", -1.0))
+                    rec_rep_area = float(rec.get("repaired_geodesic_area_km2", -1.0))
+                    if abs(rec_raw_area - raw_area) > max(1e-12, 1e-12 * raw_area):
+                        raise ValueError(f"Repaired feature raw_geodesic_area_km2 disagrees with raw shapefile: {key}")
+                    if abs(rec_rep_area - rec_raw_area) > max(
+                        GEODESIC_AREA_ABS_TOL_KM2, GEODESIC_AREA_REL_TOL * rec_raw_area
+                    ):
+                        raise ValueError(f"Repaired feature provenance area diff exceeds tolerance: {key}")
+                    rec.pop("original_wkb_base64", None)
+                    pstat["accepted"] += 1
+                    db.execute(
+                        "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 1, ?, 0)",
+                        ("catchments", ns, raw_sid, _canon_attrs_digest(renamed), shp_ev_digest, raw_area),
+                    )
+                else:
+                    pstat["already_valid"] += 1
+                    db.execute(
+                        "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0, 0.0, 0)",
+                        (
+                            "catchments",
+                            ns,
+                            raw_sid,
+                            _canon_attrs_digest(renamed),
+                            _canon_ring_signature(rings, is_polygon=True),
+                        ),
+                    )
 
         for pname, entry in riv_entries:
             ns = f"{release}/{pname}/rivers"
@@ -523,7 +720,7 @@ def verify_spatial_bundle(
                     continue
                 renamed = {("native_" + k if k in STRUCTURAL_FIELDS else k): v for k, v in attrs.items()}
                 db.execute(
-                    "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0)",
+                    "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0, 0.0, 0)",
                     (
                         "rivers",
                         ns,
@@ -563,6 +760,7 @@ def verify_spatial_bundle(
             "source_id",
             "processing_partition",
             "catchment_kind",
+            "geometry_normalization",
             "bbox",
             "geometry",
             "area_km2",
@@ -573,6 +771,23 @@ def verify_spatial_bundle(
             "upstream_boundary_cuts",
         }
         cat_all_native = [n for n in cat_parquet.schema_arrow.names if n not in cat_structural]
+
+        norm_dict = next(
+            (
+                entry
+                for entry in manifest.get("categorical_columns", [])
+                if entry.get("artifact") == manifest["families"]["catchments"]["data"]
+                and entry.get("column") == "geometry_normalization"
+            ),
+            None,
+        )
+        if (
+            norm_dict is None
+            or norm_dict.get("physical_type") != "string"
+            or norm_dict.get("null_meaning") != "not permitted"
+            or {item["code"] for item in norm_dict.get("codes", [])} != {"original", "ring_self_intersection_split"}
+        ):
+            raise ValueError("Missing or invalid categorical_columns dictionary for geometry_normalization")
 
         if inherited_hillslopes:
             assert base_spatial_dir is not None and base_manifest is not None
@@ -597,9 +812,14 @@ def verify_spatial_bundle(
                     ns, sid = row["source_namespace"], row["source_id"]
                     if (ns, sid) in omitted_keys:
                         raise ValueError(f"Unexpected inherited hillslope in omitted-features.json: {(ns, sid)}")
+                    if (ns, sid) in repaired_records:
+                        raise ValueError(f"Inherited hillslope unexpectedly marked repaired: {(ns, sid)}")
+                    if row.get("geometry_normalization", "original") != "original":
+                        raise ValueError(f"Unexpected geometry_normalization on inherited hillslope: {(ns, sid)}")
+                    _opstat(str(row["processing_partition"]))["already_valid"] += 1
                     row_attrs = {k: row[k] for k in base_all_native}
                     db.execute(
-                        "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0)",
+                        "INSERT INTO expected_features VALUES (?, ?, ?, ?, ?, 0, 0.0, 0)",
                         (
                             "catchments",
                             ns,
@@ -611,6 +831,7 @@ def verify_spatial_bundle(
             db.commit()
 
         delivered_catchments = 0
+        verified_repaired: list[tuple[int, str, str, Any]] = []
         for rg_idx in range(cat_parquet.num_row_groups):
             for row in cat_parquet.read_row_group(rg_idx).to_pylist():
                 delivered_catchments += 1
@@ -618,10 +839,11 @@ def verify_spatial_bundle(
                 if (ns, sid) in omitted_keys:
                     raise ValueError(f"Omitted feature leaked into catchments.parquet: {(ns, sid)}")
                 exp = db.execute(
-                    "SELECT attr_digest, geom_sig, seen FROM expected_features WHERE domain='catchments' AND source_namespace=? AND source_id=?",
+                    "SELECT attr_digest, geom_sig, is_repaired, raw_area_km2, seen "
+                    "FROM expected_features WHERE domain='catchments' AND source_namespace=? AND source_id=?",
                     (ns, sid),
                 ).fetchone()
-                if exp is None or exp[2] != 0:
+                if exp is None or exp[4] != 0:
                     raise ValueError(f"Unexpected or duplicate catchment row {(ns, sid)}")
                 ns_domain = "coastal_hillslopes" if row["catchment_kind"] == "coastal_hillslope" else "catchments"
                 present_cols = cat_native_names[(pname, ns_domain)]
@@ -629,12 +851,53 @@ def verify_spatial_bundle(
                 if _canon_attrs_digest(row_attrs) != exp[0]:
                     raise ValueError(f"Catchment native attributes differ: {(ns, sid)}")
                 wkb = row["geometry"]
-                if _canon_ring_signature(_wkb_rings(wkb), is_polygon=True) != exp[1]:
-                    raise ValueError(f"Catchment geometry vertices differ: {(ns, sid)}")
                 geom = from_wkb(wkb)
-                if not geom.is_valid or geom.is_empty:
+                if (
+                    geom.is_empty
+                    or not geom.is_valid
+                    or geom.geom_type not in {"Polygon", "MultiPolygon"}
+                    or geom.has_z
+                    or geom.has_m
+                ):
                     raise ValueError(f"Invalid geometry in catchments.parquet: {(ns, sid)}")
-                expected_area = abs(geod.geometry_area_perimeter(orient(geom, sign=1.0))[0]) / 1e6
+                coords = get_coordinates(geom)
+                if (
+                    not len(coords)
+                    or not np.all(np.isfinite(coords))
+                    or np.any(coords[:, 0] < MIN_WGS84_LON)
+                    or np.any(coords[:, 0] > MAX_UNWRAPPED_ANTIMERIDIAN_LON)
+                    or np.any(np.abs(coords[:, 1]) > 90.0)
+                ):
+                    raise ValueError(f"Catchment coordinates out of bounds: {(ns, sid)}")
+
+                is_repaired = int(exp[2]) == 1
+                obs_norm = row.get("geometry_normalization")
+                expected_norm = "ring_self_intersection_split" if is_repaired else "original"
+                if obs_norm != expected_norm:
+                    raise ValueError(
+                        f"Unexpected geometry_normalization {obs_norm!r} != {expected_norm!r} for {(ns, sid)}"
+                    )
+                if is_repaired:
+                    rec = repaired_records[(ns, sid)]
+                    if rec.get("hfx_id") != row["id"]:
+                        raise ValueError(f"repaired-features.jsonl.gz hfx_id mismatch for {(ns, sid)}")
+                    rep_ev_digest, rep_zero = _canon_edge_vertex_digest(_wkb_rings(wkb))
+                    if rep_zero > 0 or rep_ev_digest != exp[1]:
+                        raise ValueError(f"Repaired catchment geometry edge/vertex mismatch: {(ns, sid)}")
+                    raw_area = float(exp[3])
+                    rep_area = _geodesic_area_km2(geom, geod)
+                    if abs(rep_area - raw_area) > max(GEODESIC_AREA_ABS_TOL_KM2, GEODESIC_AREA_REL_TOL * raw_area):
+                        raise ValueError(f"Repaired catchment geodesic area mismatch: {(ns, sid)}")
+                    rep_parts, rep_holes = _part_and_hole_counts(geom)
+                    if rep_parts != rec.get("repaired_part_count") or rep_holes != rec.get("repaired_hole_count"):
+                        raise ValueError(f"Repaired catchment part/hole count mismatch: {(ns, sid)}")
+                    expected_area = rep_area
+                    verified_repaired.append((int(row["id"]), pname, sid, geom))
+                else:
+                    if _canon_ring_signature(_wkb_rings(wkb), is_polygon=True) != exp[1]:
+                        raise ValueError(f"Catchment geometry vertices differ: {(ns, sid)}")
+                    expected_area = abs(geod.geometry_area_perimeter(orient(geom, sign=1.0))[0]) / 1e6
+
                 if abs(row["area_km2"] - expected_area) > max(1e-5, expected_area * 1e-6):
                     raise ValueError(f"Geodesic area differs for {(ns, sid)}")
                 b = row["bbox"]
@@ -1008,6 +1271,161 @@ def verify_spatial_bundle(
         source_meta = json.loads((spatial_dir / "source-metadata.json").read_bytes())
         if source_meta.get("catchment_connectivity", {}).get("counts") != expected_meta_counts:
             raise ValueError("source-metadata.json catchment_connectivity.counts differs from independent verification")
+
+        flow_edges_count = len(expected_edges)
+        catchment_flow_edges_count = len(expected_cat_edges)
+        local_associations_count = len(expected_local_pairs)
+
+        # Release Step 3 river/graph memory before allocating global Step 4 spatial indexes.
+        del (
+            all_rivs,
+            expected_edges,
+            actual_down_edges,
+            actual_up_edges,
+            actual_riv_local,
+            expected_local_pairs,
+            expected_cat_edges,
+            obs_cats,
+            riv_incoming_by_comid,
+            riv_part_map,
+            next_down_map,
+            ups_map,
+            riv_comid_to_id,
+            cat_part_comid_to_id,
+            anc_has_gap,
+            anc_has_delivered,
+            anc_has_stranded,
+            delivered_catchments_by_part_comid,
+            omitted_catchments_by_part_comid,
+        )
+
+        # 4. Independent global sibling interior non-overlap verification for all repaired catchments
+        #    and reconciliation of source-metadata.json["geometry_normalization"] counts.
+        repaired_overlap_pairs_checked = 0
+        if verified_repaired:
+            rep_geoms = [item[3] for item in verified_repaired]
+            for g in rep_geoms:
+                prepare(g)
+            rep_bounds = [g.bounds for g in rep_geoms]
+            has_antimeridian = any(b[0] < ANTIMERIDIAN_QUERY_MIN_X or b[2] > ANTIMERIDIAN_MAX_X for b in rep_bounds)
+            rep_tree = STRtree(rep_geoms)
+
+            for i, (hid_i, _pname_i, _sid_i, g_i) in enumerate(verified_repaired):
+                b_i = rep_bounds[i]
+                queries: list[tuple[float, Any]] = [(0.0, g_i)]
+                if has_antimeridian:
+                    if b_i[2] > ANTIMERIDIAN_MAX_X:
+                        queries.append((-360.0, _shift_x(g_i, -360.0)))
+                    if b_i[0] < ANTIMERIDIAN_QUERY_MIN_X:
+                        queries.append((360.0, _shift_x(g_i, 360.0)))
+                for shift_dx, q_geom in queries:
+                    for j in rep_tree.query(q_geom, predicate="intersects"):
+                        j_idx = int(j)
+                        if j_idx <= i:
+                            continue
+                        g_j = _shift_x(rep_geoms[j_idx], -shift_dx) if shift_dx else rep_geoms[j_idx]
+                        if shift_dx != 0.0 and not g_i.intersects(g_j):
+                            continue
+                        repaired_overlap_pairs_checked += 1
+                        if g_i.relate_pattern(g_j, "2********"):
+                            raise ValueError(
+                                f"Repaired catchments have sibling interior overlap: {hid_i} vs {verified_repaired[j_idx][0]}"
+                            )
+
+            for batch in cat_parquet.iter_batches(
+                batch_size=8192,
+                columns=["id", "geometry_normalization", "bbox", "geometry"],
+            ):
+                norms = cast(list[str], batch.column("geometry_normalization").to_pylist())
+                orig_mask = np.array([v == "original" for v in norms], dtype=bool)
+                if not np.any(orig_mask):
+                    continue
+                orig_indices = np.flatnonzero(orig_mask)
+                bounds_arr = cast(pa.StructArray, batch.column("bbox"))
+                xmins = bounds_arr.field("xmin").to_numpy().astype(np.float64)[orig_indices]
+                ymins = bounds_arr.field("ymin").to_numpy().astype(np.float64)[orig_indices]
+                xmaxs = bounds_arr.field("xmax").to_numpy().astype(np.float64)[orig_indices]
+                ymaxs = bounds_arr.field("ymax").to_numpy().astype(np.float64)[orig_indices]
+                ids_col = cast(list[int], batch.column("id").to_pylist())
+                wkbs = batch.column("geometry")
+
+                hit_batches: list[tuple[float, np.ndarray, np.ndarray]] = []
+                r0, c0 = rep_tree.query(shapely_box(xmins, ymins, xmaxs, ymaxs))
+                if len(r0):
+                    hit_batches.append((0.0, orig_indices[r0], c0))
+                if has_antimeridian:
+                    west_sub = np.flatnonzero(xmins < ANTIMERIDIAN_QUERY_MIN_X)
+                    if len(west_sub):
+                        wr, wc = rep_tree.query(
+                            shapely_box(
+                                xmins[west_sub] + 360.0, ymins[west_sub], xmaxs[west_sub] + 360.0, ymaxs[west_sub]
+                            )
+                        )
+                        if len(wr):
+                            hit_batches.append((360.0, orig_indices[west_sub[wr]], wc))
+                    east_sub = np.flatnonzero(xmaxs > ANTIMERIDIAN_MAX_X)
+                    if len(east_sub):
+                        er, ec = rep_tree.query(
+                            shapely_box(
+                                xmins[east_sub] - 360.0, ymins[east_sub], xmaxs[east_sub] - 360.0, ymaxs[east_sub]
+                            )
+                        )
+                        if len(er):
+                            hit_batches.append((-360.0, orig_indices[east_sub[er]], ec))
+
+                decoded_cache: dict[int, Any] = {}
+                for shift_dx, row_arr, cand_arr in hit_batches:
+                    for row_pos_raw, cand_idx_raw in zip(row_arr.tolist(), cand_arr.tolist(), strict=True):
+                        row_pos = int(row_pos_raw)
+                        cand_idx = int(cand_idx_raw)
+                        v_base = decoded_cache.get(row_pos)
+                        if v_base is None:
+                            v_base = from_wkb(wkbs[row_pos].as_py())
+                            decoded_cache[row_pos] = v_base
+                        v_geom = _shift_x(v_base, shift_dx) if shift_dx else v_base
+                        g_rep = rep_geoms[cand_idx]
+                        if not g_rep.intersects(v_geom):
+                            continue
+                        repaired_overlap_pairs_checked += 1
+                        if g_rep.relate_pattern(v_geom, "2********"):
+                            raise ValueError(
+                                f"Repaired catchment {verified_repaired[cand_idx][0]} has sibling interior overlap "
+                                f"with original catchment {ids_col[row_pos]}"
+                            )
+
+        if len(verified_repaired) != len(repaired_records):
+            raise ValueError("repaired-features.jsonl.gz contains unmatched records absent from catchments.parquet")
+
+        gnorm_meta = source_meta.get("geometry_normalization")
+        if not isinstance(gnorm_meta, dict):
+            raise ValueError("Missing source-metadata.json geometry_normalization section")
+        gcounts = gnorm_meta.get("global_counts", {})
+        exp_accepted = sum(s["accepted"] for s in obs_part_counts.values())
+        exp_valid = sum(s["already_valid"] for s in obs_part_counts.values())
+        exp_rejected = sum(s["rejected"] for s in obs_part_counts.values())
+        exp_other = sum(s["omitted_other"] for s in obs_part_counts.values())
+        if (
+            gcounts.get("accepted") != exp_accepted
+            or gcounts.get("already_valid") != exp_valid
+            or gcounts.get("rejected") != exp_rejected
+            or gcounts.get("omitted_other") != exp_other
+            or gcounts.get("attempted") != exp_accepted + exp_rejected
+            or gcounts.get("total_source") != exp_valid + exp_accepted + exp_rejected + exp_other
+            or gnorm_meta.get("overlap_validation", {}).get("accepted_interior_overlaps") != 0
+        ):
+            raise ValueError("source-metadata.json geometry_normalization counts differ from independent verification")
+        meta_parts = gnorm_meta.get("by_partition", {})
+        for pname, counts in obs_part_counts.items():
+            mp = meta_parts.get(pname)
+            if (
+                mp is None
+                or any(mp.get(k) != v for k, v in counts.items())
+                or mp.get("attempted") != counts["accepted"] + counts["rejected"]
+                or mp.get("total_source")
+                != counts["already_valid"] + counts["accepted"] + counts["rejected"] + counts["omitted_other"]
+            ):
+                raise ValueError(f"source-metadata.json geometry_normalization partition {pname} counts differ")
+
         if (
             base_spatial_dir is not None
             and "derived_from_verified_bundle_manifest_sha256" in source_meta
@@ -1023,12 +1441,14 @@ def verify_spatial_bundle(
     return {
         "status": "passed",
         "delivered_catchments": delivered_catchments,
+        "repaired_catchments": len(verified_repaired),
+        "repaired_overlap_pairs_checked": repaired_overlap_pairs_checked,
         "delivered_rivers": delivered_rivers,
         "omitted_catchments": len([x for x in omitted_list if x["domain"] != "rivers"]),
         "omitted_rivers": len([x for x in omitted_list if x["domain"] == "rivers"]),
-        "flow_edges": len(expected_edges),
-        "catchment_flow_edges": len(expected_cat_edges),
-        "local_associations": len(expected_local_pairs),
+        "flow_edges": flow_edges_count,
+        "catchment_flow_edges": catchment_flow_edges_count,
+        "local_associations": local_associations_count,
         "cut_edges": len(cut_edges),
         "raw_shapefile_verified_hillslope_partitions": sorted(raw_verified_hillslopes),
         "base_bundle_verified_hillslope_partitions": sorted(inherited_hillslopes),

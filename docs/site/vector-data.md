@@ -40,6 +40,37 @@ them is nonconforming; recording an anomaly does not waive the invariant. Invest
 such originals and obtain an explicit contract decision before production rather
 than silently repairing geometry or relaxing containment. Record validation
 coverage separately: sampled checks do not establish worldwide conformance.
+
+For MERIT-Basins source catchments only, an explicitly approved narrow ring-normalization
+rule admits invalid source polygons whose raw OGC validity failure begins with
+`Ring Self-intersection[` (raster-to-polygon self-touching rings at pixel corners),
+without authorizing arbitrary geometry cleanup, simplification, hole filling, or a new
+HFX format version. Already valid source geometries remain unchanged. An eligible
+MERIT repair is admitted only when every check below passes without relaxing
+thresholds:
+
+1. Output is a valid, non-empty `Polygon` or `MultiPolygon` without Z or M ordinates
+   and with finite WGS84 coordinates within declared bounds.
+2. Exact IEEE 754 `float64` source vertex set is preserved.
+3. Exact IEEE 754 `float64` source undirected edge multiset is preserved, retaining all
+   holes and disconnected components without moving, filling, simplifying, or
+   discarding source land.
+4. WGS84 geodesic area changes by at most `max(1e-9, 1e-12 * raw_area_km2)` km².
+5. Sibling interior non-overlap (`DE-9IM` pattern `2********` is false) holds against all
+   relevant delivered neighbors globally across partitions and coastal hillslopes,
+   including other candidate repairs; pre-existing overlap is not waived.
+
+Features outside this rule or failing any acceptance check remain omitted with explicit
+reasons in `omitted-features.json`. Real-area MERIT catchment gaps are restored only
+through valid source-backed polygons under this rule and are never bridged by graph
+contraction, preserving TDX-Hydro's distinct zero-length, zero-area virtual-link
+contraction rule without broadening it. Every MERIT catchment records non-nullable
+`geometry_normalization: string` (`"original"` or `"ring_self_intersection_split"`,
+declared in `categorical_columns`), per-feature audit records with original WKB, raw
+failure reason, ring/part counts, algorithm, and measured checks in
+`repaired-features.jsonl.gz`, and library versions and exhaustive per-partition counts
+in `source-metadata.json`.
+
 Components may have multiple or no represented outlets, including coastal and
 inland sink polygon-only units. Outlet coordinates are either both null or both
 present. Supply them only for a single source-described outlet; never choose an

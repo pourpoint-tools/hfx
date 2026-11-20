@@ -1,0 +1,1166 @@
+{
+  "issue": "https://github.com/pourpoint-tools/hfx/issues/292",
+  "originating_discussion": "https://github.com/CooperBigFoot/hydrologeez/issues/203",
+  "vision": "planning/visions/2026-11-19-merit-source-geometry-restoration.md",
+  "base_candidate_bundle": {
+    "issue": "https://github.com/pourpoint-tools/hfx/issues/285",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261118-connectivity-candidate/manifest.json",
+    "manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d",
+    "reused_components": [
+      "aux/d8/flow_acc.tif",
+      "aux/d8/flow_dir.tif"
+    ],
+    "status": "preserved_untouched"
+  },
+  "raw_source_acquisition": {
+    "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+    "pinned_inventory": "scripts/provenance/merit-delivery.json",
+    "status": "passed",
+    "pfaf_partitions": 61,
+    "pfaf_catchment_sidecars": 244,
+    "pfaf_river_sidecars": 305,
+    "coastal_hillslopes_supplied": 60,
+    "coastal_hillslopes_inherited": 0,
+    "inventory_path": "/data2/merit-geometry-restoration/inventory.json"
+  },
+  "destination": {
+    "access_mode": "private_authenticated_s3",
+    "unauthenticated_https_status": 403,
+    "public_acl_grants": 0,
+    "s3_endpoint": "https://fsn1.your-objectstorage.com",
+    "bucket": "pourpoint-hfx",
+    "prefix": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/",
+    "s3_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+    "s3_manifest_uri": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/manifest.json",
+    "https_bundle_url": "https://fsn1.your-objectstorage.com/pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+    "manifest_identity": {
+      "key": "merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration/manifest.json",
+      "upload_method": "put_object_last",
+      "size_bytes": 16282,
+      "sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "etag": "\"dd85c26ff38b244962315fde8b3ab324\""
+    },
+    "artifacts": {
+      "CITATION.txt": {
+        "upload_method": "put_object",
+        "size_bytes": 577,
+        "sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "head_sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "tail_sha256": "61c07293e422c46b24341c1534078a1061415ffd1cc522646a7fc1d7b6281253",
+        "etag": "\"e6366fc1e179b2f8b1a5291709cf972c\""
+      },
+      "NOTICE": {
+        "upload_method": "put_object",
+        "size_bytes": 2506,
+        "sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "head_sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "tail_sha256": "143165465f2d02c61ee6815c37a6c3e9d3d8f13b7dd8013a48a5dc5387261f71",
+        "etag": "\"6cfb3c4adcd0fadeca1d8ff2d1eeaeec\""
+      },
+      "aux/d8/flow_acc.tif": {
+        "upload_method": "server_side_multipart_copy",
+        "size_bytes": 33809377414,
+        "sha256": "47d63b4947b4f39e9aa8825e53b7a8b5adf03312429b4a7145e6b7533be78740",
+        "head_sha256": "5ac803c6b8eff0dc044b17ca5c621a3880493ce684e68ed6bf160ef1ab1191cf",
+        "tail_sha256": "95e9111e7ad825cc5dd2aebaaed85128c960a267dc392068ca14e6616fbef7c0",
+        "etag": "\"4e2062720cb828d796e8454956283c17-323\""
+      },
+      "aux/d8/flow_dir.tif": {
+        "upload_method": "server_side_multipart_copy",
+        "size_bytes": 6357742200,
+        "sha256": "ff060460034ae7210badd2d04e8991373ff0442c7549d2d3f46e4ec9ad2645e4",
+        "head_sha256": "2c3e41454a6a65323d91a87f8ad4aef6b768904a22c143e7b56cc18479d1d8a9",
+        "tail_sha256": "1d6d1f6c833b48b1703f961ad8b2495230156ed3e2232ce0d97432e3512ebe54",
+        "etag": "\"3eb90399dc67320a55f815e4cb944e43-61\""
+      },
+      "catchments-lookup-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3378,
+        "sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "head_sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "tail_sha256": "2d0ba9b5d681e44075e67c714805fda0de2bc54ca8c46fd837de119346d67b85",
+        "etag": "\"a911de097b0397f8ea36409f15073b01\""
+      },
+      "catchments-lookup.arrow": {
+        "upload_method": "put_object",
+        "size_bytes": 51446106,
+        "sha256": "9a0dd45f5e028d31d8f06b5de27e299fb01e843979cb2e750dfc801a389c5ce1",
+        "head_sha256": "6e27e8fcc0be87d3a9b322cdb99c2f12b27d3cca2af4b420680ce14f59118584",
+        "tail_sha256": "dc3eaab430d0e1631d260cbe458b3d04f39b6366f2b14ae8714e97abbd1b2240",
+        "etag": "\"abb18e46bee5999199ffea0bd3ff40d2\""
+      },
+      "catchments-relationships-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 26366,
+        "sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "head_sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "tail_sha256": "83f24c2df0d14c0bed52c94cd02d4d4d972b8fa7956691c7bc6d1bd38af59c56",
+        "etag": "\"9423ea6a61fe721732d3ffc3ab888b60\""
+      },
+      "catchments-relationships.arrow": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 133961066,
+        "sha256": "a5aa5476d9bf0ce0d6284b666c9739d337cfa3d707ba09bc45514b1f7381b566",
+        "head_sha256": "f01adcbf5b3bb486aec0469f447805612c20379375146abb925f4528da73abe9",
+        "tail_sha256": "b5972c58ef867b82e3dccca6a32b52ac6969db7b90820907a3bf7e5652bd2a2d",
+        "etag": "\"0d2bd1a2d5e29eae18ebcb27ddcbdb78-2\""
+      },
+      "catchments.parquet": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 3627040041,
+        "sha256": "ac775c0cf8546564824b34b46c08b6e23f7487fb76fb9a9097b3aeab0bd622e1",
+        "head_sha256": "79d2a3015d6c272a714af5185c91bd6202e6c46cfb17d085e6752c3d8c4fcab4",
+        "tail_sha256": "472b2b943c54d418555a5fabca6c6918c9c926826c8adf84c4ce010b06b85b64",
+        "etag": "\"97edff94074652359a1e71f725193330-55\""
+      },
+      "cut-edges.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "head_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "tail_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "etag": "\"58e0494c51d30eb3494f7c9198986bb9\""
+      },
+      "omitted-features.json": {
+        "upload_method": "put_object",
+        "size_bytes": 935178,
+        "sha256": "291ae1fd8b0946f88977cd5f81911c258d76256df29828455dabeb1497876663",
+        "head_sha256": "31887b9fbc6581efce7ebefcce9daf9d91c998313785eab07712b267a86c6dbc",
+        "tail_sha256": "d917c7cf4d873339c90c6679e0c16900b43daa094e5ff236e693623f39a70695",
+        "etag": "\"d9ecf18c4c077e8e15cdf0d20d93e391\""
+      },
+      "original-inventory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 301890,
+        "sha256": "0fabe51eaabaef9bf12e2dff7ab616bb03de75af2d2d55b7c52bba398b0ef0d5",
+        "head_sha256": "e3c2a45463e694f2ddd350043a75ce4503fc86d21477da5b198a2438fe3330a5",
+        "tail_sha256": "47406516e34008bf6aedeb01482a0a673977585f0ac52bf82fcd5aade3e86abb",
+        "etag": "\"a9662178d7a65585127e8136e434ec82\""
+      },
+      "repaired-features.jsonl.gz": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 486136059,
+        "sha256": "c3ea2d9730b901d40c526d10fbb9030e7e2adc009e687db2cbcae768e64071c9",
+        "head_sha256": "2c8b425845e9fa8780cb77508692fe2a9b1d053d4a4c40074eb6588f3a3703b0",
+        "tail_sha256": "564140e985d476ea377572d5ab212a60f47a125a405894f523c8dee34c094cf7",
+        "etag": "\"a10596a29e57d007db72838472f085ac-8\""
+      },
+      "rivers-lookup-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 3039,
+        "sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "head_sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "tail_sha256": "94e69b6aa8f245cd100b7433b33ae4c4114790be55b04eca6b917be657725227",
+        "etag": "\"f18d03c5e85777482e8b6259310b3233\""
+      },
+      "rivers-lookup.arrow": {
+        "upload_method": "put_object",
+        "size_bytes": 47037498,
+        "sha256": "779ec8a7ac7e9d9719e7278e447b89ab77ee365e5efef16c1599bf47b1fcf7ac",
+        "head_sha256": "de66bd43135db0b857c8670d85f5e32c5fa23eb4ecdafa68c3dc643dc4f92711",
+        "tail_sha256": "5ea5fdf26ceaaec16498515c51d7eaff235a8686b6d77f1c1f1bd560a9c36643",
+        "etag": "\"012086286c6d7d0ab165deb1aa1f51a9\""
+      },
+      "rivers-relationships-directory.json": {
+        "upload_method": "put_object",
+        "size_bytes": 24054,
+        "sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "head_sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "tail_sha256": "2a8b43e90620a358fd02c2d9b402920f395c9d8a3da27233510a7833e37219e9",
+        "etag": "\"fef25c1eec1ef7305c908299e43d3a3b\""
+      },
+      "rivers-relationships.arrow": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 128482906,
+        "sha256": "0fe9e4a9a9927b462b4558a8c0ce4264de486d308d9afd02abfdf8ede09790b5",
+        "head_sha256": "b4052a49e35df987c8bca981480096aa958ea9c8b727a4c3f69ae48f3e136af5",
+        "tail_sha256": "0f93e88ad11f64408da9cb757f834c4f91543757891a3933409bcbc7465824cb",
+        "etag": "\"7998980377c9c4452d80b7f0028f79f5-2\""
+      },
+      "rivers.parquet": {
+        "upload_method": "multipart_upload",
+        "size_bytes": 1061960063,
+        "sha256": "4c99a872996f4c61c72ede4da16496d99509b27e1a6bb9b80073ba8a9bd9c9d9",
+        "head_sha256": "f46d09374d8447a526db38f762bd4899d8f42980b0d48d52e719fb766775a377",
+        "tail_sha256": "591cf6ad384a739ab268534e38f4cb5ecb7ef4b1faff871cf09512891cc61f79",
+        "etag": "\"392f258927e9a70ee67756fea3ced728-16\""
+      },
+      "source-manifest.json": {
+        "upload_method": "put_object",
+        "size_bytes": 11110,
+        "sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "head_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "tail_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+        "etag": "\"cf88ad1778e6b93f67d71bb0f8d02b69\""
+      },
+      "source-metadata.json": {
+        "upload_method": "put_object",
+        "size_bytes": 93471,
+        "sha256": "78c28db357fe280142e9cd1754655122fc9bdbe4957da301c7f1c4df5cdb9d4a",
+        "head_sha256": "7bd1ee7cb3d904801ef8eb06fee6efbc638cc42338c9874d266c17bb869c2b1c",
+        "tail_sha256": "a246377408bd1260f72b1f12c450c2dd7b386713dc5d1402b7dda45d24f20662",
+        "etag": "\"69825ec313793bfce6f3325043470a90\""
+      }
+    },
+    "publication_elapsed_seconds": 1831.9930332460208
+  },
+  "storage_governance": {
+    "allowance_bytes": 1000000000000,
+    "pre_upload_object_count": 599,
+    "pre_upload_total_bytes": 720729113533,
+    "pre_upload_inventory_sha256": "085a59ea0efe2af7532db57ea2379f13e3e1f800bf7db2ca27fd5a73001f319b",
+    "bundle_total_bytes": 45704601207,
+    "post_upload_object_count": 620,
+    "post_upload_total_bytes": 766433714740,
+    "post_upload_remaining_1tb_headroom_bytes": 233566285260,
+    "pre_existing_objects_unchanged_sha256": "085a59ea0efe2af7532db57ea2379f13e3e1f800bf7db2ca27fd5a73001f319b",
+    "concurrent_tdx_connectivity_bundle_bytes": 77894757874,
+    "projected_remaining_1tb_headroom_after_tdx_bytes": 155671527386
+  },
+  "manifest_summary": {
+    "format_version": "0.4.0",
+    "fabric_name": "merit",
+    "fabric_version": "MERIT-Hydro-v07-Basins-v01-bugfix1",
+    "adapter_version": "merit-original-3",
+    "unit_count": 3214509,
+    "river_count": 2939054,
+    "bbox": [
+      -179.15042114257812,
+      -56.53791809082031,
+      191.0029296875,
+      83.67625427246094
+    ],
+    "artifact_count": 20
+  },
+  "produce_receipt": {
+    "status": "passed",
+    "delivered_catchments": 3214509,
+    "delivered_channelized_catchments": 2937138,
+    "delivered_coastal_hillslopes": 277371,
+    "repaired_catchments": 147057,
+    "rejected_repair_catchments": 2266,
+    "delivered_rivers": 2939054,
+    "omitted_catchments": 2266,
+    "omitted_rivers": 354,
+    "cut_edges": 0,
+    "catchment_flow_edges": 2874189,
+    "upstream_complete_catchments": 2850279,
+    "manifest_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+    "derived_from_verified_bundle_manifest_sha256": "9d3d48af7fe6f1dbd9661621cba307d662e6a35eee65f7de3911a6c31edecb2d"
+  },
+  "geometry_normalization_summary": {
+    "rule": "merit_ring_self_intersection_lossless_split_v1",
+    "algorithm": "shapely.make_valid(method='structure', keep_collapsed=False)",
+    "versions": {
+      "python": "3.13.18",
+      "shapely": "2.2.0",
+      "geos": "3.14.1",
+      "pyproj": "3.8.0",
+      "fiona": "1.10.1"
+    },
+    "tolerances": {
+      "geodesic_area_abs_tol_km2": 1e-09,
+      "geodesic_area_rel_tol": 1e-12,
+      "interior_overlap_pattern": "2********"
+    },
+    "global_counts": {
+      "total_source": 3216775,
+      "already_valid": 3067452,
+      "attempted": 149323,
+      "accepted": 147057,
+      "rejected": 2266,
+      "omitted_other": 0,
+      "max_abs_area_diff_km2": 1.4210854715202004e-13,
+      "max_rel_area_diff": 9.060982293776601e-16
+    },
+    "overlap_validation": {
+      "same_partition_pairs": 927253,
+      "cross_partition_pairs": 4115,
+      "coastal_hillslope_pairs": 8040,
+      "candidate_candidate_pairs": 33213,
+      "candidate_interior_overlaps_detected": 4630,
+      "accepted_interior_overlaps": 0,
+      "total_pairs_checked": 939408
+    },
+    "rejection_characterization": {
+      "total_rejected": 2266,
+      "by_stage": {
+        "sibling_interior_overlap": 1995,
+        "candidate_interior_overlap": 271
+      },
+      "by_overlap_magnitude": {
+        "sub_ulp_cross_partition_slivers_lt_1e_14_deg2": 1961,
+        "pre_existing_coastal_hillslope_overlaps_ge_1_pixel": 305,
+        "same_partition_overlaps": 0
+      },
+      "restored_camels_cut_comids": [
+        "72042012",
+        "72044278",
+        "73010886",
+        "74024994"
+      ],
+      "restored_camels_cut_max_geodesic_area_diff_km2": 0.0
+    }
+  },
+  "catchment_connectivity_counts": {
+    "derived_flow_edges": 2874189,
+    "paired_channelized_catchments": 2936784,
+    "unpaired_channelized_catchments_omitted_river": 354,
+    "unpaired_channelized_catchments_river_not_in_source": 0,
+    "unpaired_channelized_catchments_river_unavailable": 0,
+    "unassociated_coastal_hillslopes": 277371,
+    "rivers_omitted_invalid_polygon": 2266,
+    "rivers_catchment_not_in_source": 4,
+    "rivers_catchment_unavailable": 0,
+    "downstream_boundary_status_counts": {
+      "cut_missing_downstream_catchment": 980,
+      "internal": 2874189,
+      "omitted_degenerate_river": 354,
+      "source_zero_sentinel": 61615,
+      "unassociated_coastal_hillslope": 277371
+    },
+    "catchments_with_upstream_cuts": 1928,
+    "total_upstream_catchment_cut_edges": 1951,
+    "catchments_with_downstream_cuts": 980,
+    "upstream_complete_catchments": 2850279,
+    "upstream_incomplete_paired_catchments": 86505,
+    "upstream_incomplete_leaf_only_catchments": 50681,
+    "upstream_incomplete_stranded_delivered_catchments": 35824,
+    "upstream_unverified_catchments": 277725
+  },
+  "spatial_bundle_verification": {
+    "status": "passed",
+    "input_manifest_sha256": "07e110dea4092f5b9b079c89d2e696e5c1ca5116aecf2fb08d674bd6ba3b0053",
+    "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+    "features": {
+      "catchments": {
+        "status": "passed",
+        "rows": 3214509,
+        "row_groups": 2623,
+        "source_batch_reads": 50336,
+        "source_decoded_bytes": 362416226556,
+        "source_logical_bytes": 20247408486,
+        "source_decode_amplification": 17.89938829982076
+      },
+      "rivers": {
+        "status": "passed",
+        "rows": 2939054,
+        "row_groups": 811,
+        "source_batch_reads": 6044,
+        "source_decoded_bytes": 38178046805,
+        "source_logical_bytes": 5530686991,
+        "source_decode_amplification": 6.902948380034259
+      }
+    },
+    "relationships": {
+      "catchments": {
+        "rows": 3214509,
+        "columns": {
+          "upstream_ids": 2874189,
+          "downstream_ids": 2874189,
+          "local_river_ids": 2936784
+        }
+      },
+      "rivers": {
+        "rows": 2939054,
+        "columns": {
+          "upstream_ids": 2877142,
+          "downstream_ids": 2877142,
+          "local_catchment_ids": 2936784
+        }
+      }
+    },
+    "scope": "Complete normalized-input comparison; original-source fidelity is inherited, not rerun. Local raster bytes and identities are checked; raster conformance and public delivery are not checked."
+  },
+  "raw_shapefile_verification": {
+    "status": "passed",
+    "delivered_catchments": 3214509,
+    "repaired_catchments": 147057,
+    "repaired_overlap_pairs_checked": 923283,
+    "delivered_rivers": 2939054,
+    "omitted_catchments": 2266,
+    "omitted_rivers": 354,
+    "flow_edges": 2877142,
+    "catchment_flow_edges": 2874189,
+    "local_associations": 2936784,
+    "cut_edges": 0,
+    "raw_shapefile_verified_hillslope_partitions": [
+      "hillslope_11",
+      "hillslope_12",
+      "hillslope_13",
+      "hillslope_14",
+      "hillslope_15",
+      "hillslope_16",
+      "hillslope_17",
+      "hillslope_18",
+      "hillslope_21",
+      "hillslope_22",
+      "hillslope_23",
+      "hillslope_24",
+      "hillslope_25",
+      "hillslope_26",
+      "hillslope_27",
+      "hillslope_28",
+      "hillslope_29",
+      "hillslope_31",
+      "hillslope_32",
+      "hillslope_33",
+      "hillslope_34",
+      "hillslope_35",
+      "hillslope_36",
+      "hillslope_41",
+      "hillslope_42",
+      "hillslope_43",
+      "hillslope_44",
+      "hillslope_45",
+      "hillslope_46",
+      "hillslope_47",
+      "hillslope_48",
+      "hillslope_51",
+      "hillslope_52",
+      "hillslope_53",
+      "hillslope_54",
+      "hillslope_55",
+      "hillslope_56",
+      "hillslope_57",
+      "hillslope_61",
+      "hillslope_62",
+      "hillslope_63",
+      "hillslope_64",
+      "hillslope_65",
+      "hillslope_66",
+      "hillslope_67",
+      "hillslope_71",
+      "hillslope_72",
+      "hillslope_73",
+      "hillslope_74",
+      "hillslope_75",
+      "hillslope_76",
+      "hillslope_77",
+      "hillslope_78",
+      "hillslope_81",
+      "hillslope_82",
+      "hillslope_83",
+      "hillslope_84",
+      "hillslope_85",
+      "hillslope_86",
+      "hillslope_91"
+    ],
+    "base_bundle_verified_hillslope_partitions": [],
+    "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66"
+  },
+  "remote_access_probes": {
+    "cat-ids": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          3193704,
+          3191808,
+          3194907,
+          3198364
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": null,
+        "level": null
+      },
+      "opening_s": 0.5696158329956234,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.9248296245932579,
+          "total_to_result_s": 1.4944454575888813,
+          "acquisition": {
+            "http_requests": 7,
+            "http_body_bytes": 5478424,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 4103,
+            "materialized_bytes": 24381451,
+            "materialized_geometry_bytes": 23508242
+          },
+          "reference": "not_requested",
+          "rows": 4,
+          "logical_bytes": 34569,
+          "absent": [],
+          "record_groups": [
+            849,
+            852,
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.44520025001838803,
+          "total_to_result_s": 0.44520025001838803,
+          "acquisition": {
+            "http_requests": 4,
+            "http_body_bytes": 5343974,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 4103,
+            "materialized_bytes": 24381451,
+            "materialized_geometry_bytes": 23508242
+          },
+          "reference": "not_requested",
+          "rows": 4,
+          "logical_bytes": 34569,
+          "absent": [],
+          "record_groups": [
+            849,
+            852,
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 15,
+        "http_body_bytes": 14685425,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 8206,
+        "materialized_bytes": 48762902,
+        "materialized_geometry_bytes": 47016484
+      },
+      "peak_rss_bytes": 257720320,
+      "pyarrow_version": "25.0.1"
+    },
+    "cat-bounds": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": null,
+        "bounds": [
+          -68.77,
+          46.78,
+          -68.56,
+          46.9
+        ],
+        "bulk": false,
+        "relationship": null,
+        "level": 0
+      },
+      "opening_s": 0.5131025002337992,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.6049672081135213,
+          "total_to_result_s": 1.1180697083473206,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 1600081,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 7608,
+            "materialized_bytes": 8552493,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 10,
+          "logical_bytes": 85734,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": [
+            909,
+            1120,
+            1121,
+            1122,
+            1147
+          ]
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.3668152908794582,
+          "total_to_result_s": 0.3668152908794582,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 1600081,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 7608,
+            "materialized_bytes": 8552493,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 10,
+          "logical_bytes": 85734,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": [
+            909,
+            1120,
+            1121,
+            1122,
+            1147
+          ]
+        }
+      ],
+      "final": {
+        "http_requests": 16,
+        "http_body_bytes": 7063189,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 15216,
+        "materialized_bytes": 17104986,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 192528384,
+      "pyarrow_version": "25.0.1"
+    },
+    "cat-rel": {
+      "domain": "catchments",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          3193704
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": "upstream_ids",
+        "level": null
+      },
+      "opening_s": 0.5300372079946101,
+      "opening": {
+        "http_requests": 4,
+        "http_body_bytes": 3863027,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 0.8902085409499705,
+          "total_to_result_s": 1.4202457489445806,
+          "acquisition": {
+            "http_requests": 11,
+            "http_body_bytes": 2985674,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8547293,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 2,
+          "logical_bytes": 9960,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.5719297919422388,
+          "total_to_result_s": 0.5719297919422388,
+          "acquisition": {
+            "http_requests": 5,
+            "http_body_bytes": 2693786,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8547293,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 2,
+          "logical_bytes": 9960,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 20,
+        "http_body_bytes": 9542487,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 18712,
+        "materialized_bytes": 17094586,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 180961280,
+      "pyarrow_version": "25.0.1"
+    },
+    "riv-rel": {
+      "domain": "rivers",
+      "manifest_sha256": "03f471d4a4a688ec7d5e90aadb6fae71be006b3d080ab96d52168131556e5a66",
+      "query": {
+        "ids": [
+          2512688
+        ],
+        "bounds": null,
+        "bulk": false,
+        "relationship": "local_catchment_ids",
+        "level": null
+      },
+      "opening_s": 0.7315354999154806,
+      "opening": {
+        "http_requests": 8,
+        "http_body_bytes": 5686512,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 0,
+        "materialized_bytes": 0,
+        "materialized_geometry_bytes": 0
+      },
+      "repeats": [
+        {
+          "repeat": 0,
+          "elapsed_s": 1.2979035419411957,
+          "total_to_result_s": 2.0294390418566763,
+          "acquisition": {
+            "http_requests": 12,
+            "http_body_bytes": 2984722,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8548653,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 1,
+          "logical_bytes": 12754,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        },
+        {
+          "repeat": 1,
+          "elapsed_s": 0.8887235000729561,
+          "total_to_result_s": 0.8887235000729561,
+          "acquisition": {
+            "http_requests": 6,
+            "http_body_bytes": 2695146,
+            "local_read_calls": 0,
+            "local_read_bytes": 0,
+            "materialized_rows": 9356,
+            "materialized_bytes": 8548653,
+            "materialized_geometry_bytes": 8140979
+          },
+          "reference": "not_requested",
+          "rows": 1,
+          "logical_bytes": 12754,
+          "absent": [],
+          "record_groups": [
+            1122
+          ],
+          "discovery_groups": []
+        }
+      ],
+      "final": {
+        "http_requests": 26,
+        "http_body_bytes": 11366380,
+        "local_read_calls": 0,
+        "local_read_bytes": 0,
+        "materialized_rows": 18712,
+        "materialized_bytes": 17097306,
+        "materialized_geometry_bytes": 16281958
+      },
+      "peak_rss_bytes": 202375168,
+      "pyarrow_version": "25.0.1"
+    }
+  },
+  "consumer_verification": {
+    "engine": "pourpoint",
+    "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+    "cache": false,
+    "versions": {
+      "pourpoint": "0.5.0rc5",
+      "shapely": "2.2.0",
+      "pyproj": "3.8.0",
+      "pyarrow": "26.0.1",
+      "rasterio": "1.5.2",
+      "obstore": "0.12.1"
+    },
+    "durable_uzh_evidence_dir": "/data/2026-11-19-merit-restoration-smoke",
+    "local_vs_remote_exact_parity": {
+      "camels_metrics_fields_exact": 6,
+      "negative_controls_exact": 4,
+      "wkb_files_sha256_exact": 24
+    },
+    "camels_smoke_config": {
+      "source": "s3://pourpoint-hfx/merit/hfx-0.4.0/merit-hydro-v1.0.1-basins-v1.0-bugfix1-20261120-geometry-restoration",
+      "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+      "python": "3.13.18",
+      "cache": false,
+      "level": 0,
+      "river_level": 0,
+      "snap_radius_m": 100,
+      "river_search_bbox_halfwidth_degrees": 0.02,
+      "window_size": 3,
+      "allow_incomplete": false,
+      "n_jobs": 1,
+      "reference_crs": "EPSG:4269",
+      "outlet_input_crs": "EPSG:4269",
+      "metric_crs": "EPSG:5070",
+      "outlet_source": "docs/camels-extension/2026-11-15-selected-gauges.csv: archived USGS station coordinates, not CAMELS topo",
+      "reference_repair": "shapely.make_valid in EPSG4269 working copy only, original WKB retained; candidate never repaired"
+    },
+    "camels_smoke_metrics": [
+      {
+        "gauge_id": "01013500",
+        "name": "Fish River near Fort Kent, Maine",
+        "usgs_area_km2": 2253.2896559923197,
+        "reference_original_valid": false,
+        "reference_validity_reason": "Ring Self-intersection[-68.2344207757876 47.1546745301591]",
+        "reference_repaired": true,
+        "reference_geometry_type_after_repair": "MultiPolygon",
+        "reference_area_km2": 2303.988086780521,
+        "reference_repair_signed_area_change_km2": -2.384185791015625e-12,
+        "input_outlet_nad83": [
+          -68.58277778,
+          47.2375
+        ],
+        "input_outlet_wgs84": [
+          -68.58277778,
+          47.2375
+        ],
+        "snapped_outlet_wgs84": [
+          -68.58166666666668,
+          47.23750000524422
+        ],
+        "snap_distance_m": 84.13163272220619,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -68.58166666666666,
+          47.23833333333333
+        ],
+        "raster_outlet_row_col": [
+          45313,
+          133702
+        ],
+        "raster_adjustment_from_snap_m": 92.64565119579306,
+        "total_outlet_adjustment_m": 125.14529702179155,
+        "candidate_valid": true,
+        "candidate_area_km2": 2249.5420631680067,
+        "relative_area_error": -0.02363120882651537,
+        "iou": 0.9466142521290432,
+        "status": "success",
+        "elapsed_seconds": 9.726557671034243
+      },
+      {
+        "gauge_id": "02053200",
+        "name": "POTECASI CREEK NEAR UNION, NC",
+        "usgs_area_km2": 582.7473248256,
+        "reference_original_valid": false,
+        "reference_validity_reason": "Ring Self-intersection[-77.2866363527009 36.2656364441758]",
+        "reference_repaired": true,
+        "reference_geometry_type_after_repair": "MultiPolygon",
+        "reference_area_km2": 581.6116956634769,
+        "reference_repair_signed_area_change_km2": -2.0265579223632812e-12,
+        "input_outlet_nad83": [
+          -77.0255556,
+          36.3708333
+        ],
+        "input_outlet_wgs84": [
+          -77.0255556,
+          36.3708333
+        ],
+        "snapped_outlet_wgs84": [
+          -77.02572353411608,
+          36.37094313255059
+        ],
+        "snap_distance_m": 19.381807130606724,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -77.02499999999999,
+          36.37166666666666
+        ],
+        "raster_outlet_row_col": [
+          58353,
+          123570
+        ],
+        "raster_adjustment_from_snap_m": 103.25656455891149,
+        "total_outlet_adjustment_m": 105.06001658604512,
+        "candidate_valid": true,
+        "candidate_area_km2": 572.7206839265351,
+        "relative_area_error": -0.01528685169716082,
+        "iou": 0.9430617037409831,
+        "status": "success",
+        "elapsed_seconds": 1.9964358289726079
+      },
+      {
+        "gauge_id": "05444000",
+        "name": "ELKHORN CREEK NEAR PENROSE, IL",
+        "usgs_area_km2": 378.13826410905597,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 377.29348722680623,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -89.6963889,
+          41.90275
+        ],
+        "input_outlet_wgs84": [
+          -89.6963889,
+          41.90275
+        ],
+        "snapped_outlet_wgs84": [
+          -89.69666666666669,
+          41.902750000582294
+        ],
+        "snap_distance_m": 23.048186820155003,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -89.69666666666666,
+          41.901666666666664
+        ],
+        "raster_outlet_row_col": [
+          51717,
+          108364
+        ],
+        "raster_adjustment_from_snap_m": 120.32739846209458,
+        "total_outlet_adjustment_m": 122.5148772642407,
+        "candidate_valid": true,
+        "candidate_area_km2": 375.8117726592688,
+        "relative_area_error": -0.003927220102388662,
+        "iou": 0.98231738741063,
+        "status": "success",
+        "elapsed_seconds": 2.3081477219820954
+      },
+      {
+        "gauge_id": "08104900",
+        "name": "S Fk San Gabriel Rv at Georgetown, TX",
+        "usgs_area_km2": 344.468418674688,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 347.9139935667444,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -97.6911204,
+          30.6257499
+        ],
+        "input_outlet_wgs84": [
+          -97.6911204,
+          30.6257499
+        ],
+        "snapped_outlet_wgs84": [
+          -97.69112039900872,
+          30.62583333333334
+        ],
+        "snap_distance_m": 9.249674272336126,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -97.69,
+          30.626666666666665
+        ],
+        "raster_outlet_row_col": [
+          65247,
+          98772
+        ],
+        "raster_adjustment_from_snap_m": 141.68191272167715,
+        "total_outlet_adjustment_m": 147.87978188809092,
+        "candidate_valid": true,
+        "candidate_area_km2": 341.26368502697613,
+        "relative_area_error": -0.019114806138122442,
+        "iou": 0.9613364328004612,
+        "status": "success",
+        "elapsed_seconds": 1.877829905017279
+      },
+      {
+        "gauge_id": "09066000",
+        "name": "BLACK GORE CREEK NEAR MINTURN, CO.",
+        "usgs_area_km2": 32.374851379199995,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 32.62890465956152,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -106.2650264,
+          39.59637495
+        ],
+        "input_outlet_wgs84": [
+          -106.2650264,
+          39.59637495
+        ],
+        "snapped_outlet_wgs84": [
+          -106.26482739182573,
+          39.59649405849238
+        ],
+        "snap_distance_m": 21.611919406608806,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -106.26583333333333,
+          39.596666666666664
+        ],
+        "raster_outlet_row_col": [
+          54483,
+          88481
+        ],
+        "raster_adjustment_from_snap_m": 88.50434391372166,
+        "total_outlet_adjustment_m": 76.50504795894928,
+        "candidate_valid": true,
+        "candidate_area_km2": 31.90926353584183,
+        "relative_area_error": -0.022055325829296812,
+        "iou": 0.9533792690459281,
+        "status": "success",
+        "elapsed_seconds": 1.5237310720258392
+      },
+      {
+        "gauge_id": "11141280",
+        "name": "LOPEZ C NR ARROYO GRANDE CA",
+        "usgs_area_km2": 54.13075150602239,
+        "reference_original_valid": true,
+        "reference_validity_reason": "Valid Geometry",
+        "reference_repaired": false,
+        "reference_geometry_type_after_repair": "Polygon",
+        "reference_area_km2": 56.053846460758976,
+        "reference_repair_signed_area_change_km2": 0.0,
+        "input_outlet_nad83": [
+          -120.4723504,
+          35.23551667
+        ],
+        "input_outlet_wgs84": [
+          -120.4723504,
+          35.23551667
+        ],
+        "snapped_outlet_wgs84": [
+          -120.4725,
+          35.23551666990605
+        ],
+        "snap_distance_m": 13.617464445732029,
+        "coverage_status": "complete",
+        "coverage_total_cuts": 0,
+        "coverage_cut_unit_ids": [],
+        "coverage_unverified_unit_ids": [],
+        "raster_outlet_wgs84": [
+          -120.4725,
+          35.235
+        ],
+        "raster_outlet_row_col": [
+          59717,
+          71433
+        ],
+        "raster_adjustment_from_snap_m": 57.321885302331395,
+        "total_outlet_adjustment_m": 58.91719819654582,
+        "candidate_valid": true,
+        "candidate_area_km2": 54.28051317356522,
+        "relative_area_error": -0.031636246201858786,
+        "iou": 0.954746312484274,
+        "status": "success",
+        "elapsed_seconds": 0.6862081279978156
+      }
+    ],
+    "negative_controls": [
+      {
+        "label": "upstream_cut_not_in_source_COMID_41000014",
+        "expected_unit_id": 1260850,
+        "COMID": 41000014,
+        "native_FID": null,
+        "kind": "upstream_cuts",
+        "strict_error_code": "selection.incomplete_coverage",
+        "strict_error_reason": "upstream closure has 1 cut catchment(s) (1 cut edges; IDs: 1260850)",
+        "allow_incomplete_status": "incomplete",
+        "allow_incomplete_total_cuts": 1,
+        "allow_incomplete_cut_unit_ids": [
+          1260850
+        ],
+        "allow_incomplete_unverified_unit_ids": [],
+        "selected_unit_count": null
+      },
+      {
+        "label": "upstream_cut_rejected_repair_COMID_66020859",
+        "expected_unit_id": 3185088,
+        "COMID": 66020859,
+        "native_FID": null,
+        "kind": "upstream_cuts",
+        "strict_error_code": "selection.incomplete_coverage",
+        "strict_error_reason": "upstream closure has 1 cut catchment(s) (1 cut edges; IDs: 3185088)",
+        "allow_incomplete_status": "incomplete",
+        "allow_incomplete_total_cuts": 1,
+        "allow_incomplete_cut_unit_ids": [
+          3185088
+        ],
+        "allow_incomplete_unverified_unit_ids": [],
+        "selected_unit_count": null
+      },
+      {
+        "label": "unverified_degenerate_river_COMID_11021766",
+        "expected_unit_id": 41899,
+        "COMID": 11021766,
+        "native_FID": null,
+        "kind": "unverified_null_cuts",
+        "strict_error_code": "selection.unverified_coverage",
+        "strict_error_reason": "upstream closure has 1 unverified catchment(s) (IDs: 41899)",
+        "allow_incomplete_status": "unverified",
+        "allow_incomplete_total_cuts": 0,
+        "allow_incomplete_cut_unit_ids": [],
+        "allow_incomplete_unverified_unit_ids": [
+          41899
+        ],
+        "selected_unit_count": null
+      },
+      {
+        "label": "unverified_coastal_hillslope_27_FID_1704",
+        "expected_unit_id": 2879551,
+        "COMID": null,
+        "native_FID": 1704,
+        "kind": "unverified_null_cuts",
+        "strict_error_code": "selection.unverified_coverage",
+        "strict_error_reason": "upstream closure has 1 unverified catchment(s) (IDs: 2879551)",
+        "allow_incomplete_status": "unverified",
+        "allow_incomplete_total_cuts": 0,
+        "allow_incomplete_cut_unit_ids": [],
+        "allow_incomplete_unverified_unit_ids": [
+          2879551
+        ],
+        "selected_unit_count": null
+      }
+    ],
+    "remote_elapsed_seconds": 27.64678199600894
+  }
+}
