@@ -905,7 +905,11 @@ def _write_staging_outputs(
         if rel_ref not in artifacts or artifacts[rel_ref]["sha256"] != expected_digest:
             raise ValueError(f"Raster source changed during normalization: {src_path}")
         dest = output / rel_ref
-        if not (os.path.samefile(src_path, dest) or _sha256(src_path) == expected_digest):
+        try:
+            same_file = os.path.samefile(src_path, dest)
+        except OSError:
+            same_file = False
+        if not same_file and (not src_path.is_file() or _sha256(src_path) != expected_digest):
             raise ValueError(f"Raster source changed during normalization: {src_path}")
     manifest["artifacts"] = artifacts
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -1009,6 +1013,14 @@ def _coerce_value(value: object, dtype: pa.DataType) -> object:
     return str(value)
 
 
+def _normalize_bundle_rel_path(rel_path: str, root: Path) -> str:
+    rel = Path(rel_path)
+    dest = root / rel
+    if rel.is_absolute() or ".." in rel.parts or not dest.resolve().is_relative_to(root.resolve()):
+        raise ValueError(f"Raster path escapes bundle: {rel_path}")
+    return dest.resolve().relative_to(root.resolve()).as_posix()
+
+
 def _check_and_stage_rasters(
     auxiliary_spec: dict[str, Any] | None, output: Path
 ) -> tuple[list[dict[str, Any]], dict[str, tuple[Path, str]]]:
@@ -1020,10 +1032,9 @@ def _check_and_stage_rasters(
     for rel_path, expected_src in source_paths.items():
         src_path = Path(expected_src)
         digest = _sha256(src_path)
-        dest = output / rel_path
-        if Path(rel_path).is_absolute() or not dest.resolve().is_relative_to(output.resolve()):
-            raise ValueError(f"Raster path escapes bundle: {rel_path}")
-        raster_hashes[dest.relative_to(output).as_posix()] = (src_path, digest)
+        norm_rel = _normalize_bundle_rel_path(rel_path, output)
+        dest = output / norm_rel
+        raster_hashes[norm_rel] = (src_path, digest)
         dest.parent.mkdir(parents=True, exist_ok=True)
         try:
             os.link(src_path, dest)
@@ -1072,12 +1083,8 @@ def _default_notices(output: Path, *, partial_reason: str | None) -> None:
     )
 
 
-def _validate_and_open_base_bundle(
-    base_spatial_dir: Path,
-    inventory: dict[str, Any],
-    inherited_hillslopes: set[str],
-) -> tuple[dict[str, Any], str, dict[str, Any]]:
-    """Verify base spatial bundle integrity and sidecar equivalence for hybrid inheritance."""
+def _open_verified_base_bundle(base_spatial_dir: Path) -> tuple[dict[str, Any], str]:
+    """Verify and return (manifest_dict, manifest_sha256) for a base HFX 0.4.0 MERIT bundle."""
     base_manifest_path = base_spatial_dir / "manifest.json"
     base_manifest = json.loads(base_manifest_path.read_bytes())
     base_manifest_sha = _sha256(base_manifest_path)
@@ -1098,6 +1105,16 @@ def _validate_and_open_base_bundle(
             or fingerprint(path) != identity
         ):
             raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+    return base_manifest, base_manifest_sha
+
+
+def _validate_and_open_base_bundle(
+    base_spatial_dir: Path,
+    inventory: dict[str, Any],
+    inherited_hillslopes: set[str],
+) -> tuple[dict[str, Any], str, dict[str, Any]]:
+    """Verify base spatial bundle integrity and sidecar equivalence for hybrid inheritance."""
+    base_manifest, base_manifest_sha = _open_verified_base_bundle(base_spatial_dir)
 
     base_orig = json.loads((base_spatial_dir / "original-inventory.json").read_bytes())
     if base_orig.get("release") != inventory.get("release"):
@@ -1148,14 +1165,13 @@ def _stage_base_rasters(
         for rel_ref in entry.get("artifacts", {}).values():
             if not isinstance(rel_ref, str):
                 continue
-            src_path = base_spatial_dir / rel_ref
-            dest = output / rel_ref
-            if Path(rel_ref).is_absolute() or not dest.resolve().is_relative_to(output.resolve()):
-                raise ValueError(f"Raster path escapes bundle: {rel_ref}")
-            identity = base_artifacts.get(rel_ref)
+            norm_rel = _normalize_bundle_rel_path(rel_ref, output)
+            src_path = base_spatial_dir / norm_rel
+            dest = output / norm_rel
+            identity = base_artifacts.get(rel_ref) or base_artifacts.get(norm_rel)
             if not isinstance(identity, dict) or not isinstance(identity.get("sha256"), str):
                 raise ValueError(f"Base manifest missing verified sha256 for raster: {rel_ref}")
-            raster_before[dest.relative_to(output).as_posix()] = (src_path, str(identity["sha256"]))
+            raster_before[norm_rel] = (src_path, str(identity["sha256"]))
             dest.parent.mkdir(parents=True, exist_ok=True)
             try:
                 os.link(src_path, dest)
@@ -1709,6 +1725,16 @@ def produce(
                         rows.append(out_row)
                     if rows:
                         valid_cat_writer.write_batch(pa.RecordBatch.from_pylist(rows, schema=raw_cat_schema))
+                base_omitted_path = base_spatial_dir / "omitted-features.json"
+                if base_omitted_path.is_file():
+                    for item in json.loads(base_omitted_path.read_bytes()):
+                        pname = str(item.get("partition", ""))
+                        if item.get("domain") != "rivers" and pname in inherited_hillslopes:
+                            omitted_features.append(item)
+                            omitted_cat_count += 1
+                            pstat = _pstat(pname)
+                            pstat["total_source"] += 1
+                            pstat["omitted_other"] += 1
         del seen_source_ids, seen_global_channelized_comids
 
         # Pass 1b: Global sibling interior non-overlap validation across all partitions and hillslopes.
@@ -2137,26 +2163,7 @@ def produce_from_bundle(
     partial_reason: str | None = None,
 ) -> dict[str, Any]:
     """Derive catchment connectivity directly from a verified HFX 0.4.0 MERIT spatial bundle."""
-    base_manifest_path = base_spatial_dir / "manifest.json"
-    base_manifest = json.loads(base_manifest_path.read_bytes())
-    base_manifest_sha = _sha256(base_manifest_path)
-    if (
-        base_manifest.get("format_version") != "0.4.0"
-        or base_manifest.get("fabric_name") != "merit"
-        or base_manifest.get("representation") != "spatial-geoparquet-adjacency"
-        or base_manifest.get("representation_version") != 1
-    ):
-        raise ValueError("Expected verified HFX 0.4.0 MERIT spatial-geoparquet-adjacency bundle")
-
-    for rel, identity in base_manifest["artifacts"].items():
-        path = base_spatial_dir / rel
-        if (
-            Path(rel).is_absolute()
-            or not path.resolve().is_relative_to(base_spatial_dir.resolve())
-            or not path.is_file()
-            or fingerprint(path) != identity
-        ):
-            raise ValueError(f"Base bundle artifact differs or is missing: {rel}")
+    base_manifest, base_manifest_sha = _open_verified_base_bundle(base_spatial_dir)
 
     base_meta = json.loads((base_spatial_dir / "source-metadata.json").read_bytes())
     omitted_features: list[dict[str, Any]] = json.loads((base_spatial_dir / "omitted-features.json").read_bytes())
@@ -2200,6 +2207,7 @@ def produce_from_bundle(
     cat_count = base_cat_pf.metadata.num_rows
     riv_count = base_riv_pf.metadata.num_rows
     overall_bbox = [float("inf"), float("inf"), -float("inf"), -float("inf")]
+    delivered_part_counts: dict[str, int] = {}
 
     with _workspace_db() as (db, _scratch_dir):
         omitted_cat_count = 0
@@ -2244,6 +2252,7 @@ def produce_from_bundle(
                     )
                 is_hillslope = kind == "coastal_hillslope"
                 interned_pname = sys.intern(str(pname))
+                delivered_part_counts[interned_pname] = delivered_part_counts.get(interned_pname, 0) + 1
                 if is_hillslope:
                     hillslope_count += 1
                     comid: int | None = None
@@ -2454,18 +2463,53 @@ def produce_from_bundle(
     else:
         with gzip.GzipFile(output / REPAIRED_FEATURES_ARTIFACT, mode="wb", mtime=0):
             pass
-    geom_norm_meta = base_meta.get("geometry_normalization") or _build_geometry_normalization_meta(
-        enabled=False,
-        part_stats={},
-        overlap_stats={
-            "same_partition_pairs": 0,
-            "cross_partition_pairs": 0,
-            "coastal_hillslope_pairs": 0,
-            "candidate_candidate_pairs": 0,
-            "candidate_interior_overlaps_detected": 0,
-            "accepted_interior_overlaps": 0,
-        },
-    )
+    geom_norm_meta = base_meta.get("geometry_normalization")
+    if geom_norm_meta is None:
+        fallback_part_stats: dict[str, dict[str, Any]] = {}
+
+        def _fstat(pname: str) -> dict[str, Any]:
+            return fallback_part_stats.setdefault(
+                pname,
+                {
+                    "total_source": 0,
+                    "already_valid": 0,
+                    "attempted": 0,
+                    "accepted": 0,
+                    "rejected": 0,
+                    "omitted_other": 0,
+                    "max_abs_area_diff_km2": 0.0,
+                    "max_rel_area_diff": 0.0,
+                },
+            )
+
+        for pname, cnt in delivered_part_counts.items():
+            fstat = _fstat(pname)
+            fstat["total_source"] += cnt
+            fstat["already_valid"] += cnt
+        for item in omitted_features:
+            if item.get("domain") == "rivers":
+                continue
+            pname = str(item["partition"])
+            fstat = _fstat(pname)
+            fstat["total_source"] += 1
+            if "repair_rejection" in item:
+                fstat["attempted"] += 1
+                fstat["rejected"] += 1
+            else:
+                fstat["omitted_other"] += 1
+
+        geom_norm_meta = _build_geometry_normalization_meta(
+            enabled=False,
+            part_stats=fallback_part_stats,
+            overlap_stats={
+                "same_partition_pairs": 0,
+                "cross_partition_pairs": 0,
+                "coastal_hillslope_pairs": 0,
+                "candidate_candidate_pairs": 0,
+                "candidate_interior_overlaps_detected": 0,
+                "accepted_interior_overlaps": 0,
+            },
+        )
 
     return _write_staging_outputs(
         output,

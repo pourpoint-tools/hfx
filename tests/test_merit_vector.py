@@ -868,23 +868,29 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
     ref_receipt = produce(inv_path, staging_ref)
     build(staging_ref, spatial_ref, source_manifest_sha256=ref_receipt["manifest_sha256"])
 
-    # Build a #281-style base bundle (no derived catchment connectivity columns or artifact).
+    # Build a #281-style base bundle (no derived catchment connectivity columns,
+    # no geometry_normalization column/metadata, and no repaired-features artifact).
     base_spatial = tmp_path / "base_spatial"
     base_staging = tmp_path / "base_staging"
     base_receipt = produce(inv_path, base_staging)
     build(base_staging, base_spatial, source_manifest_sha256=base_receipt["manifest_sha256"])
     base_cat_path = base_spatial / "catchments.parquet"
-    base_cat = pq.read_table(base_cat_path).drop(["downstream_boundary_status", "upstream_boundary_cuts"])
+    base_cat = pq.read_table(base_cat_path).drop(
+        ["downstream_boundary_status", "upstream_boundary_cuts", "geometry_normalization"]
+    )
     pq.write_table(base_cat, base_cat_path)
     (base_spatial / "catchments-relationships.arrow").unlink()
+    (base_spatial / "repaired-features.jsonl.gz").unlink()
     base_meta_path = base_spatial / "source-metadata.json"
     base_meta = json.loads(base_meta_path.read_text())
     base_meta.pop("catchment_connectivity", None)
+    base_meta.pop("geometry_normalization", None)
     base_meta_path.write_text(json.dumps(base_meta, indent=2) + "\n")
     base_manifest = json.loads((base_spatial / "manifest.json").read_text())
     base_manifest["catchment_connectivity"] = [{"level": 0, "status": "not_supplied"}]
     base_manifest["relationships"].pop("catchments", None)
     base_manifest["artifacts"].pop("catchments-relationships.arrow", None)
+    base_manifest["artifacts"].pop("repaired-features.jsonl.gz", None)
     base_manifest["categorical_columns"] = [
         item for item in base_manifest.get("categorical_columns", []) if item.get("artifact") != "catchments.parquet"
     ]
@@ -939,6 +945,9 @@ def test_produce_from_bundle_and_inherited_hillslope_verification(
         smeta2["catchment_connectivity"]
         == json.loads((spatial_ref / "source-metadata.json").read_text())["catchment_connectivity"]
     )
+    assert smeta2["geometry_normalization"]["global_counts"]["total_source"] > 0
+    assert smeta2["geometry_normalization"]["global_counts"]["accepted"] == 0
+    assert verify_spatial_bundle(inv_path, spatial2)["status"] == "passed"
 
     # Mark hillslope_pfaf_27 as inherited and delete its raw .shp so verification cannot read it from disk.
     inv_data = json.loads(inv_path.read_text())
@@ -1397,7 +1406,7 @@ def test_produce_hybrid_with_inherited_hillslopes_and_restored_catchments(tmp_pa
     ]
     hill_base = [{"geometry": _box_poly(3.01, 0.01, 3.04, 0.12), "properties": {"FID": 9901, "area_km2": 3.0}}]
 
-    base_inv = {
+    base_inv: dict[str, Any] = {
         "release": "MERIT-Hydro-v07-Basins-v01-bugfix1",
         "organization": "pfaf_level_02",
         "partitions": [
@@ -1465,8 +1474,9 @@ def test_produce_hybrid_with_inherited_hillslopes_and_restored_catchments(tmp_pa
     # path-independent sidecar matching and inherited hillslope overlap checking.
     new_src = tmp_path / "relocated_src"
     new_src.mkdir(parents=True)
+    part0 = cast(list[dict[str, Any]], base_inv["partitions"])[0]
     for part_dom in ("rivers", "catchments"):
-        entry = base_inv["partitions"][0][part_dom]
+        entry = cast(dict[str, Any], part0[part_dom])
         new_sidecars = {}
         for sname, meta in entry["sidecars"].items():
             dst = new_src / sname
@@ -1694,3 +1704,89 @@ def test_verifier_step4_rejects_overlapping_repaired_catchment(tmp_path: Path, m
 
     with pytest.raises(ValueError, match="sibling interior overlap"):
         verify_spatial_bundle(inv_path, spatial)
+
+
+def test_stage_base_rasters_hardlink_copy_and_tamper_checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import os
+
+    import scripts.produce_merit as pm
+    from hfx.spatial_bundle import build
+
+    inv_path = _build_fixture(tmp_path)
+    ras_dir = tmp_path / "rasters"
+    ras_dir.mkdir(parents=True)
+    fdir = ras_dir / "flow_dir.tif"
+    facc = ras_dir / "flow_acc.tif"
+    fdir.write_bytes(b"MOCK_FLOW_DIR_BYTES_V1")
+    facc.write_bytes(b"MOCK_FLOW_ACC_BYTES_V1")
+    aux_spec = {
+        "auxiliary": [
+            {
+                "kind": "d8_raster",
+                "schema": "hfx.aux.d8_raster.v2",
+                "artifacts": {"flow_dir": "aux/d8/flow_dir.tif", "flow_acc": "aux/d8/flow_acc.tif"},
+            }
+        ],
+        "files": {"aux/d8/flow_dir.tif": str(fdir), "aux/d8/flow_acc.tif": str(facc)},
+    }
+    aux_path = tmp_path / "aux_spec.json"
+    aux_path.write_text(json.dumps(aux_spec))
+
+    base_staging = tmp_path / "base_staging"
+    base_spatial = tmp_path / "base_spatial"
+    base_rec = pm.produce(inv_path, base_staging, auxiliary_spec_path=aux_path)
+    build(base_staging, base_spatial, source_manifest_sha256=base_rec["manifest_sha256"])
+
+    # 1. Hardlink reuse in both produce(..., base_spatial_dir=...) and produce_from_bundle(...)
+    hl_staging = tmp_path / "hl_staging"
+    pm.produce(inv_path, hl_staging, base_spatial_dir=base_spatial)
+    assert (hl_staging / "aux/d8/flow_dir.tif").stat().st_ino == (base_spatial / "aux/d8/flow_dir.tif").stat().st_ino
+    assert (hl_staging / "aux/d8/flow_acc.tif").stat().st_ino == (base_spatial / "aux/d8/flow_acc.tif").stat().st_ino
+
+    fb_staging = tmp_path / "fb_staging"
+    pm.produce_from_bundle(base_spatial, fb_staging)
+    assert (fb_staging / "aux/d8/flow_dir.tif").stat().st_ino == (base_spatial / "aux/d8/flow_dir.tif").stat().st_ino
+
+    # 2. Fallback to shutil.copyfile when os.link raises OSError + normalized non-canonical relative path
+    monkeypatch.setattr(os, "link", lambda _src, _dst: (_ for _ in ()).throw(OSError("EXDEV")))
+    copy_spec = {
+        "auxiliary": [
+            {
+                "kind": "d8_raster",
+                "schema": "hfx.aux.d8_raster.v2",
+                "artifacts": {"flow_dir": "./aux/d8/flow_dir.tif", "flow_acc": "aux/d8/flow_acc.tif"},
+            }
+        ],
+        "files": {"./aux/d8/flow_dir.tif": str(fdir), "aux/d8/flow_acc.tif": str(facc)},
+    }
+    copy_spec_path = tmp_path / "copy_spec.json"
+    copy_spec_path.write_text(json.dumps(copy_spec))
+    cp_staging = tmp_path / "cp_staging"
+    pm.produce(inv_path, cp_staging, auxiliary_spec_path=copy_spec_path)
+    assert (cp_staging / "aux/d8/flow_dir.tif").stat().st_ino != fdir.stat().st_ino
+    assert (cp_staging / "aux/d8/flow_dir.tif").read_bytes() == fdir.read_bytes()
+
+    # 3. Source deleted/mutated after copy fallback triggers ValueError("Raster source changed during normalization")
+    mut_staging = tmp_path / "mut_staging"
+    orig_write = pm._write_staging_outputs
+
+    def _mutate_and_write(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        fdir.unlink()
+        return orig_write(*args, **kwargs)
+
+    monkeypatch.setattr(pm, "_write_staging_outputs", _mutate_and_write)
+    with pytest.raises(ValueError, match="Raster source changed during normalization"):
+        pm.produce(inv_path, mut_staging, auxiliary_spec_path=aux_path)
+    monkeypatch.setattr(pm, "_write_staging_outputs", orig_write)
+
+    # 4. Path escape and missing manifest sha256 fail explicitly in _stage_base_rasters
+    bad_manifest = {"auxiliary": [{"schema": "hfx.aux.d8_raster.v2", "artifacts": {"flow_dir": "../escape.tif"}}]}
+    with pytest.raises(ValueError, match="Raster path escapes bundle"):
+        pm._stage_base_rasters(base_spatial, bad_manifest, tmp_path / "bad_esc")
+
+    missing_sha_manifest = {
+        "auxiliary": [{"schema": "hfx.aux.d8_raster.v2", "artifacts": {"flow_dir": "aux/d8/flow_dir.tif"}}],
+        "artifacts": {},
+    }
+    with pytest.raises(ValueError, match="Base manifest missing verified sha256"):
+        pm._stage_base_rasters(base_spatial, missing_sha_manifest, tmp_path / "bad_sha")

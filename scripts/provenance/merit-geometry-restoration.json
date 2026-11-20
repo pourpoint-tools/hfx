@@ -300,6 +300,1218 @@
         "74024994"
       ],
       "restored_camels_cut_max_geodesic_area_diff_km2": 0.0
+    },
+    "by_partition": {
+      "hillslope_11": {
+        "total_source": 2593,
+        "already_valid": 2593,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_12": {
+        "total_source": 787,
+        "already_valid": 787,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_13": {
+        "total_source": 481,
+        "already_valid": 481,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_14": {
+        "total_source": 711,
+        "already_valid": 711,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_15": {
+        "total_source": 2040,
+        "already_valid": 2040,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_16": {
+        "total_source": 62,
+        "already_valid": 62,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_17": {
+        "total_source": 61,
+        "already_valid": 61,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_18": {
+        "total_source": 1225,
+        "already_valid": 1225,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_21": {
+        "total_source": 6336,
+        "already_valid": 6336,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_22": {
+        "total_source": 1035,
+        "already_valid": 1035,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_23": {
+        "total_source": 7348,
+        "already_valid": 7348,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_24": {
+        "total_source": 33828,
+        "already_valid": 33828,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_25": {
+        "total_source": 29605,
+        "already_valid": 29605,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_26": {
+        "total_source": 1670,
+        "already_valid": 1670,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_27": {
+        "total_source": 1810,
+        "already_valid": 1810,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_28": {
+        "total_source": 20,
+        "already_valid": 20,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_29": {
+        "total_source": 5521,
+        "already_valid": 5521,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_31": {
+        "total_source": 611,
+        "already_valid": 611,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_32": {
+        "total_source": 444,
+        "already_valid": 444,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_33": {
+        "total_source": 1372,
+        "already_valid": 1372,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_34": {
+        "total_source": 388,
+        "already_valid": 388,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_35": {
+        "total_source": 3415,
+        "already_valid": 3415,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_36": {
+        "total_source": 1,
+        "already_valid": 1,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_41": {
+        "total_source": 6384,
+        "already_valid": 6384,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_42": {
+        "total_source": 4960,
+        "already_valid": 4960,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_43": {
+        "total_source": 6114,
+        "already_valid": 6114,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_44": {
+        "total_source": 3082,
+        "already_valid": 3082,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_45": {
+        "total_source": 2717,
+        "already_valid": 2717,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_46": {
+        "total_source": 15,
+        "already_valid": 15,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_47": {
+        "total_source": 73,
+        "already_valid": 73,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_48": {
+        "total_source": 38,
+        "already_valid": 38,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_51": {
+        "total_source": 4241,
+        "already_valid": 4241,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_52": {
+        "total_source": 6924,
+        "already_valid": 6924,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_53": {
+        "total_source": 6252,
+        "already_valid": 6252,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_54": {
+        "total_source": 2382,
+        "already_valid": 2382,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_55": {
+        "total_source": 1357,
+        "already_valid": 1357,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_56": {
+        "total_source": 7172,
+        "already_valid": 7172,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_57": {
+        "total_source": 1808,
+        "already_valid": 1808,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_61": {
+        "total_source": 1728,
+        "already_valid": 1728,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_62": {
+        "total_source": 274,
+        "already_valid": 274,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_63": {
+        "total_source": 1490,
+        "already_valid": 1490,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_64": {
+        "total_source": 348,
+        "already_valid": 348,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_65": {
+        "total_source": 2447,
+        "already_valid": 2447,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_66": {
+        "total_source": 10194,
+        "already_valid": 10194,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_67": {
+        "total_source": 1543,
+        "already_valid": 1543,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_71": {
+        "total_source": 1736,
+        "already_valid": 1736,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_72": {
+        "total_source": 21092,
+        "already_valid": 21092,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_73": {
+        "total_source": 6175,
+        "already_valid": 6175,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_74": {
+        "total_source": 1951,
+        "already_valid": 1951,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_75": {
+        "total_source": 2497,
+        "already_valid": 2497,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_76": {
+        "total_source": 5058,
+        "already_valid": 5058,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_77": {
+        "total_source": 3244,
+        "already_valid": 3244,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_78": {
+        "total_source": 10227,
+        "already_valid": 10227,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_81": {
+        "total_source": 5186,
+        "already_valid": 5186,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_82": {
+        "total_source": 1108,
+        "already_valid": 1108,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_83": {
+        "total_source": 11060,
+        "already_valid": 11060,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_84": {
+        "total_source": 3462,
+        "already_valid": 3462,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_85": {
+        "total_source": 15070,
+        "already_valid": 15070,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_86": {
+        "total_source": 3850,
+        "already_valid": 3850,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "hillslope_91": {
+        "total_source": 12748,
+        "already_valid": 12748,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_11": {
+        "total_source": 71519,
+        "already_valid": 68955,
+        "attempted": 2564,
+        "accepted": 2522,
+        "rejected": 42,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.1316086607219384e-16
+      },
+      "pfaf_12": {
+        "total_source": 100418,
+        "already_valid": 95679,
+        "attempted": 4739,
+        "accepted": 4710,
+        "rejected": 29,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 3.417026749042574e-16
+      },
+      "pfaf_13": {
+        "total_source": 108277,
+        "already_valid": 102859,
+        "attempted": 5418,
+        "accepted": 5357,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.1925209243527325e-16
+      },
+      "pfaf_14": {
+        "total_source": 89221,
+        "already_valid": 84864,
+        "attempted": 4357,
+        "accepted": 4286,
+        "rejected": 71,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 8.526512829121202e-14,
+        "max_rel_area_diff": 6.351194200522313e-16
+      },
+      "pfaf_15": {
+        "total_source": 143101,
+        "already_valid": 134675,
+        "attempted": 8426,
+        "accepted": 8340,
+        "rejected": 86,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.207977762804181e-16
+      },
+      "pfaf_16": {
+        "total_source": 51930,
+        "already_valid": 48617,
+        "attempted": 3313,
+        "accepted": 3247,
+        "rejected": 66,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.1523873097509317e-16
+      },
+      "pfaf_17": {
+        "total_source": 70842,
+        "already_valid": 67336,
+        "attempted": 3506,
+        "accepted": 3444,
+        "rejected": 62,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.010410555219763e-16
+      },
+      "pfaf_18": {
+        "total_source": 12958,
+        "already_valid": 12509,
+        "attempted": 449,
+        "accepted": 446,
+        "rejected": 3,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 1.936019177331951e-16
+      },
+      "pfaf_21": {
+        "total_source": 26552,
+        "already_valid": 25692,
+        "attempted": 860,
+        "accepted": 811,
+        "rejected": 49,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 7.105427357601002e-15,
+        "max_rel_area_diff": 1.879204868896133e-16
+      },
+      "pfaf_22": {
+        "total_source": 54401,
+        "already_valid": 51977,
+        "attempted": 2424,
+        "accepted": 2363,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.1222024682035894e-16
+      },
+      "pfaf_23": {
+        "total_source": 33501,
+        "already_valid": 31765,
+        "attempted": 1736,
+        "accepted": 1690,
+        "rejected": 46,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2059425641869795e-16
+      },
+      "pfaf_24": {
+        "total_source": 38429,
+        "already_valid": 35154,
+        "attempted": 3275,
+        "accepted": 3158,
+        "rejected": 117,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.1447363868438467e-16
+      },
+      "pfaf_25": {
+        "total_source": 11975,
+        "already_valid": 11137,
+        "attempted": 838,
+        "accepted": 772,
+        "rejected": 66,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.634953602887589e-16
+      },
+      "pfaf_26": {
+        "total_source": 23070,
+        "already_valid": 21191,
+        "attempted": 1879,
+        "accepted": 1823,
+        "rejected": 56,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 1.9661301070668295e-16
+      },
+      "pfaf_27": {
+        "total_source": 1973,
+        "already_valid": 1856,
+        "attempted": 117,
+        "accepted": 117,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_28": {
+        "total_source": 80609,
+        "already_valid": 76230,
+        "attempted": 4379,
+        "accepted": 4274,
+        "rejected": 105,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-13,
+        "max_rel_area_diff": 9.060982293776601e-16
+      },
+      "pfaf_29": {
+        "total_source": 123120,
+        "already_valid": 117530,
+        "attempted": 5590,
+        "accepted": 5556,
+        "rejected": 34,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.9173614996785306e-16
+      },
+      "pfaf_31": {
+        "total_source": 81442,
+        "already_valid": 75344,
+        "attempted": 6098,
+        "accepted": 6015,
+        "rejected": 83,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 4.4343788067439324e-16
+      },
+      "pfaf_32": {
+        "total_source": 57709,
+        "already_valid": 54742,
+        "attempted": 2967,
+        "accepted": 2889,
+        "rejected": 78,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.348919024295918e-16
+      },
+      "pfaf_33": {
+        "total_source": 25602,
+        "already_valid": 24228,
+        "attempted": 1374,
+        "accepted": 1345,
+        "rejected": 29,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.0851945668827434e-16
+      },
+      "pfaf_34": {
+        "total_source": 54189,
+        "already_valid": 51333,
+        "attempted": 2856,
+        "accepted": 2803,
+        "rejected": 53,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.361789933122367e-16
+      },
+      "pfaf_35": {
+        "total_source": 62633,
+        "already_valid": 59050,
+        "attempted": 3583,
+        "accepted": 3563,
+        "rejected": 20,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.490342991992081e-16
+      },
+      "pfaf_36": {
+        "total_source": 7101,
+        "already_valid": 6805,
+        "attempted": 296,
+        "accepted": 285,
+        "rejected": 11,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 1.7761525518601674e-16
+      },
+      "pfaf_41": {
+        "total_source": 9000,
+        "already_valid": 8773,
+        "attempted": 227,
+        "accepted": 225,
+        "rejected": 2,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 7.105427357601002e-15,
+        "max_rel_area_diff": 1.9804714781022564e-16
+      },
+      "pfaf_42": {
+        "total_source": 68022,
+        "already_valid": 65283,
+        "attempted": 2739,
+        "accepted": 2717,
+        "rejected": 22,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.6639959961016705e-16
+      },
+      "pfaf_43": {
+        "total_source": 99562,
+        "already_valid": 95799,
+        "attempted": 3763,
+        "accepted": 3737,
+        "rejected": 26,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 5.328496815971477e-16
+      },
+      "pfaf_44": {
+        "total_source": 51304,
+        "already_valid": 49458,
+        "attempted": 1846,
+        "accepted": 1835,
+        "rejected": 11,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 4.0709063653157065e-16
+      },
+      "pfaf_45": {
+        "total_source": 104450,
+        "already_valid": 99668,
+        "attempted": 4782,
+        "accepted": 4750,
+        "rejected": 32,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 2.7881532062022213e-16
+      },
+      "pfaf_46": {
+        "total_source": 50261,
+        "already_valid": 47598,
+        "attempted": 2663,
+        "accepted": 2627,
+        "rejected": 36,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.2452778328971773e-16
+      },
+      "pfaf_47": {
+        "total_source": 33868,
+        "already_valid": 32394,
+        "attempted": 1474,
+        "accepted": 1443,
+        "rejected": 31,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.201681115518954e-16
+      },
+      "pfaf_48": {
+        "total_source": 34748,
+        "already_valid": 33293,
+        "attempted": 1455,
+        "accepted": 1439,
+        "rejected": 16,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2193508382797112e-16
+      },
+      "pfaf_49": {
+        "total_source": 14031,
+        "already_valid": 13507,
+        "attempted": 524,
+        "accepted": 510,
+        "rejected": 14,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.8824283375358375e-16
+      },
+      "pfaf_51": {
+        "total_source": 14464,
+        "already_valid": 13897,
+        "attempted": 567,
+        "accepted": 563,
+        "rejected": 4,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.724351280528991e-16
+      },
+      "pfaf_52": {
+        "total_source": 25461,
+        "already_valid": 24512,
+        "attempted": 949,
+        "accepted": 943,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.572643745718573e-16
+      },
+      "pfaf_53": {
+        "total_source": 19414,
+        "already_valid": 18656,
+        "attempted": 758,
+        "accepted": 752,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.728306235066175e-16
+      },
+      "pfaf_54": {
+        "total_source": 12,
+        "already_valid": 12,
+        "attempted": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_55": {
+        "total_source": 711,
+        "already_valid": 689,
+        "attempted": 22,
+        "accepted": 22,
+        "rejected": 0,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_56": {
+        "total_source": 172612,
+        "already_valid": 164124,
+        "attempted": 8488,
+        "accepted": 8472,
+        "rejected": 16,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.388154676325043e-16
+      },
+      "pfaf_57": {
+        "total_source": 5380,
+        "already_valid": 5226,
+        "attempted": 154,
+        "accepted": 153,
+        "rejected": 1,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_61": {
+        "total_source": 46751,
+        "already_valid": 44320,
+        "attempted": 2431,
+        "accepted": 2390,
+        "rejected": 41,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.171660894142703e-16
+      },
+      "pfaf_62": {
+        "total_source": 153093,
+        "already_valid": 144934,
+        "attempted": 8159,
+        "accepted": 8098,
+        "rejected": 61,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 3.935896316656825e-16
+      },
+      "pfaf_63": {
+        "total_source": 45564,
+        "already_valid": 43763,
+        "attempted": 1801,
+        "accepted": 1786,
+        "rejected": 15,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 3.9334509467827636e-16
+      },
+      "pfaf_64": {
+        "total_source": 77874,
+        "already_valid": 74338,
+        "attempted": 3536,
+        "accepted": 3502,
+        "rejected": 34,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.4519558198526035e-16
+      },
+      "pfaf_65": {
+        "total_source": 32153,
+        "already_valid": 30512,
+        "attempted": 1641,
+        "accepted": 1608,
+        "rejected": 33,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 2.1758417796198474e-16
+      },
+      "pfaf_66": {
+        "total_source": 22073,
+        "already_valid": 21253,
+        "attempted": 820,
+        "accepted": 788,
+        "rejected": 32,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 3.597709578686409e-16
+      },
+      "pfaf_67": {
+        "total_source": 10690,
+        "already_valid": 10340,
+        "attempted": 350,
+        "accepted": 344,
+        "rejected": 6,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 4.0381137319781733e-16
+      },
+      "pfaf_71": {
+        "total_source": 48951,
+        "already_valid": 45000,
+        "attempted": 3951,
+        "accepted": 3867,
+        "rejected": 84,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.288455508143175e-16
+      },
+      "pfaf_72": {
+        "total_source": 59790,
+        "already_valid": 54750,
+        "attempted": 5040,
+        "accepted": 4953,
+        "rejected": 87,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.684298354437502e-16
+      },
+      "pfaf_73": {
+        "total_source": 23294,
+        "already_valid": 21909,
+        "attempted": 1385,
+        "accepted": 1358,
+        "rejected": 27,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 1.8886672757900955e-16
+      },
+      "pfaf_74": {
+        "total_source": 72659,
+        "already_valid": 69158,
+        "attempted": 3501,
+        "accepted": 3428,
+        "rejected": 73,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.1368683772161603e-13,
+        "max_rel_area_diff": 2.2065102672210087e-16
+      },
+      "pfaf_75": {
+        "total_source": 50614,
+        "already_valid": 48598,
+        "attempted": 2016,
+        "accepted": 1976,
+        "rejected": 40,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.1743308043342047e-16
+      },
+      "pfaf_76": {
+        "total_source": 4405,
+        "already_valid": 4245,
+        "attempted": 160,
+        "accepted": 158,
+        "rejected": 2,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 0.0,
+        "max_rel_area_diff": 0.0
+      },
+      "pfaf_77": {
+        "total_source": 58125,
+        "already_valid": 56085,
+        "attempted": 2040,
+        "accepted": 1984,
+        "rejected": 56,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.1699633756403965e-16
+      },
+      "pfaf_78": {
+        "total_source": 28489,
+        "already_valid": 27276,
+        "attempted": 1213,
+        "accepted": 1188,
+        "rejected": 25,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 3.6312195497407943e-16
+      },
+      "pfaf_81": {
+        "total_source": 37515,
+        "already_valid": 35496,
+        "attempted": 2019,
+        "accepted": 1995,
+        "rejected": 24,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 3.538777212356573e-16
+      },
+      "pfaf_82": {
+        "total_source": 43082,
+        "already_valid": 40199,
+        "attempted": 2883,
+        "accepted": 2805,
+        "rejected": 78,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.2045686163037052e-16
+      },
+      "pfaf_83": {
+        "total_source": 23633,
+        "already_valid": 21434,
+        "attempted": 2199,
+        "accepted": 2141,
+        "rejected": 58,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.176272041335929e-16
+      },
+      "pfaf_84": {
+        "total_source": 7141,
+        "already_valid": 6544,
+        "attempted": 597,
+        "accepted": 593,
+        "rejected": 4,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 1.4210854715202004e-14,
+        "max_rel_area_diff": 2.2177802580733375e-16
+      },
+      "pfaf_85": {
+        "total_source": 10095,
+        "already_valid": 9304,
+        "attempted": 791,
+        "accepted": 779,
+        "rejected": 12,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.499046436576771e-16
+      },
+      "pfaf_86": {
+        "total_source": 7281,
+        "already_valid": 6975,
+        "attempted": 306,
+        "accepted": 303,
+        "rejected": 3,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 2.842170943040401e-14,
+        "max_rel_area_diff": 2.122028748996434e-16
+      },
+      "pfaf_91": {
+        "total_source": 42260,
+        "already_valid": 41231,
+        "attempted": 1029,
+        "accepted": 1009,
+        "rejected": 20,
+        "omitted_other": 0,
+        "max_abs_area_diff_km2": 5.684341886080802e-14,
+        "max_rel_area_diff": 4.335699013373303e-16
+      }
     }
   },
   "catchment_connectivity_counts": {
