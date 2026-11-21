@@ -48,14 +48,15 @@ def test_coverage_provenance_corruption(mixed_inventory: Path, tmp_path: Path, c
             writer.write_table(table)
     else:
         metadata = json.loads((output / name).read_text())
+        sources_list = metadata["sources"]
         if corruption == "reason":
-            metadata[2]["reason"] = "Not the acquisition reason"
+            sources_list[2]["reason"] = "Not the acquisition reason"
         elif corruption == "declaration":
-            metadata[0]["schemas"]["basins"][2]["type"] = "INTEGER"
+            sources_list[0]["schemas"]["basins"][2]["type"] = "INTEGER"
         elif corruption == "missing":
-            metadata.pop()
+            sources_list.pop()
         else:
-            metadata.append(metadata[0])
+            sources_list.append(sources_list[0])
         (output / name).write_text(json.dumps(metadata))
     manifest = json.loads((output / "manifest.json").read_text())
     manifest["artifacts"][name] = fingerprint(output / name)

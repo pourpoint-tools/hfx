@@ -32,3 +32,11 @@ including 61-partition global source acquisition, narrow ring-normalization and
 global overlap audit receipts, independent raw-shapefile verification, S3
 publication and 1 TB storage headroom verification, remote range probes, and
 uncached Pourpoint CAMELS smoke and negative-control checks.
+
+`tdx-catchment-connectivity.json` records the secret-free provenance for the
+private TDX Hydro HFX 0.4.0 bundle (`#289`, new immutable prefix
+`NGA-TDX-Hydro-20230126-full62-20261121/`) derived on the UZH VM from the
+verified `full62-20261027` bundle with single-part `POLYGON` fragment
+collection, exhaustively verified zero-area virtual confluence stub
+contraction, completeness metadata, S3 readback, and live Pourpoint
+end-to-end verification (`cache=False`).

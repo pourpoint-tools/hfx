@@ -31,7 +31,9 @@ def inventory(tmp_path: Path) -> Path:
                 if polygon
                 else struct.pack("<BII4d", 1, 2, 2, 3, 4, 1, 2)
             )
+            wkb_frag = struct.pack("<BIII10d", 1, 3, 1, 5, 1, 1, 2, 1, 2, 2, 1, 2, 1, 1)
             geometry = b"GP" + bytes([0, 1]) + struct.pack("<i", 4326) + wkb
+            geometry_frag = b"GP" + bytes([0, 1]) + struct.pack("<i", 4326) + wkb_frag
             with sqlite3.connect(path) as connection:
                 connection.execute("CREATE TABLE gpkg_contents (table_name TEXT, data_type TEXT, srs_id INTEGER)")
                 connection.execute("INSERT INTO gpkg_contents VALUES (?, 'features', 4326)", (layer,))
@@ -43,8 +45,8 @@ def inventory(tmp_path: Path) -> Path:
                     connection.execute(
                         "CREATE TABLE basins (fid INTEGER PRIMARY KEY NOT NULL, geom POLYGON, streamID INTEGER)"
                     )
-                    fids = [17, 5] if basin == "10" else [5]
-                    connection.executemany("INSERT INTO basins VALUES (?, ?, 9)", [(fid, geometry) for fid in fids])
+                    rows = [(17, geometry_frag), (5, geometry)] if basin == "10" else [(5, geometry)]
+                    connection.executemany("INSERT INTO basins VALUES (?, ?, 9)", rows)
                 else:
                     connection.execute(
                         "CREATE TABLE TDX_streamnet_7020000010_01 (fid INTEGER PRIMARY KEY NOT NULL, geom LINESTRING, LINKNO MEDIUMINT, DSLINKNO MEDIUMINT, USLINKNO1 MEDIUMINT, USLINKNO2 MEDIUMINT)"
@@ -87,23 +89,23 @@ def test_projected_basin_workspace_and_global_ids(
 
     monkeypatch.setattr(produce_tdx, "_projected_rows", rows)
     produce_tdx.produce(inventory, output)
-    assert len(projections) == 2
+    assert len(projections) == 1
     assert seen == [
-        ([(1, 9, 42, -1, -1), (2, 42, -1, 9, -1)], [(1, 9), (2, 9)]),
-        ([(3, 9, 42, -1, -1), (4, 42, -1, 9, -1)], [(3, 9)]),
+        ([(1, 9, 42, -1, -1), (2, 42, -1, 9, -1)], [(1, 9)]),
+        ([(3, 9, 42, -1, -1), (4, 42, -1, 9, -1)], [(2, 9)]),
     ]
     assert pq.read_table(output / "river-graph.parquet")["upstream_ids"].to_pylist() == [[], [1], [], [3]]
     assert pq.read_table(output / "local-associations.parquet").to_pylist() == [
         {"river_id": 1, "catchment_id": 1},
-        {"river_id": 1, "catchment_id": 2},
-        {"river_id": 3, "catchment_id": 3},
+        {"river_id": 3, "catchment_id": 2},
     ]
     with ipc.open_file(str(output / "catchments.arrow")) as reader:
         table = reader.read_all()
-    assert table["id"].to_pylist() == [1, 2, 3]
-    assert table["source_id"].to_pylist() == ["5", "17", "5"]
-    assert table["processing_basin"].to_pylist() == ["10", "10", "20"]
-    assert verify_originals(inventory, output)["features"] == {"catchments": 3, "rivers": 4}
+    assert table["id"].to_pylist() == [1, 2]
+    assert table["source_id"].to_pylist() == ["5", "5"]
+    assert table["source_fids"].to_pylist() == [[5, 17], [5]]
+    assert table["processing_basin"].to_pylist() == ["10", "20"]
+    assert verify_originals(inventory, output)["features"] == {"catchments": 2, "rivers": 4}
 
 
 def test_feature_batches_can_cross_basin_boundaries(inventory: Path, tmp_path: Path) -> None:
@@ -120,7 +122,7 @@ def test_feature_batches_can_cross_basin_boundaries(inventory: Path, tmp_path: P
             writer.write_table(table.combine_chunks(), max_chunksize=3)
         manifest["artifacts"][path.name] = fingerprint(path)
     (output / "manifest.json").write_text(json.dumps(manifest))
-    assert verify_originals(inventory, output)["features"] == {"catchments": 3, "rivers": 4}
+    assert verify_originals(inventory, output)["features"] == {"catchments": 2, "rivers": 4}
 
 
 @pytest.mark.parametrize(

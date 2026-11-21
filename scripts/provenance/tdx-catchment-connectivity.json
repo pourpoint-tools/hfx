@@ -1,0 +1,483 @@
+{
+  "issue": "https://github.com/pourpoint-tools/hfx/issues/289",
+  "vision": "planning/visions/2026-11-19-tdx-catchment-connectivity.md",
+  "compute": {
+    "host": "UZH VM (nik, OpenStack, no paid cloud compute)",
+    "data_license": "Original NGA TDX-Hydro, CC BY-SA 4.0"
+  },
+  "base_production_bundle": {
+    "s3_manifest_uri": "s3://pourpoint-hfx/tdx/hfx-0.4.0/NGA-TDX-Hydro-20230126-full62-20261027/manifest.json",
+    "manifest_sha256": "af831fec8d1469e304d21ff9271faead0035bb6f0ce8bf1e007c03c022a13991",
+    "status": "preserved_untouched"
+  },
+  "published_destination": {
+    "access_mode": "private_authenticated_s3",
+    "anonymous_access_http_status": 403,
+    "s3_endpoint": "https://fsn1.your-objectstorage.com",
+    "bucket": "pourpoint-hfx",
+    "prefix": "tdx/hfx-0.4.0/NGA-TDX-Hydro-20230126-full62-20261121/",
+    "s3_manifest_uri": "s3://pourpoint-hfx/tdx/hfx-0.4.0/NGA-TDX-Hydro-20230126-full62-20261121/manifest.json",
+    "manifest_identity": {
+      "key": "tdx/hfx-0.4.0/NGA-TDX-Hydro-20230126-full62-20261121/manifest.json",
+      "size_bytes": 13321,
+      "sha256": "787ccdd094764c0a4d8724e4bb2cc9a06ca6c5a48996a3ae01da3b0866b16e8c",
+      "etag": "\"032e3f5380a05736956013b4a9f772b5\"",
+      "published_last": true
+    },
+    "input_manifest_sha256": "41e92c09316dec5dcabfa7920e9fe0cbe74f2f36b44c7a23e3b693af7cb62cea",
+    "catchment_connectivity": [
+      {
+        "level": 0,
+        "status": "supplied",
+        "completeness": "partial",
+        "upstream_cuts_column": "upstream_boundary_cuts",
+        "derivation": "river_local_associations_with_zero_area_virtual_stub_contraction"
+      }
+    ],
+    "artifacts": {
+      "NOTICE": {
+        "size_bytes": 1617,
+        "sha256": "c83e77c6aca847cc0c0b5915b0eec99911e1b6b3fc2568903c833981d628bda8",
+        "head_sha256": "c83e77c6aca847cc0c0b5915b0eec99911e1b6b3fc2568903c833981d628bda8",
+        "tail_sha256": "c83e77c6aca847cc0c0b5915b0eec99911e1b6b3fc2568903c833981d628bda8",
+        "etag": "\"680db17a701108edda14429674403940\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "catchments-lookup-directory.json": {
+        "size_bytes": 16898,
+        "sha256": "98555f9b4e49ae4c8d6c40f52173ccc2d73b419ea0cca8931e6a8f57907d712b",
+        "head_sha256": "98555f9b4e49ae4c8d6c40f52173ccc2d73b419ea0cca8931e6a8f57907d712b",
+        "tail_sha256": "98555f9b4e49ae4c8d6c40f52173ccc2d73b419ea0cca8931e6a8f57907d712b",
+        "etag": "\"4d56ff0f3725083d73a0c776b7445b9b\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "catchments-lookup.arrow": {
+        "size_bytes": 255048018,
+        "sha256": "445091ef64c42a8ea63abeca659529c5d35d639ce31f164389a121658e8a6b05",
+        "head_sha256": "b85a8899725a41e49f8182f1689c5068b64d52cdd81651e58910cd28114e3877",
+        "tail_sha256": "875bd2bdf0a3d64d158994a622b360b3a66b547372618231b1b77f36dfae26d2",
+        "etag": "\"9f0089cabaa3b07912dc2628672843c6-4\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "catchments-relationships-directory.json": {
+        "size_bytes": 134367,
+        "sha256": "833c750aec39469a47872e078b7f119856fd74052c8e9c7bc57d97f0754e0f7e",
+        "head_sha256": "c54ce480911ca4dd821daec72f5bc8179574515b06e5553d49ba9155c931e4e3",
+        "tail_sha256": "e89e023effdda2b487ea87d80943e7253825c3e3424e6daa0c27caa0db5ffd7a",
+        "etag": "\"0b5001d2de9260b02bd9251272dafbb6\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "catchments-relationships.arrow": {
+        "size_bytes": 699408946,
+        "sha256": "d080617aa9413231bc6b9b1cbdd1c1222aad520aa848a528b585731b3fd54026",
+        "head_sha256": "2f3b097f32eb62da9d59dc5d75024ccddce7a720776744b980270e3505c8198e",
+        "tail_sha256": "e74617a2120c171e66b52d8e0d084d1ee789782d18fbd707e476106acc1c33f2",
+        "etag": "\"49375dcf63a8ab721490e23774a3dfc7-11\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "catchments.parquet": {
+        "size_bytes": 60044620752,
+        "sha256": "c09f0553c32c3ed478ac6adfde4557f324099ed4a327c9a65c0a024243babc3a",
+        "head_sha256": "b8078df4688f845d375c88d080916e0208e886650591bd91ab408d846b5a7e55",
+        "tail_sha256": "d3053462f519bd39391e23a740de92a0654f1b9e465fb265ac371af87331866b",
+        "etag": "\"b782ede31df7dc8cfa8c7e89996b1d46-895\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "original-inventory.json": {
+        "size_bytes": 26473,
+        "sha256": "efabb7d2491130c5b1d47290115094b306ce7d362ff5da1f0ee58f8741b4fe50",
+        "head_sha256": "efabb7d2491130c5b1d47290115094b306ce7d362ff5da1f0ee58f8741b4fe50",
+        "tail_sha256": "efabb7d2491130c5b1d47290115094b306ce7d362ff5da1f0ee58f8741b4fe50",
+        "etag": "\"8a237b52144f036747254ab0c4c2fd05\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "provenance/original-acquisition-records.json": {
+        "size_bytes": 26979,
+        "sha256": "fa4609ce369bf3c1cb95a1e4ff7e40200f6650ba655c5244eb714d515c607ce3",
+        "head_sha256": "fa4609ce369bf3c1cb95a1e4ff7e40200f6650ba655c5244eb714d515c607ce3",
+        "tail_sha256": "fa4609ce369bf3c1cb95a1e4ff7e40200f6650ba655c5244eb714d515c607ce3",
+        "etag": "\"3eb9a7865b1c90bffbba5f624dcf0278\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "provenance/raw-LICENSE.txt": {
+        "size_bytes": 1667,
+        "sha256": "70fd3607a4c165916c5672c63109aa80369ddb2dc72d6a8ce821583d841f2f6a",
+        "head_sha256": "70fd3607a4c165916c5672c63109aa80369ddb2dc72d6a8ce821583d841f2f6a",
+        "tail_sha256": "70fd3607a4c165916c5672c63109aa80369ddb2dc72d6a8ce821583d841f2f6a",
+        "etag": "\"25f4f3854a2e7eecd53bedcc57f1cf79\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "provenance/raw-NOTICE.txt": {
+        "size_bytes": 1038,
+        "sha256": "3e5114b270eb301200a66a8522173cc6088f8395814dee008f4b09e893baa671",
+        "head_sha256": "3e5114b270eb301200a66a8522173cc6088f8395814dee008f4b09e893baa671",
+        "tail_sha256": "3e5114b270eb301200a66a8522173cc6088f8395814dee008f4b09e893baa671",
+        "etag": "\"92bf870177ac6bd33baafa55f43dbcb6\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "provenance/raw-archive-inventory-124.json": {
+        "size_bytes": 90175,
+        "sha256": "1a99d9a39eb76e98154c36376a46499330344efb489fcd5053f099c9a0e1c32f",
+        "head_sha256": "7e3b414c6b5c419a737fc6c18cc779c09c7c31374265d84f16369ebdd5299bd9",
+        "tail_sha256": "010960598c9e9a332a3017f1beeb19c0ad56dfddc701580d8254c95491fac47a",
+        "etag": "\"a2730e535351111180898e4196e7d26e\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "provenance/raw-archive-verification.json": {
+        "size_bytes": 1022,
+        "sha256": "4d1a822fa47d4885ec4c257e9d6c4cac4637fa31b92d0f361051858683f2258c",
+        "head_sha256": "4d1a822fa47d4885ec4c257e9d6c4cac4637fa31b92d0f361051858683f2258c",
+        "tail_sha256": "4d1a822fa47d4885ec4c257e9d6c4cac4637fa31b92d0f361051858683f2258c",
+        "etag": "\"a7279c1baa5388570595386ed7f4c8d0\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "rivers-lookup-directory.json": {
+        "size_bytes": 16898,
+        "sha256": "710670e90309630bb7c3b97d8de01ca2bbfc3c0cce24c3659411bb28098cf3b1",
+        "head_sha256": "710670e90309630bb7c3b97d8de01ca2bbfc3c0cce24c3659411bb28098cf3b1",
+        "tail_sha256": "710670e90309630bb7c3b97d8de01ca2bbfc3c0cce24c3659411bb28098cf3b1",
+        "etag": "\"7faa8e3f17117abf33e256c056b5c2c7\"",
+        "delivery_method": "server_side_copy",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "rivers-lookup.arrow": {
+        "size_bytes": 255113258,
+        "sha256": "52e441cf9d354814509c2975274b8454efbe560a3c5a0f9465cb749560d0c5fa",
+        "head_sha256": "2ada49e7848c491c5b3effcfbfddcc59114910ce88a24f089420e5259df53bf0",
+        "tail_sha256": "48f9ee0e818710d1b9e1c8d04258e59745656f7aeb44fa3d1a3587aec4068e0a",
+        "etag": "\"befec8b414f1deb06116020205177cf1-4\"",
+        "delivery_method": "server_side_copy",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "rivers-relationships-directory.json": {
+        "size_bytes": 134367,
+        "sha256": "be3c060948514a71cf5c2656cc9ad7feb4ac20a27eadfe3b44afb5aec5c19c0d",
+        "head_sha256": "c54ce480911ca4dd821daec72f5bc8179574515b06e5553d49ba9155c931e4e3",
+        "tail_sha256": "b8ededd4f7221ec2d352851652f34fe9636baddfd835cc6aa6280ebc9e3f00d9",
+        "etag": "\"02eb48307ad2c0f1780d9cd424fe2d4d\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "rivers-relationships.arrow": {
+        "size_bytes": 699555690,
+        "sha256": "0719f18abbca62944ff6d77619542c7c7686073c70904c8abb89b773284535d7",
+        "head_sha256": "5a577a0f2153a956e16beb1a21fda3e063b21c1e776af6a4355902f918b3041e",
+        "tail_sha256": "3595d0729b710e2e087a353ecf409347819ccaf3d729861176d92f8a41cc23cb",
+        "etag": "\"5e16fa0d1c5ba4b3fc850417adea0a7a-11\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "rivers.parquet": {
+        "size_bytes": 15940133565,
+        "sha256": "65429544aced9d71f05c9f71cad6001103c652f2486ffa12d34ac0b6cc98f11b",
+        "head_sha256": "e80e7dec0e3f5b825dc768134abbe3e50c82ddfbd0d42075cac2670011a3bb3b",
+        "tail_sha256": "acb533e8ae5601365b55e55a3481c524dd172c90a657dc4f0b5b593b852bee54",
+        "etag": "\"4dc0a4b589ee99ce28ffe1b2d8313b2c-238\"",
+        "delivery_method": "server_side_copy",
+        "verified_head_tail_readback": true,
+        "verified_full_get": false
+      },
+      "source-manifest.json": {
+        "size_bytes": 8112,
+        "sha256": "41e92c09316dec5dcabfa7920e9fe0cbe74f2f36b44c7a23e3b693af7cb62cea",
+        "head_sha256": "41e92c09316dec5dcabfa7920e9fe0cbe74f2f36b44c7a23e3b693af7cb62cea",
+        "tail_sha256": "41e92c09316dec5dcabfa7920e9fe0cbe74f2f36b44c7a23e3b693af7cb62cea",
+        "etag": "\"754027689c7f4c5eef4f0c630a5df571\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      },
+      "source-metadata.json": {
+        "size_bytes": 404711,
+        "sha256": "2e2857556785707566f8ea1e4b53175156aaee2d5beaf4a07ce5b8ac638b2de3",
+        "head_sha256": "556581086ae6a7501722ec9100176dbba57e6972d12dbb5fcee5a041c8fb4a84",
+        "tail_sha256": "7ac15e0444ce4d2f56aaf1abdfb52fac0bfeb226c4e90ace72edd66b8b607828",
+        "etag": "\"0c70bf2a37f3a2604450cdef40c84787\"",
+        "delivery_method": "upload",
+        "verified_head_tail_readback": true,
+        "verified_full_get": true
+      }
+    }
+  },
+  "exhaustive_connectivity_audit": {
+    "catchment_count": 15936428,
+    "river_count": 15940505,
+    "grouped_multipolygon_count": 334017,
+    "grouped_multipolygon_ogc_valid": "334017/334017 (100%)",
+    "extra_fragment_rows_collapsed": 928570,
+    "grouped_basins": {
+      "1020018110": 122259,
+      "5020049720": 211758
+    },
+    "contracted_stub_count": 4064,
+    "max_stub_chain_depth": 2,
+    "contracted_confluence_degrees": {
+      "3": 4058,
+      "4": 3
+    },
+    "non_contracted_linkno0_count": 13,
+    "non_contracted_linkno0_breakdown": {
+      "headwater": 12,
+      "isolated": 1,
+      "internal": 0
+    },
+    "non_contracted_other_count": 0,
+    "catchments_with_cuts_count": 12,
+    "affected_downstream_catchments_count": 5784
+  },
+  "verification": {
+    "spatial_bundle_verify": {
+      "status": "passed",
+      "input_manifest_sha256": "41e92c09316dec5dcabfa7920e9fe0cbe74f2f36b44c7a23e3b693af7cb62cea",
+      "manifest_sha256": "787ccdd094764c0a4d8724e4bb2cc9a06ca6c5a48996a3ae01da3b0866b16e8c",
+      "features": {
+        "catchments": {
+          "status": "passed",
+          "rows": 15936428,
+          "row_groups": 35221,
+          "source_batch_reads": 104997,
+          "source_decoded_bytes": 594068489076,
+          "source_logical_bytes": 286719980263,
+          "source_decode_amplification": 2.071946602852993
+        },
+        "rivers": {
+          "status": "passed",
+          "rows": 15940505,
+          "row_groups": 9852,
+          "source_batch_reads": 27400,
+          "source_decoded_bytes": 146584023006,
+          "source_logical_bytes": 73292011503,
+          "source_decode_amplification": 2.0
+        }
+      },
+      "relationships": {
+        "catchments": {
+          "rows": 15936428,
+          "columns": {
+            "upstream_ids": 15765870,
+            "downstream_ids": 15765870,
+            "local_river_ids": 15936428
+          }
+        },
+        "rivers": {
+          "rows": 15940505,
+          "columns": {
+            "upstream_ids": 15769946,
+            "downstream_ids": 15769946,
+            "local_catchment_ids": 15936428
+          }
+        }
+      },
+      "scope": "Complete normalized-input comparison; original-source fidelity is inherited, not rerun. Local raster bytes and identities are checked; raster conformance and public delivery are not checked."
+    },
+    "derived_bundle_verify": {
+      "status": "passed",
+      "base_manifest_sha256": "af831fec8d1469e304d21ff9271faead0035bb6f0ce8bf1e007c03c022a13991",
+      "manifest_sha256": "787ccdd094764c0a4d8724e4bb2cc9a06ca6c5a48996a3ae01da3b0866b16e8c",
+      "catchment_count": 15936428,
+      "river_count": 15940505,
+      "grouped_multipolygon_count": 334017,
+      "extra_fragment_rows_collapsed": 928570,
+      "grouped_basins": {
+        "1020018110": 122259,
+        "5020049720": 211758
+      },
+      "contracted_stub_count": 4064,
+      "non_contracted_linkno0_count": 13,
+      "non_contracted_other_count": 0,
+      "catchments_with_cuts_count": 12,
+      "affected_downstream_catchments_count": 5784,
+      "scope": "Independent derived-bundle comparison against verified base spatial bundle."
+    },
+    "pourpoint_end_to_end": {
+      "bundle_url": "s3://pourpoint-hfx/tdx/hfx-0.4.0/NGA-TDX-Hydro-20230126-full62-20261121",
+      "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+      "cache": false,
+      "cases": {
+        "camels_01013500": {
+          "lon": -68.58264,
+          "lat": 47.23739,
+          "subbasin_count": 247,
+          "subbasin_ids_sample": [
+            13852231,
+            13852248,
+            13853266,
+            13853283,
+            13854297,
+            13854314,
+            13855325,
+            13855342,
+            13856349,
+            13856366
+          ],
+          "coverage": {
+            "status": "complete",
+            "declared_completeness": "partial",
+            "cuts_column": "upstream_boundary_cuts",
+            "cut_counts": {},
+            "unverified_unit_ids": [],
+            "reason": null
+          },
+          "geometry_type": "MultiPolygon",
+          "geometry_is_valid": true
+        },
+        "ordinary_confluence": {
+          "target_id": 2626,
+          "expected_immediate_upstream": [
+            4,
+            1315
+          ],
+          "subbasin_count": 3,
+          "subbasin_ids_sample": [
+            4,
+            1315,
+            2626
+          ],
+          "coverage": {
+            "status": "complete",
+            "declared_completeness": "partial",
+            "cuts_column": "upstream_boundary_cuts",
+            "cut_counts": {},
+            "unverified_unit_ids": [],
+            "reason": null
+          },
+          "geometry_type": "MultiPolygon",
+          "geometry_is_valid": true
+        },
+        "contracted_3way_confluence": {
+          "target_id": 6785,
+          "expected_immediate_upstream": [
+            1547,
+            2858,
+            4168
+          ],
+          "all_3_branches_returned": true,
+          "subbasin_count": 4,
+          "subbasin_ids_sample": [
+            1547,
+            2858,
+            4168,
+            6785
+          ],
+          "coverage": {
+            "status": "complete",
+            "declared_completeness": "partial",
+            "cuts_column": "upstream_boundary_cuts",
+            "cut_counts": {},
+            "unverified_unit_ids": [],
+            "reason": null
+          },
+          "geometry_type": "Polygon",
+          "geometry_is_valid": true
+        },
+        "grouped_1020018110": {
+          "target_id": 1387825,
+          "basin": "1020018110",
+          "source_fids": [
+            924544,
+            924545,
+            924549
+          ],
+          "subbasin_count": 1,
+          "subbasin_ids_sample": [
+            1387825
+          ],
+          "coverage": {
+            "status": "complete",
+            "declared_completeness": "partial",
+            "cuts_column": "upstream_boundary_cuts",
+            "cut_counts": {},
+            "unverified_unit_ids": [],
+            "reason": null
+          },
+          "geometry_type": "MultiPolygon",
+          "geometry_is_valid": true
+        },
+        "grouped_5020049720": {
+          "target_id": 10806591,
+          "basin": "5020049720",
+          "source_fids": [
+            1334988,
+            1334991,
+            1334993,
+            1334994
+          ],
+          "subbasin_count": 5,
+          "subbasin_ids_sample": [
+            10806288,
+            10806573,
+            10806591,
+            10806972,
+            10807550
+          ],
+          "coverage": {
+            "status": "complete",
+            "declared_completeness": "partial",
+            "cuts_column": "upstream_boundary_cuts",
+            "cut_counts": {},
+            "unverified_unit_ids": [],
+            "reason": null
+          },
+          "geometry_type": "MultiPolygon",
+          "geometry_is_valid": true
+        },
+        "cut_downstream_below_linkno0": {
+          "target_id": 12528403,
+          "basin": "6020017370",
+          "default_rejected_code": "selection.incomplete_coverage",
+          "allow_incomplete_true": {
+            "subbasin_count": 2,
+            "subbasin_ids_sample": [
+              12527606,
+              12528403
+            ],
+            "coverage": {
+              "status": "incomplete",
+              "declared_completeness": "partial",
+              "cuts_column": "upstream_boundary_cuts",
+              "cut_counts": {
+                "12528403": 1
+              },
+              "unverified_unit_ids": [],
+              "reason": null
+            },
+            "geometry_type": "MultiPolygon",
+            "geometry_is_valid": true
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "13 real rivers with LINKNO == 0 (12 headwaters, 1 isolated) lack source polygons and are never bridged; 12 downstream catchments carry upstream_boundary_cuts > 0, affecting 5,784 downstream closures (0.036%).",
+    "Processing-boundary truncation, coastal/dateline cuts, and unverified vector-raster consistency (HFX #264) remain source limitations."
+  ]
+}

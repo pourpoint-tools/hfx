@@ -49,7 +49,9 @@ def _addresses(parent: Path) -> Iterator[sqlite3.Connection]:
     with TemporaryDirectory(prefix="hfx-addresses-", dir=parent) as scratch:
         connection = sqlite3.connect(Path(scratch) / "addresses.sqlite")
         try:
-            connection.execute("PRAGMA cache_size = -8192")
+            connection.execute("PRAGMA synchronous = OFF")
+            connection.execute("PRAGMA journal_mode = OFF")
+            connection.execute("PRAGMA cache_size = -65536")
             connection.execute("PRAGMA temp_store = FILE")
             connection.execute(
                 "CREATE TABLE addresses (id INTEGER PRIMARY KEY, block INTEGER NOT NULL, row INTEGER NOT NULL)"
@@ -129,7 +131,7 @@ def write_vectors(
     """Write typed vectors and their bound lookup. Failed outputs remain for diagnosis.
 
     Producers bound incoming batches; this function bounds output batches, SQLite's
-    page cache (8 MiB), and lookup batches. The returned directory grows with lookup
+    page cache (64 MiB), and lookup batches. The returned directory grows with lookup
     batch count. Callers own output paths and publish only after verification.
     """
     if batch_bytes <= 0 or index_batch_rows <= 0:
