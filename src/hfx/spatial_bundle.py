@@ -8,9 +8,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 import resource
 import shutil
+from collections.abc import Mapping
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -141,8 +143,41 @@ def _semantics(original: dict[str, Any], families: dict[str, Any]) -> dict[str, 
     return result
 
 
+def _reuse_family(donor_dir: Path, output: Path, family: str, source_name: str) -> dict[str, Any]:
+    donor_manifest = json.loads((donor_dir / "manifest.json").read_bytes())
+    if (
+        donor_manifest.get("representation") != REPRESENTATION
+        or donor_manifest.get("representation_version") != 1
+        or family not in donor_manifest.get("families", {})
+    ):
+        raise ValueError(f"donor bundle missing valid family {family!r}")
+    declaration = dict(donor_manifest["families"][family])
+    for key in ("data", "lookup", "directory"):
+        rel = str(declaration[key])
+        src = _local(donor_dir, rel)
+        expected = donor_manifest["artifacts"].get(rel)
+        if not src.is_file() or expected is None or fingerprint(src) != expected:
+            raise ValueError(f"donor family artifact differs or is missing: {rel}")
+        dest = _local(output, rel)
+        if dest.exists():
+            raise FileExistsError(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            os.link(src, dest)
+        except OSError:
+            shutil.copyfile(src, dest)
+    declaration["source_artifact"] = source_name
+    return declaration
+
+
 def build(
-    source: Path, output: Path, *, source_manifest_sha256: str, rows: int = 8192, budget: int = 8388608
+    source: Path,
+    output: Path,
+    *,
+    source_manifest_sha256: str,
+    rows: int = 8192,
+    budget: int = 8388608,
+    reuse_families: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     from hfx.relationships import build_relationships
     from hfx.spatial_features import build_features
@@ -153,12 +188,20 @@ def build(
         raise ValueError("output must be outside source bundle")
     raw, original = _source(source, source_manifest_sha256)
     _check_inputs(source, original)
+    reused = dict(reuse_families or {})
+    unknown = set(reused) - set(_families(original))
+    if unknown:
+        raise ValueError(f"unknown reuse_families: {sorted(unknown)}")
     output.mkdir(parents=True, exist_ok=False)
     families = {}
     for family, name in _families(original).items():
         started = perf_counter()
-        families[family] = build_features(source / name, output, family, rows=rows, budget=budget)
-        _progress(f"build {family}", started, output)
+        if family in reused:
+            families[family] = _reuse_family(reused[family], output, family, name)
+            _progress(f"reuse {family}", started, output)
+        else:
+            families[family] = build_features(source / name, output, family, rows=rows, budget=budget)
+            _progress(f"build {family}", started, output)
     started = perf_counter()
     relationships = build_relationships(source, output, families, batch_rows=rows)
     _progress("build relationships", started, output)
@@ -253,12 +296,19 @@ def main() -> None:
     parser.add_argument("--source-manifest-sha256", required=True)
     parser.add_argument("--rows", type=int, default=8192)
     parser.add_argument("--budget", type=int, default=8388608)
+    parser.add_argument("--reuse-family", action="append", default=[], metavar="FAMILY=DIR")
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
     if args.report.exists() or any(
         args.report.resolve().is_relative_to(path.resolve()) for path in (args.source, args.output)
     ):
         raise ValueError("report must be a new path outside input/output bundles")
+    reuse_map: dict[str, Path] = {}
+    for spec in args.reuse_family:
+        if "=" not in spec:
+            raise ValueError(f"invalid --reuse-family {spec!r}; expected FAMILY=DIR")
+        fam, donor = spec.split("=", 1)
+        reuse_map[fam] = Path(donor)
     if args.action == "build":
         build(
             args.source,
@@ -266,6 +316,7 @@ def main() -> None:
             source_manifest_sha256=args.source_manifest_sha256,
             rows=args.rows,
             budget=args.budget,
+            reuse_families=reuse_map or None,
         )
     result = verify(args.source, args.output, source_manifest_sha256=args.source_manifest_sha256)
     with args.report.open("x") as stream:

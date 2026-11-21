@@ -34,9 +34,9 @@ def test_basin_workspace_and_unordered_relations(
     for name in ("river-graph.parquet", "local-associations.parquet"):
         rewrite(output, name, list(reversed(pq.read_table(output / name).to_pylist())))
     original = verify_tdx._verify_basin
-    seen: list[tuple[int, int, int]] = []
+    seen: list[tuple[int, int, int, int]] = []
 
-    def check(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
+    def check(*args: Any, **kwargs: Any) -> tuple[int, int, int, int]:
         result = original(*args, **kwargs)
         seen.append(result)
         return result
@@ -54,9 +54,9 @@ def test_basin_workspace_and_unordered_relations(
     result = verify_tdx.verify_originals(inventory, output)
     assert scratch_paths and all(not path.exists() for path in scratch_paths)
     assert all(not path.is_relative_to(output) for path in scratch_paths)
-    assert seen == [(1, 2, 0), (1, 1, 0)]
+    assert seen == [(1, 1, 0, 0), (1, 1, 0, 0)]
     assert result["flow_edges"] == 2
-    assert result["local_associations"] == 3
+    assert result["local_associations"] == 2
 
 
 @pytest.mark.parametrize(

@@ -71,8 +71,13 @@ For this representation, river `local_catchment_ids` and its exact reverse,
 catchment `local_river_ids`, are authoritative. A river may have zero, one or
 multiple represented local catchments; preserve every supplied association.
 Keep feature identity separate from association keys: preserve native fields such
-as TDX `streamID` independently, without merging distinct source features that
-share an association key.
+as TDX `streamID` independently, without arbitrarily merging distinct source features
+that share an association key. In TDX-Hydro, where two processing basins
+(`1020018110` and `5020049720`) were exported with single-part `POLYGON` geometry
+splitting multi-part catchments into separate rows per `(processing_basin, streamID)`,
+collecting those single-part fragments into one OGC-valid `MultiPolygon` without
+dissolving or altering coordinates restores the 1-to-1 river-to-catchment mapping
+while preserving every original `fid` in `source_fids`.
 
 The river feature column `local_catchment_id` may be omitted. If present, it must
 equal the sole associated catchment ID, or be null when there is no represented

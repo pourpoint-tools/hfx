@@ -173,8 +173,18 @@ silently. Acyclicity does not certify hydrological continuity.
 When catchment connectivity is derived from supplied river connectivity and verified
 1-to-1 local drainage associations, only immediate edges whose upstream and
 downstream rivers both have delivered associated catchments are materialized in the
-catchment flow graph; omitted or missing polygons are never bridged across gaps, and
-missing links are never turned into natural outlets.
+catchment flow graph; omitted or missing polygons with drainage area (such as TDX
+`LINKNO == 0` omissions) are never contracted or bridged across gaps, and missing
+links are never turned into natural outlets.
+
+Where a river network represents multi-way confluences with zero-length, zero-area
+virtual links (for example, TauDEM binary junctions in TDX-Hydro where `Length == 0`,
+`geom.length == 0`, `DSContArea == USContArea`, `upstream_degree >= 1`, and
+`downstream_degree == 1`, failing closed on any null or non-finite value),
+exhaustively verified virtual stubs may be contracted in the derived catchment flow
+graph while leaving the river flow graph untouched. Transitive contraction propagates
+both upstream catchments and incoming boundary cuts into the downstream catchment and
+never bridges across a non-contracted polygonless river.
 
 When a level declares `completeness: "partial"` with `upstream_cuts_column`, an
 upstream catchment selection is complete relative to the source network if and only
@@ -191,7 +201,13 @@ HFX fixes structural fields, not a complete source attribute schema. Preserve
 useful source attributes, physical types, nulls and meanings. Explicitly approved
 lossless type mappings may change physical width while preserving exact values and
 nulls; retain original per-source declarations and document the mapping. TDX
-catchment `streamID` widens int32 to int64 under this rule. Document retained,
+catchment `streamID` widens int32 to int64 under this rule. Where a source exports
+multi-part catchments as separate single-part `POLYGON` rows sharing an association
+key (TDX basins `1020018110` and `5020049720`), collecting those fragments into one
+OGC-valid `MultiPolygon` without dissolving or altering coordinates retains
+`min(source_fids)` in `fid` and `source_id` (keeping `source_id` unique within
+`source_namespace`) and preserves every original `fid` in ascending order in nonnull
+`source_fids: list<int64>`. Document retained,
 renamed, transformed and omitted fields; a collision with an HFX structural name
 requires an explicit source-column rename map in provenance, not value replacement.
 Retain source field/schema metadata where applicable; update geometry metadata for

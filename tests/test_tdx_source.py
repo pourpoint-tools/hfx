@@ -118,13 +118,15 @@ def test_pair_production_preserves_originals_and_builds_only_supplied_graph(tmp_
     polygons = tmp_path / "basins.gpkg"
     original_pair_layer(polygons)
     polygon = struct.pack("<BIII10d", 1, 3, 1, 5, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0)
+    polygon2 = struct.pack("<BIII10d", 1, 3, 1, 5, 1, 1, 2, 1, 2, 2, 1, 2, 1, 1)
     geometry = b"GP" + bytes([0, 1]) + struct.pack("<i", 4326) + polygon
+    geometry2 = b"GP" + bytes([0, 1]) + struct.pack("<i", 4326) + polygon2
     with sqlite3.connect(polygons) as connection:
         connection.execute("DROP TABLE TDX_streamnet_7020000010_01")
         connection.execute("UPDATE gpkg_contents SET table_name = 'basins'")
         connection.execute("UPDATE gpkg_geometry_columns SET table_name = 'basins', geometry_type_name = 'GEOMETRY'")
         connection.execute("CREATE TABLE basins (fid INTEGER PRIMARY KEY NOT NULL, geom GEOMETRY, streamID INTEGER)")
-        connection.executemany("INSERT INTO basins VALUES (?, ?, ?)", [(1, geometry, 9), (2, geometry, 9)])
+        connection.executemany("INSERT INTO basins VALUES (?, ?, ?)", [(1, geometry, 9), (2, geometry2, 9)])
     inventory = tmp_path / "inventory.json"
     inventory.write_text(
         json.dumps(
@@ -146,19 +148,28 @@ def test_pair_production_preserves_originals_and_builds_only_supplied_graph(tmp_
     output = tmp_path / "normalized"
     produce(inventory, output)
     manifest = json.loads((output / "manifest.json").read_text())
-    assert "graph" not in manifest
+    assert manifest["graph"] == "graph.parquet"
     assert "river_nodes" not in manifest
-    assert manifest["catchment_connectivity"] == [{"level": 0, "status": "not_supplied"}]
-    assert ipc.open_file(output / "catchments.arrow").read_all()["fid"].to_pylist() == [1, 2]
+    assert manifest["catchment_connectivity"] == [
+        {
+            "level": 0,
+            "status": "supplied",
+            "completeness": "complete",
+            "upstream_cuts_column": "upstream_boundary_cuts",
+            "derivation": "river_local_associations_with_zero_area_virtual_stub_contraction",
+        }
+    ]
+    cat_table = ipc.open_file(output / "catchments.arrow").read_all()
+    assert cat_table["fid"].to_pylist() == [1]
+    assert cat_table["source_fids"].to_pylist() == [[1, 2]]
     assert pq.read_table(output / "local-associations.parquet").to_pylist() == [
         {"river_id": 1, "catchment_id": 1},
-        {"river_id": 1, "catchment_id": 2},
     ]
     assert pq.read_table(output / "river-graph.parquet")["upstream_ids"].to_pylist() == [[], [1]]
     from scripts.verify_tdx import verify_originals
 
     receipt = verify_originals(inventory, output)
-    assert receipt["features"] == {"catchments": 2, "rivers": 2}
+    assert receipt["features"] == {"catchments": 1, "rivers": 2}
     # Re-pin artifact hashes so this tests independent source comparison, not hashing.
     from hfx.candidates import fingerprint
 
@@ -166,7 +177,7 @@ def test_pair_production_preserves_originals_and_builds_only_supplied_graph(tmp_
     native_bytes = catchment_file.read_bytes()
     table = ipc.open_file(catchment_file).read_all()
     corrupted = table.set_column(
-        table.schema.get_field_index("streamID"), table.schema.field("streamID"), pa.array([42, 9], type=pa.int64())
+        table.schema.get_field_index("streamID"), table.schema.field("streamID"), pa.array([42], type=pa.int64())
     )
     with ipc.new_file(catchment_file, corrupted.schema) as writer:
         writer.write_table(corrupted)

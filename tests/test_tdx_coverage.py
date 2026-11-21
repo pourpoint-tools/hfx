@@ -44,8 +44,9 @@ def test_mixed_width_and_missing_source(mixed_inventory: Path, tmp_path: Path) -
     with ipc.open_file(str(output / "catchments.arrow")) as reader:
         catchments = reader.read_all()
     assert catchments.schema.field("streamID").type == pa.int64()
-    assert catchments["streamID"].to_pylist() == [9, 9, 9]
-    assert catchments["processing_basin"].to_pylist() == ["10", "10", "20"]
+    assert catchments["streamID"].to_pylist() == [9, 9]
+    assert catchments["source_fids"].to_pylist() == [[5, 17], [5]]
+    assert catchments["processing_basin"].to_pylist() == ["10", "20"]
     with ipc.open_file(str(output / "rivers.arrow")) as reader:
         rivers = reader.read_all()
     assert rivers["local_catchment_coverage"].to_pylist() == [
@@ -60,15 +61,14 @@ def test_mixed_width_and_missing_source(mixed_inventory: Path, tmp_path: Path) -
     assert pq.read_table(output / "river-graph.parquet")["upstream_ids"].to_pylist() == [[], [1], [], [3], [], [5]]
     assert pq.read_table(output / "local-associations.parquet").to_pylist() == [
         {"river_id": 1, "catchment_id": 1},
-        {"river_id": 1, "catchment_id": 2},
-        {"river_id": 5, "catchment_id": 3},
+        {"river_id": 5, "catchment_id": 2},
     ]
-    metadata = json.loads((output / "source-metadata.json").read_text())
+    metadata = json.loads((output / "source-metadata.json").read_text())["sources"]
     polygons = [entry for entry in metadata if entry["domain"] == "catchments"]
     assert [entry["status"] for entry in polygons] == ["supplied", "unavailable", "supplied"]
     assert polygons[0]["schemas"]["basins"][2]["type"] == "MEDIUMINT"
     assert polygons[2]["schemas"]["basins"][2]["type"] == "INTEGER"
-    assert verify_originals(mixed_inventory, output)["features"] == {"catchments": 3, "rivers": 6}
+    assert verify_originals(mixed_inventory, output)["features"] == {"catchments": 2, "rivers": 6}
 
 
 def test_spatial_delivery_retains_coverage(mixed_inventory: Path, tmp_path: Path) -> None:
@@ -93,7 +93,7 @@ def test_spatial_delivery_retains_coverage(mixed_inventory: Path, tmp_path: Path
     relation_path = manifest["relationships"]["rivers"]["data"]
     with ipc.open_file(str(spatial / relation_path)) as reader:
         relations = reader.read_all()
-    assert relations["local_catchment_ids"].to_pylist() == [[1, 2], [], [], [], [3], []]
+    assert relations["local_catchment_ids"].to_pylist() == [[1], [], [], [], [2], []]
 
 
 @pytest.mark.parametrize(
