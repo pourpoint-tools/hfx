@@ -402,8 +402,8 @@ def complete_fixture(root: Path, *, isolated_node: bool = False) -> tuple[Path, 
         "index_batch_rows": 65536,
         "catchment_connectivity": [
             {"level": 0, "status": "not_supplied"},
-            {"level": 1, "status": "supplied"},
-            {"level": 2, "status": "supplied"},
+            {"level": 1, "status": "supplied", "completeness": "complete"},
+            {"level": 2, "status": "supplied", "completeness": "complete"},
         ],
         "rivers": declarations["rivers"],
         "river_nodes": declarations["river_nodes"],
@@ -751,6 +751,68 @@ def test_declared_tree_and_unsupplied_levels_cannot_hide_edges(tmp_path: Path) -
             verify_declared_connectivity(db, manifest)
         manifest["catchment_connectivity"] = []
         with pytest.raises(ValueError, match="coverage"):
+            verify_declared_connectivity(db, manifest)
+
+
+def test_connectivity_completeness_contract_validation(tmp_path: Path) -> None:
+    from scripts.verify_grit import prepare_database, verify_declared_connectivity
+
+    with prepare_database(tmp_path / "connectivity.sqlite") as db:
+        for identifier, level in ((1, 0), (2, 1), (3, 1)):
+            db.execute(
+                "INSERT INTO features(entity,id,namespace,source_id,level) VALUES ('catchments',?,'synthetic',?,?)",
+                (identifier, str(identifier), level),
+            )
+        db.execute("INSERT INTO edges VALUES ('catchments',2,3)")
+        manifest: dict[str, object] = {
+            "topology": "dag",
+            "rivers": {"topology": "dag"},
+            "catchment_connectivity": [
+                {"level": 0, "status": "not_supplied"},
+                {"level": 1, "status": "supplied", "completeness": "complete"},
+            ],
+        }
+        verify_declared_connectivity(db, manifest)
+
+        for extra_key, extra_val in (
+            ("completeness", "complete"),
+            ("derivation", "river_local_associations"),
+            ("upstream_cuts_column", "upstream_boundary_cuts"),
+        ):
+            manifest["catchment_connectivity"] = [
+                {"level": 0, "status": "not_supplied", extra_key: extra_val},
+                {"level": 1, "status": "supplied", "completeness": "complete"},
+            ]
+            with pytest.raises(ValueError, match="not_supplied"):
+                verify_declared_connectivity(db, manifest)
+
+        for bad_completeness in ("full", None, True):
+            manifest["catchment_connectivity"] = [
+                {"level": 0, "status": "not_supplied"},
+                {"level": 1, "status": "supplied", "completeness": bad_completeness},
+            ]
+            with pytest.raises(ValueError, match="completeness"):
+                verify_declared_connectivity(db, manifest)
+
+        manifest["catchment_connectivity"] = [
+            {"level": 0, "status": "not_supplied"},
+            {"level": 1, "status": "supplied", "upstream_cuts_column": "upstream_boundary_cuts"},
+        ]
+        with pytest.raises(ValueError, match="upstream_cuts_column"):
+            verify_declared_connectivity(db, manifest)
+
+        manifest["catchment_connectivity"] = [
+            {"level": 0, "status": "not_supplied"},
+            {"level": 1, "status": "supplied", "completeness": "partial", "upstream_cuts_column": ""},
+        ]
+        with pytest.raises(ValueError, match="upstream_cuts_column"):
+            verify_declared_connectivity(db, manifest)
+
+        manifest["catchment_connectivity"] = [
+            {"level": 0, "status": "not_supplied"},
+            {"level": 1, "status": "supplied", "completeness": "complete", "derivation": ""},
+        ]
+        with pytest.raises(ValueError, match="derivation"):
             verify_declared_connectivity(db, manifest)
 
 

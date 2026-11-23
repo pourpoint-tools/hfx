@@ -40,3 +40,11 @@ verified `full62-20261027` bundle with single-part `POLYGON` fragment
 collection, exhaustively verified zero-area virtual confluence stub
 contraction, completeness metadata, S3 readback, and live Pourpoint
 end-to-end verification (`cache=False`).
+
+`grit-connectivity-completeness.json` records the secret-free provenance for
+the public GRIT HFX 0.4.0 metadata-only completeness update (`#288`,
+`https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/`) reusing
+the verified October vector and raster objects, preserving the October manifest
+by SHA-256 under `provenance/`, and recording fresh-cache Pourpoint
+verification (`cache=False`) across Rhine at Basel (level 1), reach-level
+outlets (level 2), and unsupplied component connectivity (level 0).
