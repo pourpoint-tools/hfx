@@ -161,7 +161,11 @@ def test_original_layer_mapping(tmp_path: Path) -> None:
     assert manifest["unit_count"] == 3
     assert manifest["rivers"]["count"] == 2
     assert manifest["river_nodes"]["count"] == 4
-    assert manifest["catchment_connectivity"][0] == {"level": 0, "status": "not_supplied"}
+    assert manifest["catchment_connectivity"] == [
+        {"level": 0, "status": "not_supplied"},
+        {"level": 1, "status": "supplied", "completeness": "complete"},
+        {"level": 2, "status": "supplied", "completeness": "complete"},
+    ]
     assert catches[1]["outlet_lon"] is not None
     assert catches[1]["outlet_lat"] is not None
     lookup = ipc.open_file(str(output / "lookup.arrow"))

@@ -847,8 +847,8 @@ def finish_manifest(
             "river_nodes": declaration("river-node", identities.counts["nodes"]),
             "catchment_connectivity": [
                 {"level": 0, "status": "not_supplied"},
-                {"level": 1, "status": "supplied"},
-                {"level": 2, "status": "supplied"},
+                {"level": 1, "status": "supplied", "completeness": "complete"},
+                {"level": 2, "status": "supplied", "completeness": "complete"},
             ],
             "categorical_columns": categories,
             "artifacts": artifacts,

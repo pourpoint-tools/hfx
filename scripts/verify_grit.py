@@ -610,6 +610,10 @@ def verify_declared_connectivity(db: sqlite3.Connection, manifest: dict[str, obj
         )
         if entry["status"] == "not_supplied":
             require(
+                not any(key in entry for key in ("completeness", "upstream_cuts_column", "derivation")),
+                "not_supplied level must not declare completeness or derivation",
+            )
+            require(
                 db.execute(
                     "SELECT 1 FROM edges e JOIN features f ON f.entity=e.entity AND f.id=e.downstream WHERE e.entity='catchments' AND f.level=? LIMIT 1",
                     (entry["level"],),
@@ -617,6 +621,24 @@ def verify_declared_connectivity(db: sqlite3.Connection, manifest: dict[str, obj
                 is None,
                 "not_supplied level contains edges",
             )
+        else:
+            if "completeness" in entry:
+                require(
+                    entry["completeness"] in {"complete", "partial"},
+                    "catchment connectivity completeness invalid",
+                )
+            if "upstream_cuts_column" in entry:
+                require(
+                    "completeness" in entry
+                    and isinstance(entry["upstream_cuts_column"], str)
+                    and bool(entry["upstream_cuts_column"]),
+                    "catchment connectivity upstream_cuts_column invalid",
+                )
+            if "derivation" in entry:
+                require(
+                    isinstance(entry["derivation"], str) and bool(entry["derivation"]),
+                    "catchment connectivity derivation invalid",
+                )
     for entity, topology in (
         ("catchments", manifest["topology"]),
         ("rivers", cast(dict[str, object], manifest["rivers"])["topology"]),

@@ -1,0 +1,325 @@
+{
+  "issue": "https://github.com/pourpoint-tools/hfx/issues/288",
+  "vision": "planning/visions/2026-11-23-grit-catchment-connectivity-completeness.md",
+  "previous_public_manifest": {
+    "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/manifest.json",
+    "preserved_path": "provenance/manifest-04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f.json",
+    "preserved_url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/provenance/manifest-04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f.json",
+    "sha256": "04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f",
+    "size_bytes": 23915,
+    "etag": "\"34e50ff5047999b46b8727ca7a9810f3\"",
+    "preserved_cache_control": "public,max-age=31536000,immutable",
+    "preserved_readback_matched_byte_for_byte": true
+  },
+  "october_verification_evidence": {
+    "commit": "2cc0aa74f5d05d1a7b500899225d0c1c148d957f",
+    "original_verification_url": "https://github.com/pourpoint-tools/hfx/blob/2cc0aa74f5d05d1a7b500899225d0c1c148d957f/docs/v0.4.0/grit-river-delivery.md",
+    "original_verification_sha256": "0bb03e219657775da72271573105dd8d2451a4d9def9c2c1cd8b50d00a4be9aa",
+    "final_receipt_url": "https://github.com/pourpoint-tools/hfx/blob/2cc0aa74f5d05d1a7b500899225d0c1c148d957f/docs/v0.4.0/receipts/grit-final-delivery.json",
+    "final_receipt_sha256": "374f4f100106e600b608a02fa8f3cd0939023ec73ec72c69ee425d9149a08f26",
+    "source_manifest_sha256": "b9a38083131dcf1a4c7c4e73ebe9a97dff2a4b7ef91a8df53f8bc38cadfa48db",
+    "local_manifest_sha256": "fd46f09e642fab95dbd57ddc8a3f79461ff31c9bb9c21772b7e4729effee1fd2",
+    "local_spatial_verification_receipt": {
+      "artifact": "final-spatial-verification.json",
+      "sha256": "743abf565518d588fc434d1cff74f58a507f46c7eee4b25df92222f21b330ba6",
+      "size_bytes": 2134
+    },
+    "verified_counts": {
+      "catchments": 22419857,
+      "rivers": 22337300,
+      "river_nodes": 22278858,
+      "catchment_flow_edges": 22395952,
+      "river_flow_edges": 22395952,
+      "local_river_catchment_pairs": 22337300
+    }
+  },
+  "published_bundle": {
+    "public_url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/",
+    "manifest_url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/manifest.json",
+    "r2_bucket": "basin-delineations-public",
+    "r2_prefix": "grit/hfx-v0.4.0/",
+    "manifest_sha256": "156c4c535e1cf60cbcae1742413ef17de045d8471157efd6ac5ef34a667175be",
+    "manifest_size_bytes": 25689,
+    "manifest_etag": "\"c9e020b1feb587b47efbf52f51162c47\"",
+    "manifest_cache_control": "public,max-age=0,must-revalidate",
+    "ordinary_and_cache_busted_equal": true,
+    "published_last": true,
+    "catchment_connectivity": [
+      {
+        "level": 0,
+        "status": "not_supplied"
+      },
+      {
+        "level": 1,
+        "status": "supplied",
+        "completeness": "complete"
+      },
+      {
+        "level": 2,
+        "status": "supplied",
+        "completeness": "complete"
+      }
+    ],
+    "relationships_catchments_connectivity_equal": true,
+    "uploaded_provenance_artifacts": {
+      "provenance/manifest-04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f.json": {
+        "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/provenance/manifest-04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f.json",
+        "size_bytes": 23915,
+        "sha256": "04bbfb50907feaf339808730f85c39ee2cbeaed2c6217e9d546cd445b3bc897f",
+        "etag": "\"34e50ff5047999b46b8727ca7a9810f3\"",
+        "cache_control": "public,max-age=31536000,immutable",
+        "verified_https_readback": true
+      },
+      "provenance/connectivity-completeness-2026-11-23.json": {
+        "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/provenance/connectivity-completeness-2026-11-23.json",
+        "size_bytes": 4386,
+        "sha256": "a652a76855dc95102bc51cd096e70c4a1896dc34ddf3e5c4f7273e9328e5efd2",
+        "etag": "\"35c3c636fedae6f110a870438ed6f2c5\"",
+        "cache_control": "public,max-age=31536000,immutable",
+        "verified_https_readback": true
+      }
+    },
+    "reused_vector_artifacts_unchanged": true,
+    "reused_vector_artifact_count": 22,
+    "external_rasters_unchanged": {
+      "grit-flow-dir": {
+        "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_dir.tif",
+        "size_bytes": 35460747402,
+        "sha256": "6d03ccdc092b914be0ae41975fbafebb2b02334ff481a1589897539228ab7c65",
+        "head_status": 200,
+        "etag": "\"b3fc5783c3be4bb1cd31d90c6b4cc796-529\""
+      },
+      "grit-flow-acc": {
+        "url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/aux/d8/flow_acc.tif",
+        "size_bytes": 150995308307,
+        "sha256": "01e8b76570a8d98026fdad77107ed5fe719490433d0351c43b62aca32ff0c15d",
+        "head_status": 200,
+        "etag": "\"9e5e76dd83e80d58f6b2373b6ac4ff78-2251\""
+      }
+    }
+  },
+  "candidate_verification": {
+    "status": "passed",
+    "candidate_manifest_sha256": "156c4c535e1cf60cbcae1742413ef17de045d8471157efd6ac5ef34a667175be",
+    "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+    "cache": false,
+    "allow_incomplete": false,
+    "rhine_at_basel_segment": {
+      "requested_point": [
+        7.589,
+        47.5596
+      ],
+      "snapped_outlet": [
+        7.589419733801915,
+        47.5601216944592
+      ],
+      "level": 1,
+      "subbasin_count": 424,
+      "seed_unit_id": 848266,
+      "seed_source_id": "160072595",
+      "coverage": {
+        "status": "complete",
+        "declared_completeness": "complete",
+        "cuts_column": null,
+        "cut_counts": {},
+        "unverified_unit_ids": [],
+        "reason": null
+      },
+      "river_closure_cross_check": {
+        "seed_river_id": 765709,
+        "river_closure_count": 424,
+        "matches_catchment_local_rivers": true
+      }
+    },
+    "reach_level_outlets": {
+      "netherlands_11_reaches": {
+        "target": [
+          5.108851240509936,
+          51.78809971840007
+        ],
+        "level": 2,
+        "subbasin_count": 11,
+        "coverage_status": "complete",
+        "river_closure_count": 11,
+        "matches_catchment_local_rivers": true
+      },
+      "australia_2_reaches": {
+        "target": [
+          129.68070603166115,
+          -14.499044113531943
+        ],
+        "level": 2,
+        "subbasin_count": 2,
+        "coverage_status": "complete",
+        "river_closure_count": 2,
+        "matches_catchment_local_rivers": true
+      }
+    },
+    "component_level": {
+      "level": 0,
+      "allow_incomplete_false_error_code": "selection.connectivity_unavailable",
+      "allow_incomplete_true_error_code": "selection.connectivity_unavailable"
+    }
+  },
+  "live_public_verification": {
+    "status": "passed",
+    "public_url": "https://basin-delineations-public.upstream.tech/grit/hfx-v0.4.0/",
+    "manifest_sha256": "156c4c535e1cf60cbcae1742413ef17de045d8471157efd6ac5ef34a667175be",
+    "pourpoint_commit": "28b4ea153dd3ab7dfb300de3827e61dc1951c766",
+    "cache": false,
+    "allow_incomplete": false,
+    "metadata_verifier_status": "passed",
+    "rhine_at_basel_segment": {
+      "requested_point": [
+        7.589,
+        47.5596
+      ],
+      "snapped_outlet": [
+        7.589419733801915,
+        47.5601216944592
+      ],
+      "nearby_river_count": 6,
+      "level": 1,
+      "subbasin_count": 424,
+      "seed_unit_id": 848266,
+      "seed_source_id": "160072595",
+      "seed_source_namespace": "grit:1.0:EU:segment_catchments:segment_catchments__1",
+      "subbasin_ids_sample": [
+        848266,
+        821686,
+        843403,
+        821897,
+        822050,
+        822060,
+        843393,
+        821633,
+        821933,
+        821936
+      ],
+      "total_geodesic_area_km2": 35825.37,
+      "coverage": {
+        "status": "complete",
+        "declared_completeness": "complete",
+        "cuts_column": null,
+        "cut_counts": {},
+        "unverified_unit_ids": [],
+        "reason": null
+      },
+      "river_closure_cross_check": {
+        "seed_river_id": 765709,
+        "river_closure_count": 424,
+        "matches_catchment_local_rivers": true
+      },
+      "default_delineate_coarse": {
+        "subbasin_count": 424,
+        "geometry_type": "Polygon",
+        "geometry_is_valid": true,
+        "coverage_status": "complete"
+      }
+    },
+    "reach_level_outlets": {
+      "netherlands_11_reaches": {
+        "target": [
+          5.108851240509936,
+          51.78809971840007
+        ],
+        "level": 2,
+        "subbasin_count": 11,
+        "subbasin_ids": [
+          11205505,
+          11205504,
+          11205503,
+          11205502,
+          11205501,
+          11205500,
+          11205499,
+          11205498,
+          11205497,
+          11205496,
+          11205495
+        ],
+        "source_ids": [
+          "160455375",
+          "160455374",
+          "160455373",
+          "160455372",
+          "160455371",
+          "160455370",
+          "160455369",
+          "160455368",
+          "160455367",
+          "160455366",
+          "160455365"
+        ],
+        "coverage": {
+          "status": "complete",
+          "declared_completeness": "complete",
+          "cuts_column": null,
+          "cut_counts": {},
+          "unverified_unit_ids": [],
+          "reason": null
+        },
+        "river_closure_cross_check": {
+          "seed_river_id": 11122948,
+          "river_closure_count": 11,
+          "matches_catchment_local_rivers": true
+        }
+      },
+      "australia_2_reaches": {
+        "target": [
+          129.68070603166115,
+          -14.499044113531943
+        ],
+        "level": 2,
+        "subbasin_count": 2,
+        "subbasin_ids": [
+          22419854,
+          22419853
+        ],
+        "source_ids": [
+          "560535490",
+          "560535489"
+        ],
+        "coverage": {
+          "status": "complete",
+          "declared_completeness": "complete",
+          "cuts_column": null,
+          "cut_counts": {},
+          "unverified_unit_ids": [],
+          "reason": null
+        },
+        "river_closure_cross_check": {
+          "seed_river_id": 22337297,
+          "river_closure_count": 2,
+          "matches_catchment_local_rivers": true
+        }
+      }
+    },
+    "component_level": {
+      "target": [
+        7.589419733801915,
+        47.5601216944592
+      ],
+      "level": 0,
+      "allow_incomplete_false": {
+        "error_code": "selection.connectivity_unavailable",
+        "reason": "upstream connectivity is not supplied for level 0"
+      },
+      "allow_incomplete_true": {
+        "error_code": "selection.connectivity_unavailable",
+        "reason": "upstream connectivity is not supplied for level 0"
+      }
+    },
+    "transfer_stats": {
+      "requests": 951,
+      "transferred_bytes": 161621568,
+      "cache_hit_bytes": 0
+    },
+    "total_elapsed_s": 227.87
+  },
+  "limitations": [
+    "Completeness declarations are relative to GRIT v1.0's published vector network (Zenodo record 17435232, CC BY-NC 4.0) and do not certify vector-raster consistency (HFX #264).",
+    "Known GRIT v1.0 drainage-direction raster merge loops remain documented separately (HFX #269).",
+    "Level 0 component catchments supply component membership only (status: not_supplied) and raise selection.connectivity_unavailable."
+  ]
+}
